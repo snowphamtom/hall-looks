@@ -11,15 +11,15 @@
 <meta property="og:site_name" content="HEAVY IS THE CROWN">
 <meta property="og:title" content="HEAVY IS THE CROWN — Forge">
 <meta property="og:description" content="Two figures on a canvas. Change armor, weapon and body, and save to the site locker.">
-<meta property="og:url" content="https://visionary-boba-aebdc9.netlify.app/forge">
-<meta property="og:image" content="https://visionary-boba-aebdc9.netlify.app/images/og-home.jpg">
+<meta property="og:url" content="https://snowphamtom.github.io/hall-looks/forge/">
+<meta property="og:image" content="https://snowphamtom.github.io/hall-looks/images/og-home.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="The home plate: a see-through hologram figure holding a katana on a cyan grid.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="HEAVY IS THE CROWN — Forge">
 <meta name="twitter:description" content="Two figures on a canvas. Change armor, weapon and body, and save to the site locker.">
-<meta name="twitter:image" content="https://visionary-boba-aebdc9.netlify.app/images/og-home.jpg">
+<meta name="twitter:image" content="https://snowphamtom.github.io/hall-looks/images/og-home.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Outfit:wght@380;500;650&display=swap" rel="stylesheet">
@@ -61,7 +61,7 @@ textarea{width:100%;min-height:80px;padding:10px;border-radius:12px;border:1px s
 .figpick button.on{background:#0A0A0B;color:#fff;border-color:#0A0A0B}
 .quiet{font-family:ui-monospace,monospace;font-size:9px;line-height:1.4;opacity:.45;margin-top:6px}
 .note{font-family:ui-monospace,monospace;font-size:9px;opacity:.55;margin-top:6px;min-height:12px}
-.lock-note{font-size:12px;line-height:1.35;font-weight:700;color:#0A0A0B;opacity:1;margin:0 0 4px}
+.lock-note{font-size:12px;line-height:1.35;font-weight:700;color:#0A0A0B;opacity:1;margin:0 0 4px;white-space:pre-line}
 select:disabled,input[type=range]:disabled{opacity:.35;cursor:not-allowed;filter:grayscale(1)}
 
 /* Site nav (added for the hall site). Same look as the other pages' nav. */
@@ -121,7 +121,6 @@ select:disabled,input[type=range]:disabled{opacity:.35;cursor:not-allowed;filter
 <div class="control">
 <div class="label">Material + Glow</div>
 <select id="finish" onchange="live(true)"><option value="white">Finish White</option><option value="chrome">Finish Chrome</option><option value="titanium">Finish Gunmetal</option><option value="ceramic">Finish Ceramic</option><option value="black">Finish Black</option></select>
-<div class="lock-note" id="finishNote" hidden></div>
 <div class="row" title="How brightly the armor lights glow. Drawn on the blank figure."><span>Armor glow</span><span id="glowV" class="mono">soft</span></div><input type="range" id="glow" aria-label="Armor glow" title="How brightly the armor lights glow. Drawn on the blank figure." min="0" max="15" value="9" oninput="live(true)">
 <div class="dots"><div class="dot active" data-c="#FFFFFF" style="background:#FFFFFF" onclick="setColor(this)"></div><div class="dot" data-c="#0A0A0B" style="background:#0A0A0B" onclick="setColor(this)"></div><div class="dot" data-c="#9AA0A8" style="background:#9AA0A8" onclick="setColor(this)"></div><div class="dot" data-c="#00D4FF" style="background:#00D4FF" onclick="setColor(this)"></div><div class="dot" data-c="#FFAA00" style="background:#FFAA00" onclick="setColor(this)"></div></div>
 </div>
@@ -136,7 +135,7 @@ select:disabled,input[type=range]:disabled{opacity:.35;cursor:not-allowed;filter
 <div class="control">
 <div class="label">Weapon — Customize How It Looks</div>
 <div class="lock-note" id="weaponNote" hidden></div>
-<select id="weapon" onchange="live(true)"><option value="katana">Katana</option><option value="dual">Dual Katanas</option><option value="axe">Tactical Axe</option><option value="hammer">Hammer, amber core</option><option value="spear">Energy Spear</option><option value="plasma">Plasma Blade</option></select>
+<select id="weapon" title="Which weapon the figure holds. Drawn on the blank figure." onchange="live(true)"><option value="katana">Katana</option><option value="dual">Dual Katanas</option><option value="axe">Tactical Axe</option><option value="hammer">Hammer, amber core</option><option value="spear">Energy Spear</option><option value="plasma">Plasma Blade</option></select>
 <div class="row" title="How long the weapon is."><span>Weapon length</span><span id="wLenV" class="mono">medium</span></div><input type="range" id="wLen" aria-label="Weapon length" title="How long the weapon is." min="0" max="100" value="50" oninput="live(true)">
 <div class="row" title="How much fight damage shows on the weapon: dents, burns, chips."><span>Battle damage</span><span id="wWearV" class="mono">Medium</span></div><input type="range" id="wWear" aria-label="Battle damage" title="How much fight damage shows on the weapon: dents, burns, chips." min="0" max="100" value="40" oninput="live(true)">
 <div class="row" title="How brightly the weapon glows."><span>Weapon glow</span><span id="wGlowV" class="mono">soft</span></div><input type="range" id="wGlow" aria-label="Weapon glow" title="How brightly the weapon glows." min="0" max="15" value="8" oninput="live(true)">
@@ -406,9 +405,11 @@ function updateSpec(){
   const onPhoto=f.preset!=null;
   ["weapon","wLen","wWear","wGlow","glow"].forEach(function(id){ const el=document.getElementById(id); if(el) el.disabled=onPhoto; });
   const wn=document.getElementById("weaponNote");
-  if(wn){ wn.textContent=onPhoto?(active===0&&figs[1].preset==null?"Weapon draws on the blank figure. Pick Right to use these.":"Weapon draws on the blank figure, not on a preset photo."):""; wn.hidden=!onPhoto; }
-  const fn=document.getElementById("finishNote");
-  if(fn){ fn.textContent=onPhoto?"On a photo, finish only tints it darker. Joint glow draws on the blank figure.":""; fn.hidden=!onPhoto; }
+  // On a photo the finish reason shares the weapon lock note, which sits above the fold, and the finish select's tooltip.
+  const finishWhy="On a photo, finish only tints it darker. Joint glow draws on the blank figure.";
+  if(wn){ wn.textContent=onPhoto?(active===0&&figs[1].preset==null?"Weapon draws on the blank figure. Pick Right to use these.":"Weapon draws on the blank figure, not on a preset photo.")+"\n"+finishWhy:""; wn.hidden=!onPhoto; }
+  const fsel=document.getElementById("finish");
+  if(fsel){ if(onPhoto) fsel.title=finishWhy; else fsel.removeAttribute("title"); }
   paintExplorer();
 }
 function optText(id,v){
