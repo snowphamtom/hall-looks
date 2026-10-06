@@ -82,6 +82,14 @@ select:disabled,input[type=range]:disabled{opacity:.35;cursor:not-allowed;filter
   #site-nav[data-collapsible].open{height:auto;flex-wrap:wrap;padding:10px 18px}
   #site-nav[data-collapsible].open .nav-links{display:flex;flex-wrap:wrap;gap:8px 16px;width:100%;padding:8px 0}
 }
+/* Top bar: cherry blossom tree bark, same as the other pages. */
+#site-nav{background-color:#2e1b18;background-image:linear-gradient(180deg,rgba(255,214,226,.10) 0,rgba(255,214,226,0) 34%,rgba(0,0,0,0) 60%,rgba(14,6,5,.55) 100%),url("../images/cherry-bark.svg");background-size:100% 100%,640px 160px;backdrop-filter:none;border-bottom:1px solid rgba(244,180,200,.55);box-shadow:inset 0 1px 0 rgba(255,220,230,.14),0 1px 0 rgba(20,8,8,.9),0 6px 18px rgba(0,0,0,.45)}
+#site-nav .brand{color:#FBE9EE;text-shadow:0 1px 2px rgba(20,6,6,.9),0 0 12px rgba(244,170,195,.35)}
+#site-nav .brand::before{content:"\273F";color:#F4B4C8;margin-right:.55em;letter-spacing:0;text-shadow:0 0 8px rgba(244,170,195,.6)}
+#site-nav a{color:rgba(251,233,238,.74);text-shadow:0 1px 2px rgba(20,6,6,.9)}
+#site-nav a[aria-current="page"],#site-nav a:hover{color:#FFF3F6}
+#site-nav a[aria-current="page"]{box-shadow:inset 0 -2px 0 #F4B4C8}
+@media (max-width:720px){#site-nav[data-collapsible] .nav-toggle{background:rgba(30,16,14,.8);border-color:rgba(244,180,200,.55);color:#FBE9EE}}
 @media (prefers-reduced-motion: reduce){*{transition:none !important;animation:none !important}}
 </style>
 </head>
