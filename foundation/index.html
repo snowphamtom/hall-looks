@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HEAVY IS THE CROWN — Foundation</title>
+<meta name="description" content="The earned piece: white mosaic plates over black armor with gold trim, and a see-through cape that shows rainbow light.">
+<meta name="theme-color" content="#070708">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="HEAVY IS THE CROWN">
+<meta property="og:title" content="HEAVY IS THE CROWN — Foundation">
+<meta property="og:description" content="The earned piece: white mosaic plates over black armor with gold trim, and a see-through cape that shows rainbow light.">
+<meta property="og:url" content="https://visionary-boba-aebdc9.netlify.app/foundation">
+<meta property="og:image" content="https://visionary-boba-aebdc9.netlify.app/images/og-home.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The home plate: a see-through hologram figure holding a katana on a cyan grid.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="HEAVY IS THE CROWN — Foundation">
+<meta name="twitter:description" content="The earned piece: white mosaic plates over black armor with gold trim, and a see-through cape that shows rainbow light.">
+<meta name="twitter:image" content="https://visionary-boba-aebdc9.netlify.app/images/og-home.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Outfit:wght@380;500;650&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+<nav class="nav" aria-label="Site"><a class='brand' href='../'>HEAVY IS THE CROWN</a><button type="button" class="nav-toggle" aria-expanded="false" aria-controls="nav-links">Menu</button><span class="nav-links" id="nav-links"><a href='../'>Room</a><a aria-current='page' href='../foundation/'>Foundation</a><a href='../black-chrome/'>Black Chrome</a><a href='../white-samurai/'>White Samurai</a><a href='../skull-champion/'>Skull Champion</a><a href='../titan-gladiator/'>Titan Gladiator</a><a href='../forge/'>Forge</a><a href='../smith/'>Smith</a><a href='../colosseum/'>Colosseum</a><a href='../create/'>Create</a><a href='../help/'>Help</a><a href='../locker/'>Locker</a></span></nav>
+<main class="page">
+<section class="figure-wrap">
+  <img src="../images/foundation.jpg" alt="One armored figure facing forward in a dark purple-lit room on a wet stone floor: black armor with gold edges and white cracked-mosaic plates, a white helmet split by a black line, and a long see-through cape that shows rainbow light.">
+</section>
+<section class="side">
+  <div class="kicker">Earned</div>
+  <h1>Foundation</h1>
+  <p class="note">Black armor with gold edges and white cracked-mosaic plates, a white helmet split by a black line, and a long see-through cape that shows rainbow light. This is the piece that holds the top rank.</p>
+  <button class="go" type="button" id="save" aria-pressed="false">Save to locker</button>
+  <p class="direction" id="status">Saving this turns the site background holographic (Prism, rank 24). Lesser pieces do not pull it down.</p>
+  <div class="scale" data-scale></div>
+</section>
+</main>
+<script src="../locker-store.js"></script>
+<script>
+const saveButton = document.getElementById("save");
+const saveStatus = document.getElementById("status");
+const L = window.HallLocker;
+function syncSaveState() {
+  const on = L.hasLook("foundation");
+  saveButton.setAttribute("aria-pressed", on ? "true" : "false");
+  saveButton.textContent = on ? "Saved to locker" : "Save to locker";
+}
+saveButton.addEventListener("click", () => {
+  if (L.hasLook("foundation")) {
+    saveStatus.textContent = "Foundation is already in the locker. Remove it on the Locker page.";
+    return;
+  }
+  const r = L.add({ label: "Foundation", look: "foundation", source: "foundation" });
+  if (!r.ok) { saveStatus.textContent = r.reason; return; }
+  syncSaveState();
+  saveStatus.textContent = "Saved. Foundation is in the locker, and the background is holographic." + (r.earned ? " The board gained one line." : "");
+  if (window.heavyPulse) window.heavyPulse(18);
+  if (window.applyLockerField) window.applyLockerField();
+});
+window.addEventListener("storage", syncSaveState);
+syncSaveState();
+</script>
+<script src="../locker-field.js"></script>
+<script src="../interaction.js"></script>
+<script src="../nav.js"></script>
+</body></html>

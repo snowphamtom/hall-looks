@@ -1,0 +1,24 @@
+/* CREATE-PART.css: only the additions for /create. Uses styles.css variables. */
+.create-figure {
+  display: grid; grid-template-columns: minmax(0, 360px) minmax(0, 1fr); gap: 22px;
+  border: 1px solid var(--line); border-radius: 16px; padding: 20px; margin: 0 0 28px;
+  background: linear-gradient(180deg, #121318, #0b0c0e);
+}
+.create-figure .figure-stage { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: #050506; }
+.create-figure canvas#figure-canvas { display: block; width: 100%; height: auto; aspect-ratio: 3 / 4; }
+.create-figure .figure-side { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.create-figure .figure-label { margin: 6px 0 0; color: var(--muted); font-size: 13px; letter-spacing: .14em; text-transform: uppercase; }
+.create-figure .figure-name {
+  font: inherit; font-size: 20px; color: var(--ink); background: var(--panel);
+  border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; width: 100%; max-width: 26rem;
+}
+.create-figure .figure-name:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.create-figure .styles { margin: 0; }
+.create-figure .figure-summary { font-family: "Cormorant Garamond", Georgia, serif; font-size: 24px; line-height: 1.3; margin: 8px 0; color: var(--ink); }
+.create-figure .figure-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.create-figure .figure-status { color: var(--muted); font-size: 14px; min-height: 1.4em; margin: 0; }
+@media (max-width: 760px) {
+  .create-figure { grid-template-columns: 1fr; padding: 14px; }
+  .create-figure .figure-stage { max-width: 360px; width: 100%; margin: 0 auto; }
+}
+.create-figure .figure-actions .go { width: auto; flex: 1 1 10rem; }

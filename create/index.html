@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HEAVY IS THE CROWN — Create</title>
+<meta name="description" content="Tap short names to say a character and get a markdown sheet.">
+<meta name="theme-color" content="#070708">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="HEAVY IS THE CROWN">
+<meta property="og:title" content="HEAVY IS THE CROWN — Create">
+<meta property="og:description" content="Tap short names to say a character and get a markdown sheet.">
+<meta property="og:url" content="https://visionary-boba-aebdc9.netlify.app/create">
+<meta property="og:image" content="https://visionary-boba-aebdc9.netlify.app/images/og-home.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The home plate: a see-through hologram figure holding a katana on a cyan grid.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="HEAVY IS THE CROWN — Create">
+<meta name="twitter:description" content="Tap short names to say a character and get a markdown sheet.">
+<meta name="twitter:image" content="https://visionary-boba-aebdc9.netlify.app/images/og-home.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Outfit:wght@380;500;650;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../styles.css">
+<link rel="stylesheet" href="../create.css">
+<link rel="stylesheet" href="../card.css">
+</head>
+<body>
+<nav class="nav" aria-label="Site"><a class='brand' href='../'>HEAVY IS THE CROWN</a><button type="button" class="nav-toggle" aria-expanded="false" aria-controls="nav-links">Menu</button><span class="nav-links" id="nav-links"><a href='../'>Room</a><a href='../foundation/'>Foundation</a><a href='../black-chrome/'>Black Chrome</a><a href='../white-samurai/'>White Samurai</a><a href='../skull-champion/'>Skull Champion</a><a href='../titan-gladiator/'>Titan Gladiator</a><a href='../forge/'>Forge</a><a href='../smith/'>Smith</a><a href='../colosseum/'>Colosseum</a><a aria-current='page' href='../create/'>Create</a><a href='../help/'>Help</a><a href='../locker/'>Locker</a></span></nav>
+<main class="help create-page">
+  <div class="kicker">Say a character</div>
+  <h1>Create</h1>
+  <p class="help-intro">Tap a short name at each step. The words you pick are the character type you can say out loud, like elf, dark wood. The sheet at the end is markdown you can read.</p>
+  <ol class="create-steps" id="steps"></ol>
+  <article class="sheet-wrap">
+    <div class="sheet-bar"><span>Character sheet</span><button type="button" id="copy-sheet" class="go">Copy markdown</button></div>
+    <pre id="sheet" class="sheet"></pre>
+  </article>
+</main>
+<script src="../locker-store.js"></script>
+<script src="../locker-field.js"></script>
+<script src="../card.js"></script>
+<script src="../create.js"></script>
+<script src="../interaction.js"></script>
+<script src="../nav.js"></script>
+</body>
+</html>

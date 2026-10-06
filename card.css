@@ -1,0 +1,116 @@
+/* HEAVY IS THE CROWN — shared character card ("Gallery full-art"). See CARD-DESIGN.md.
+   One component for every character card: home looks, Locker roster and vault, Create ancestry, Colosseum fighters.
+   The picture is full-bleed; the frame, name plate and rank emblem sit on top of it. Only .hc-card--prism gets foil. */
+.hc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--hc-min, 200px), 1fr)); gap: clamp(14px, 2vw, 24px); }
+.hc-card {
+  --tier: #c9a227;
+  --mx: 50%; --my: 30%; --rx: 0deg; --ry: 0deg; --lift: 0px; --glare: 0;
+  position: relative; display: block; isolation: isolate;
+  aspect-ratio: 5 / 7; width: 100%; margin: 0; padding: 0;
+  border: 0; border-radius: 14px; overflow: hidden; cursor: pointer;
+  background: #050506; color: #F4F1E8; text-align: left; font: inherit; text-decoration: none;
+  transform: perspective(900px) translateY(var(--lift)) rotateX(var(--rx)) rotateY(var(--ry));
+  transform-style: preserve-3d;
+  box-shadow: 0 1px 0 rgba(255,255,255,.04) inset, 0 18px 34px -16px rgba(0,0,0,.85), 0 2px 6px rgba(0,0,0,.5);
+  transition: transform .35s cubic-bezier(.2,.7,.2,1), box-shadow .35s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.hc-card:hover, .hc-card:focus-visible { --lift: -4px; --glare: 1; box-shadow: 0 1px 0 rgba(255,255,255,.06) inset, 0 28px 48px -18px rgba(0,0,0,.9), 0 0 0 1px color-mix(in srgb, var(--tier) 45%, transparent); }
+.hc-card:focus-visible { outline: 2px solid var(--amber, #e4a15a); outline-offset: 4px; }
+.hc-card:active { transform: perspective(900px) translateY(-1px) scale(.99); }
+/* art: full-bleed picture or canvas */
+.hc-card__art { position: absolute; inset: 0; z-index: 0; }
+.hc-card__art img, .hc-card__art canvas { width: 100%; height: 100%; display: block; object-fit: cover; object-position: var(--pos, 50% 30%); }
+.hc-card__art img { transition: transform .6s cubic-bezier(.2,.7,.2,1); }
+.hc-card:hover .hc-card__art img { transform: scale(1.035); }
+.hc-card--contain .hc-card__art img { object-fit: contain; background: radial-gradient(ellipse at 50% 40%, #16171c, #050506 70%); }
+/* depth: vignette top and a deep scrim under the plate */
+.hc-card::before {
+  content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(5,5,6,.55) 0%, rgba(5,5,6,0) 22%),
+    linear-gradient(0deg, rgba(5,5,6,.96) 0%, rgba(5,5,6,.78) 20%, rgba(5,5,6,0) 46%);
+}
+/* gilt hairline frame, inset like a printed border */
+.hc-card::after {
+  content: ""; position: absolute; inset: 7px; z-index: 4; pointer-events: none; border-radius: 9px;
+  border: 1px solid color-mix(in srgb, var(--tier) 55%, rgba(244,241,232,.25));
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.35);
+}
+/* sheen: soft light that follows the pointer (screen blend only lightens) */
+.hc-card__sheen {
+  position: absolute; inset: 0; z-index: 3; pointer-events: none; mix-blend-mode: screen;
+  background: radial-gradient(circle at var(--mx) var(--my), rgba(255,250,235,.22), rgba(255,250,235,.06) 28%, transparent 55%);
+  opacity: var(--glare); transition: opacity .35s ease;
+}
+/* rank emblem: a small faceted medallion in the rank tint */
+.hc-card__rank {
+  position: absolute; top: 15px; left: 15px; z-index: 5; display: flex; align-items: center; gap: 8px;
+  font-size: 11px; letter-spacing: .16em; text-transform: uppercase; line-height: 1; color: #F4F1E8;
+  text-shadow: 0 1px 2px rgba(0,0,0,.8);
+}
+.hc-card__rank b {
+  display: grid; place-items: center; width: 30px; height: 30px; font-size: 12px; font-weight: 650; letter-spacing: 0;
+  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+  background: linear-gradient(160deg, color-mix(in srgb, var(--tier) 92%, #fff) 0%, var(--tier) 45%, color-mix(in srgb, var(--tier) 55%, #000) 100%);
+  color: #0a0a0b; text-shadow: none;
+}
+/* name plate */
+.hc-card__plate { position: absolute; left: 0; right: 0; bottom: 0; z-index: 5; padding: 0 18px 18px; display: grid; gap: 6px; }
+.hc-card__plate strong {
+  font-family: "Cormorant Garamond", Georgia, serif; font-weight: 600; font-size: clamp(19px, 1.6vw, 24px); line-height: 1.05; letter-spacing: .04em;
+  color: #F4F1E8; text-shadow: 0 1px 2px rgba(0,0,0,.9);
+}
+.hc-card__plate strong::after { content: ""; display: block; width: 34px; height: 1px; margin-top: 8px; background: color-mix(in srgb, var(--tier) 80%, #fff); opacity: .8; }
+.hc-card__plate em { font-style: normal; font-size: 13px; line-height: 1.35; opacity: .8; text-shadow: 0 1px 2px rgba(0,0,0,.9); }
+.hc-card__action { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; opacity: .7; }
+/* selected / saved */
+.hc-card[aria-pressed="true"], .hc-card.selected { box-shadow: 0 0 0 2px #c9a227, 0 24px 44px -18px rgba(0,0,0,.9), 0 0 28px rgba(201,162,39,.25); }
+.hc-card[aria-pressed="true"] .hc-card__action { opacity: 1; }
+.hc-card.selected::after, .hc-card[aria-pressed="true"]::after { border-color: #e4c56a; }
+/* small size (fighter picks, ancestry, vault) */
+.hc-card--sm { border-radius: 11px; }
+.hc-card--sm::after { inset: 5px; border-radius: 7px; }
+.hc-card--sm .hc-card__rank { top: 10px; left: 10px; }
+.hc-card--sm .hc-card__rank b { width: 24px; height: 24px; font-size: 10px; }
+.hc-card--sm .hc-card__plate { padding: 0 11px 11px; gap: 4px; }
+.hc-card--sm .hc-card__plate strong { font-size: 16px; }
+.hc-card--sm .hc-card__plate strong::after { margin-top: 5px; width: 24px; }
+.hc-card--sm .hc-card__plate em { font-size: 11.5px; }
+/* PRISM ONLY: holographic iridescent foil for rank 24, the earned champion */
+.hc-card__foil { display: none; }
+.hc-card--prism .hc-card__foil {
+  display: block; position: absolute; inset: 0; z-index: 2; pointer-events: none; mix-blend-mode: color-dodge; opacity: .38;
+  background:
+    repeating-linear-gradient(115deg, rgba(255,255,255,0) 0 6px, rgba(255,255,255,.07) 6px 7px),
+    linear-gradient(115deg, #ff7ad9 0%, #7af0ff 22%, #fff59a 40%, #9d8cff 58%, #7dffc4 76%, #ff7ad9 100%);
+  background-size: 100% 100%, 260% 260%;
+  background-position: 0 0, var(--mx) var(--my);
+  -webkit-mask-image: radial-gradient(85% 75% at var(--mx) var(--my), #000 0%, rgba(0,0,0,.45) 55%, rgba(0,0,0,.18) 100%);
+          mask-image: radial-gradient(85% 75% at var(--mx) var(--my), #000 0%, rgba(0,0,0,.45) 55%, rgba(0,0,0,.18) 100%);
+  transition: opacity .35s ease;
+}
+.hc-card--prism:hover .hc-card__foil, .hc-card--prism:focus-visible .hc-card__foil { opacity: .62; }
+.hc-card--prism::after { border-color: transparent; background: linear-gradient(#0000,#0000) padding-box, linear-gradient(120deg, #ff9be3, #8ff3ff, #fff3a6, #b3a4ff, #9dffd2) border-box; border: 1px solid transparent; -webkit-mask: linear-gradient(#000 0 0) padding-box exclude, linear-gradient(#000 0 0); mask: linear-gradient(#000 0 0) padding-box exclude, linear-gradient(#000 0 0); }
+.hc-card--prism .hc-card__rank b { background: conic-gradient(from 200deg, #ff9be3, #8ff3ff, #fff3a6, #b3a4ff, #9dffd2, #ff9be3); }
+@media (prefers-reduced-motion: reduce) {
+  .hc-card, .hc-card__art img, .hc-card__sheen, .hc-card__foil { transition: none !important; }
+  .hc-card { --rx: 0deg !important; --ry: 0deg !important; }
+  .hc-card:hover, .hc-card:focus-visible { --lift: 0px; }
+  .hc-card:hover .hc-card__art img { transform: none; }
+}
+/* styles.css forces cream text on everything (!important); the emblem number is dark on its tinted medallion. */
+.hc-card .hc-card__rank b { color: #0a0a0b !important; -webkit-text-fill-color: #0a0a0b !important; }
+/* Picker rows (Colosseum fighters, Smith looks): four small cards in a row. */
+.hc-picks { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 0 0 22px; }
+.hc-picks .hc-card__rank > span { display: none; }
+.hc-picks .hc-card__plate { padding: 0 8px 9px; }
+.hc-picks .hc-card__plate strong { font-size: 14px; letter-spacing: .02em; }
+.hc-picks .hc-card__plate strong::after { display: none; }
+.hc-picks .hc-card::after { inset: 4px; }
+.hc-picks .hc-card__rank { top: 8px; left: 8px; }
+.hc-picks .hc-card__rank b { width: 22px; height: 22px; font-size: 10px; }
+/* Long true lines stay in the DOM (screen readers read all of it) but show at most three lines over the art. */
+.hc-card__plate em { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.hc-card--sm .hc-card__plate strong { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.hc-card--sm .hc-card__plate strong::after { display: none; }

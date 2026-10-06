@@ -4,126 +4,67 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>HEAVY IS THE CROWN</title>
+<meta name="description" content="A dark hall of fighters. Open a look, build on the Forge canvas, and keep up to 24 characters in your locker.">
+<meta name="theme-color" content="#070708">
+<link rel="icon" href="./favicon.svg" type="image/svg+xml">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="HEAVY IS THE CROWN">
+<meta property="og:title" content="HEAVY IS THE CROWN">
+<meta property="og:description" content="A dark hall of fighters. Open a look, build on the Forge canvas, and keep up to 24 characters in your locker.">
+<meta property="og:url" content="https://visionary-boba-aebdc9.netlify.app/">
+<meta property="og:image" content="https://visionary-boba-aebdc9.netlify.app/images/og-home.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The home plate: a see-through hologram figure holding a katana on a cyan grid.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="HEAVY IS THE CROWN">
+<meta name="twitter:description" content="A dark hall of fighters. Open a look, build on the Forge canvas, and keep up to 24 characters in your locker.">
+<meta name="twitter:image" content="https://visionary-boba-aebdc9.netlify.app/images/og-home.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Outfit:wght@360;500;650&display=swap" rel="stylesheet">
-<style>
-:root { --bg:#07080c; --ink:#f4efe6; --line:rgba(244,239,230,.18); --amber:#e0a23a; }
-* { box-sizing:border-box; }
-html,body { margin:0; background:var(--bg); color:var(--ink); font-family:Outfit,system-ui,sans-serif; }
-nav { display:flex; flex-wrap:wrap; gap:14px 18px; align-items:center; padding:18px 28px; letter-spacing:.14em; text-transform:uppercase; font-size:12px; }
-nav a { color:var(--ink); text-decoration:none; opacity:.72; }
-nav a[aria-current], nav a:hover { opacity:1; }
-.brand { font-family:"Cormorant Garamond",serif; letter-spacing:.22em; font-size:14px; opacity:1; }
-main { display:grid; grid-template-columns:minmax(0,1.3fr) minmax(280px,.7fr); gap:28px; padding:8px 28px 48px; }
-.stage { position:relative; min-height:70vh; border:1px solid var(--line); border-radius:18px; overflow:hidden; background:radial-gradient(circle at 50% 20%, #162033, #07080c 70%); }
-.stage img { width:100%; height:100%; object-fit:contain; display:block; transform-origin:50% 80%; }
-.veil { position:absolute; inset:0; pointer-events:none; mix-blend-mode:screen; }
-.side { border:1px solid var(--line); border-radius:18px; padding:22px; }
-h1 { font-family:"Cormorant Garamond",serif; font-weight:500; font-size:52px; line-height:.9; margin:8px 0 16px; }
-.kicker { letter-spacing:.18em; text-transform:uppercase; font-size:12px; opacity:.6; }
-.looks { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0 18px; }
-button { background:transparent; color:var(--ink); border:1px solid var(--line); border-radius:999px; padding:8px 12px; cursor:pointer; font:inherit; }
-button.on { border-color:var(--amber); color:var(--amber); }
-label { display:block; margin:14px 0; font-size:14px; }
-.hint { display:block; opacity:.55; font-size:12px; margin-top:2px; }
-input[type=range] { width:100%; accent-color:var(--amber); }
-.meta { font-variant-numeric:tabular-nums; opacity:.7; float:right; }
-.note { opacity:.75; line-height:1.45; }
-@media (max-width:860px) { main { grid-template-columns:1fr; } h1 { font-size:40px; } }
-</style>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Outfit:wght@380;500;650;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./styles.css">
+<link rel="stylesheet" href="./card.css">
 </head>
-<body>
-<nav>
-  <a class="brand" href="#room">HEAVY IS THE CROWN</a>
-  <a aria-current="page" href="#room">Room</a>
-  <a href="#looks">Looks</a>
-  <a href="#locker">Locker</a>
-</nav>
-<main id="room">
-  <section class="stage" id="stage">
-    <img id="figure" alt="Black Chrome, mirror black and an amber core." src="images/look-black-chrome-realistic.png">
-    <div class="veil" id="veil"></div>
-  </section>
-  <aside class="side">
-    <div class="kicker">The room</div>
-    <h1>Heavy is the crown</h1>
-    <p class="note">The weight sits. A control changes this figure. A look chip swaps that look's picture.</p>
-    <div class="looks" id="looks">
-      <button type="button" data-look="foundation">Foundation</button>
-      <button type="button" class="on" data-look="black-chrome">Black Chrome</button>
-      <button type="button" data-look="white-samurai">White Samurai</button>
-      <button type="button" data-look="skull-champion">Skull Champion</button>
-      <button type="button" data-look="titan-gladiator">Titan Gladiator</button>
+<body class="page-home">
+<nav class="nav" aria-label="Site"><a class='brand' href='./'>HEAVY IS THE CROWN</a><button type="button" class="nav-toggle" aria-expanded="false" aria-controls="nav-links">Menu</button><span class="nav-links" id="nav-links"><a aria-current='page' href='./'>Room</a><a href='./foundation/'>Foundation</a><a href='./black-chrome/'>Black Chrome</a><a href='./white-samurai/'>White Samurai</a><a href='./skull-champion/'>Skull Champion</a><a href='./titan-gladiator/'>Titan Gladiator</a><a href='./forge/'>Forge</a><a href='./smith/'>Smith</a><a href='./colosseum/'>Colosseum</a><a href='./create/'>Create</a><a href='./help/'>Help</a><a href='./locker/'>Locker</a></span></nav>
+<main class="room">
+  <div class="kicker">The room</div>
+  <h1 class="crown-title">HEAVY IS THE CROWN</h1>
+  <div class="room-hero">
+    <span class="plate-mark plate-nw" aria-hidden="true"></span>
+    <span class="plate-mark plate-se" aria-hidden="true"></span>
+    <div class="stage stage-still">
+      <div class="draft-plate">
+        <img src="./images/home-arbiter-plate.jpg" width="1152" height="1712" fetchpriority="high" alt="A see-through hologram figure in a wide-brimmed hat with a violet visor line, holding a katana with a violet edge, standing on a cyan grid, lit blue from the left and red from the right.">
+      </div>
+      <p class="figure-caption">The weight sits.</p>
     </div>
-    <label>Length <span class="meta" id="lenV">50</span>
-      <span class="hint">Scales the figure. It does not change the weapon.</span>
-      <input id="length" type="range" min="0" max="100" value="50">
-    </label>
-    <label>Battle Damage <span class="meta" id="damV">0</span>
-      <span class="hint">Raises contrast and lowers color. It does not draw a new scar.</span>
-      <input id="damage" type="range" min="0" max="100" value="0">
-    </label>
-    <label>Energy Glow <span class="meta" id="glowV">0</span>
-      <span class="hint">Lays an amber veil on the figure.</span>
-      <input id="glow" type="range" min="0" max="100" value="0">
-    </label>
-    <p class="note" id="caption">Black Chrome. Mirror black, amber core.</p>
-    <p class="note" id="locker">Locker 0 saved. Capacity: 24. Session only. Clears when this tab closes. Prism is rank 24.</p>
-    <button type="button" id="save">Save this look</button>
-  </aside>
+    <aside class="room-guide">
+      <p class="lede">A dark hall of fighters. Open a look, build on the Forge, or keep what you save in the locker. The site background follows the highest rank you have saved; only Prism is holographic.</p>
+      <ol class="howto">
+        <li><strong>Room</strong> — this screen: the hall, then the looks below.</li>
+        <li><strong>Looks</strong> — Foundation, Black Chrome, White Samurai, Skull Champion, Titan Gladiator. On the four fighter pages, pick a style to see a separate picture of that fighter.</li>
+        <li><strong>Create</strong> — tap a type you can say, like elf, dark wood. A figure is drawn from your picks, and the sheet is markdown.</li>
+        <li><strong>Forge</strong> — two figures on a canvas. Start from one of the four looks or the blank figure, change armor, weapon and body with eight sliders, save to the locker, or save a picture.</li>
+        <li><strong>Locker</strong> — one locker for the whole site, kept in this browser. It holds 24. Prism is rank 24.</li>
+      </ol>
+      <p class="lede room-watch"><a href='./create/'>Say a character</a> — ancestry, origin, build, weapon, rank.</p>
+    </aside>
+  </div>
+
+  <div class="looks">
+    <a class="hc-card hc-card--prism" href="./foundation/" style="--tier:#d6f6ff;--pos:55% 50%"><span class="hc-card__art"><img src="./images/foundation.jpg" alt="" loading="lazy" decoding="async"></span><span class="hc-card__foil" aria-hidden="true"></span><span class="hc-card__sheen" aria-hidden="true"></span><span class="hc-card__rank"><b>24</b><span>Prism</span></span><span class="hc-card__plate"><strong>Foundation</strong><em>Top rank. Save it and the field goes Prism.</em></span></a>
+    <a class="hc-card" href="./black-chrome/" style="--tier:#8a78e8;--pos:44% 50%"><span class="hc-card__art"><img src="./images/look-black-chrome-realistic.jpg" alt="" loading="lazy" decoding="async"></span><span class="hc-card__foil" aria-hidden="true"></span><span class="hc-card__sheen" aria-hidden="true"></span><span class="hc-card__rank"><b>14</b><span>Royal</span></span><span class="hc-card__plate"><strong>Black Chrome</strong><em>Dark chrome and a hammer with an amber core.</em></span></a>
+    <a class="hc-card" href="./white-samurai/" style="--tier:#f06a28;--pos:45% 50%"><span class="hc-card__art"><img src="./images/look-white-samurai-realistic.jpg" alt="" loading="lazy" decoding="async"></span><span class="hc-card__foil" aria-hidden="true"></span><span class="hc-card__sheen" aria-hidden="true"></span><span class="hc-card__rank"><b>21</b><span>Ember</span></span><span class="hc-card__plate"><strong>White Samurai</strong><em>White crackle armor called BeO, one katana.</em></span></a>
+    <a class="hc-card" href="./skull-champion/" style="--tier:#2fce86;--pos:49% 50%"><span class="hc-card__art"><img src="./images/look-skull-champion-realistic.jpg" alt="" loading="lazy" decoding="async"></span><span class="hc-card__foil" aria-hidden="true"></span><span class="hc-card__sheen" aria-hidden="true"></span><span class="hc-card__rank"><b>8</b><span>Jade</span></span><span class="hc-card__plate"><strong>Skull Champion</strong><em>A skull helmet and a tactical axe.</em></span></a>
+    <a class="hc-card" href="./titan-gladiator/" style="--tier:#5eb6ee;--pos:58% 50%"><span class="hc-card__art"><img src="./images/look-titan-gladiator-realistic.jpg" alt="" loading="lazy" decoding="async"></span><span class="hc-card__foil" aria-hidden="true"></span><span class="hc-card__sheen" aria-hidden="true"></span><span class="hc-card__rank"><b>11</b><span>Azure</span></span><span class="hc-card__plate"><strong>Titan Gladiator</strong><em>Gunmetal called Ti-6Al-4V, an amber glow called Halbach.</em></span></a>
+  </div>
 </main>
-<script>
-const looks = {
-  foundation: { src:"images/foundation.jpg", alt:"Foundation, iridescent armor and a clear cape.", line:"Foundation. Mirror black, pale crackle, holographic edge. Top rank." },
-  "black-chrome": { src:"images/look-black-chrome-realistic.png", alt:"Black Chrome, mirror black and an amber core.", line:"Black Chrome. Mirror black, amber core." },
-  "white-samurai": { src:"images/look-white-samurai-realistic.png", alt:"White Samurai, crackle ceramic called BeO, one katana.", line:"White Samurai. Crackle ceramic called BeO, one katana." },
-  "skull-champion": { src:"images/look-skull-champion-realistic.png", alt:"Skull Champion, a skull helmet and a tactical axe.", line:"Skull Champion. A skull helmet and a tactical axe." },
-  "titan-gladiator": { src:"images/look-titan-gladiator-realistic.png", alt:"Titan Gladiator, gunmetal called Ti-6Al-4V, a glow called Halbach.", line:"Titan Gladiator. Gunmetal called Ti-6Al-4V, a glow called Halbach." }
-};
-const KEY = "hitc-looks";
-function loadSaved() {
-  try { return JSON.parse(sessionStorage.getItem(KEY) || "[]"); } catch (e) { return []; }
-}
-const state = { look:"black-chrome", length:50, battleDamage:0, energyGlow:0, saved:loadSaved() };
-let raf = 0;
-function schedule() {
-  if (document.hidden) return;
-  cancelAnimationFrame(raf);
-  raf = requestAnimationFrame(() => { raf = 0; try { draw(state); } catch (e) { console.warn(e); } });
-}
-document.addEventListener("visibilitychange", () => { if (document.hidden) { cancelAnimationFrame(raf); raf = 0; } });
-function draw(s) {
-  const fig = document.getElementById("figure");
-  const look = looks[s.look];
-  if (fig.getAttribute("src") !== look.src) { fig.src = look.src; fig.alt = look.alt; }
-  fig.style.transform = "scale(" + (0.86 + (s.length / 100) * 0.28) + ")";
-  fig.style.filter = "contrast(" + (1 + s.battleDamage / 180) + ") saturate(" + (1 - s.battleDamage / 220) + ")";
-  document.getElementById("veil").style.background = "radial-gradient(circle at 50% 42%, rgba(224,162,58," + (s.energyGlow / 180) + "), transparent 46%)";
-  document.getElementById("lenV").textContent = s.length;
-  document.getElementById("damV").textContent = s.battleDamage;
-  document.getElementById("glowV").textContent = s.energyGlow;
-  document.getElementById("caption").textContent = look.line;
-  document.getElementById("locker").textContent = "Locker " + s.saved.length + " saved. Capacity: 24. Session only. Clears when this tab closes. Prism is rank 24.";
-  document.getElementById("save").textContent = s.saved.includes(s.look) ? "Saved" : "Save this look";
-}
-document.getElementById("looks").addEventListener("click", (e) => {
-  const b = e.target.closest("button");
-  if (!b) return;
-  state.look = b.dataset.look;
-  document.querySelectorAll("#looks button").forEach((n) => n.classList.toggle("on", n === b));
-  schedule();
-});
-document.getElementById("length").addEventListener("input", (e) => { state.length = Number(e.target.value); schedule(); });
-document.getElementById("damage").addEventListener("input", (e) => { state.battleDamage = Number(e.target.value); schedule(); });
-document.getElementById("glow").addEventListener("input", (e) => { state.energyGlow = Number(e.target.value); schedule(); });
-document.getElementById("save").addEventListener("click", () => {
-  if (state.saved.includes(state.look) || state.saved.length >= 24) return;
-  state.saved.push(state.look);
-  sessionStorage.setItem(KEY, JSON.stringify(state.saved));
-  schedule();
-});
-schedule();
-</script>
+<script src="./locker-store.js"></script>
+<script src="./locker-field.js"></script>
+<script src="./interaction.js"></script>
+<script src="./nav.js"></script>
+<script src="./card.js"></script>
 </body>
 </html>
