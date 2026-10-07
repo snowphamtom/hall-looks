@@ -71,6 +71,55 @@
     blit(frames[y1 * COLS + x0], (1 - fx) * fy);
     blit(frames[y1 * COLS + x1], fx * fy);
     ctx.globalAlpha = 1;
+    drawPlatform(now);
+  }
+
+  // 360° spinning hologram platform beneath the figure
+  var platAngle = 0;
+  function drawPlatform(now) {
+    if (reduceMotion) return;
+    var cw = canvas.width, ch = canvas.height;
+    // platform sits in the bottom ~22% of the drawn frame
+    var s = Math.min(cw / 500, ch / 667) * 0.94;
+    var dw = 500 * s, dh = 667 * s;
+    var ox = (cw - dw) / 2, oy = (ch - dh) / 2;
+    var pcx = ox + dw * 0.5, pcy = oy + dh * 0.86;
+    var rx = dw * 0.34, ry = rx * 0.30;
+    platAngle += 0.016; // ~6.5s per revolution
+    if (platAngle > Math.PI * 2) platAngle -= Math.PI * 2;
+    ctx.save();
+    // mask the baked-in platform with darkness
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = "#07070c";
+    ctx.beginPath();
+    ctx.ellipse(pcx, pcy, rx * 1.15, ry * 1.6, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // rotating spokes
+    ctx.globalAlpha = 0.55;
+    ctx.strokeStyle = "#7fd4c1";
+    ctx.lineWidth = Math.max(1, s * 1.2);
+    for (var i = 0; i < 16; i++) {
+      var a = platAngle + (i / 16) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.moveTo(pcx + Math.cos(a) * rx * 0.18, pcy + Math.sin(a) * ry * 0.18);
+      ctx.lineTo(pcx + Math.cos(a) * rx, pcy + Math.sin(a) * ry);
+      ctx.stroke();
+    }
+    // static rings
+    ctx.globalAlpha = 0.7;
+    [1, 0.66, 0.33].forEach(function (k) {
+      ctx.beginPath();
+      ctx.ellipse(pcx, pcy, rx * k, ry * k, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    });
+    // glow dot at center
+    ctx.globalAlpha = 0.9;
+    ctx.fillStyle = "#a8f0e0";
+    ctx.beginPath();
+    ctx.arc(pcx, pcy, Math.max(1.5, s * 2.5), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    ctx.globalAlpha = 1;
   }
 
   // gentle life: subtle CSS flicker on the wrap
