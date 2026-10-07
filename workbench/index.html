@@ -6,6 +6,13 @@
 <title>HEAVY IS THE CROWN — Workbench</title>
 <meta name="description" content="Customize your character from blueprint to hyper-real.">
 <meta name="theme-color" content="#070708">
+<link rel="manifest" href="manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Workbench">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
 <style>
 :root{--bg:#070708;--panel:#0e1013;--line:rgba(140,210,255,.13);--txt:#e9eff5;--dim:#8b95a2;--accent:#8cd2ff}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -183,6 +190,13 @@ document.getElementById('resetBtn').addEventListener('click', function () {
   WB.set('materialize', 0);
   document.getElementById('matSlider').value = 0;
 });
+</script>
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function () {
+    navigator.serviceWorker.register("sw.js").catch(function () {});
+  });
+}
 </script>
 </body>
 </html>
