@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HEAVY IS THE CROWN — Workbench</title>
+<meta name="description" content="Customize your character from blueprint to hyper-real.">
+<meta name="theme-color" content="#070708">
+<style>
+:root{--bg:#070708;--panel:#101014;--line:rgba(140,210,255,.14);--txt:#e8eef4;--dim:#8a94a0;--accent:#8cd2ff}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Outfit',system-ui,sans-serif;background:var(--bg);color:var(--txt);min-height:100vh}
+header{display:flex;justify-content:space-between;align-items:center;padding:16px 22px;border-bottom:1px solid var(--line)}
+header h1{font-size:15px;letter-spacing:4px;font-weight:800}
+header a{color:var(--dim);text-decoration:none;font-size:12px;letter-spacing:1px}
+#wbReadout{font-family:ui-monospace,monospace;font-size:11px;color:var(--accent);letter-spacing:2px}
+main{display:grid;grid-template-columns:220px 1fr 240px;gap:0;min-height:calc(100vh - 57px)}
+aside{background:var(--panel);padding:18px;border-right:1px solid var(--line);overflow-y:auto}
+aside.right{border-right:none;border-left:1px solid var(--line)}
+aside h2{font-size:10px;letter-spacing:2px;color:var(--dim);margin-bottom:12px;font-weight:700}
+.chassis{display:grid;gap:10px}
+.chassis button{background:#0a0d12;border:1px solid var(--line);border-radius:10px;padding:8px;cursor:pointer;color:var(--txt);transition:border-color .2s}
+.chassis button.active{border-color:var(--accent)}
+.chassis button img{width:100%;height:120px;object-fit:contain;display:block}
+.chassis button span{font-size:10px;letter-spacing:1px;display:block;margin-top:6px;color:var(--dim)}
+.chassis button.active span{color:var(--txt)}
+.mat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px}
+.mat-grid button{border:1px solid var(--line);background:#0a0d12;border-radius:10px;padding:10px 6px;cursor:pointer;color:var(--txt);font-size:10px;letter-spacing:.5px}
+.mat-grid button.active{border-color:var(--accent)}
+.mat-grid button i{display:block;width:22px;height:22px;border-radius:50%;margin:0 auto 6px}
+.ctrl{margin-bottom:14px}
+.ctrl label{font-size:10px;letter-spacing:1px;color:var(--dim);display:flex;justify-content:space-between;margin-bottom:6px}
+.ctrl input[type=range]{width:100%;accent-color:var(--accent)}
+.stage{position:relative;display:flex;flex-direction:column;background:#050507}
+#wbCanvas{flex:1;width:100%;min-height:400px;display:block;touch-action:none}
+.materialize{padding:18px 26px;border-top:1px solid var(--line);background:var(--panel)}
+.materialize .row{display:flex;align-items:center;gap:14px}
+.materialize span{font-size:10px;letter-spacing:2px;color:var(--dim);white-space:nowrap}
+.materialize span:last-child{color:var(--accent)}
+#matSlider{flex:1;accent-color:var(--accent);height:28px}
+.export-row{display:flex;gap:10px;margin-top:12px}
+.btn{flex:1;background:var(--accent);color:#04121f;border:none;padding:12px;border-radius:10px;font-weight:800;font-size:12px;letter-spacing:1px;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--txt);border:1px solid var(--line)}
+@media(max-width:900px){main{grid-template-columns:1fr}aside{border:none;border-bottom:1px solid var(--line)}}
+</style>
+</head>
+<body>
+<header>
+<h1>WORKBENCH</h1>
+<div id="wbReadout">BLUEPRINT — 0%</div>
+<a href="../">← HALL</a>
+</header>
+<main>
+<aside>
+<h2>CHASSIS</h2>
+<div class="chassis" id="chassisPick">
+<button data-c="vx19" class="active"><img alt="VX-19 Dominus"><span>VX-19 DOMINUS</span></button>
+<button data-c="hooded"><img alt="Hooded Assassin"><span>HOODED ASSASSIN</span></button>
+<button data-c="vx19w"><img alt="VX-19 Ghost"><span>VX-19 GHOST</span></button>
+</div>
+</aside>
+<div class="stage">
+<canvas id="wbCanvas"></canvas>
+<div class="materialize">
+<div class="row">
+<span>BLUEPRINT</span>
+<input type="range" id="matSlider" min="0" max="100" value="0">
+<span>HYPER-REAL</span>
+</div>
+<div class="export-row">
+<button class="btn" id="exportBtn">GENERATE IMAGE</button>
+<button class="btn ghost" id="resetBtn">RESET</button>
+</div>
+</div>
+</div>
+<aside class="right">
+<h2>MATERIAL</h2>
+<div class="mat-grid" id="matPick">
+<button data-m="onyx" class="active"><i style="background:linear-gradient(135deg,#1a1a1a,#d4a843)"></i>ONYX GOLD</button>
+<button data-m="carbon"><i style="background:linear-gradient(135deg,#222,#555)"></i>CARBON</button>
+<button data-m="steel"><i style="background:linear-gradient(135deg,#5a6a7a,#c8d8e8)"></i>STEEL</button>
+<button data-m="ghost"><i style="background:linear-gradient(135deg,#c8f0e8,#fff)"></i>GHOST</button>
+</div>
+<h2>DETAIL</h2>
+<div class="ctrl"><label>EDGE DEFINITION <b id="vDetail">70%</b></label>
+<input type="range" id="rDetail" min="0" max="100" value="70"></div>
+<div class="ctrl"><label>SURFACE POLISH <b id="vPolish">60%</b></label>
+<input type="range" id="rPolish" min="0" max="100" value="60"></div>
+<div class="ctrl"><label>RIM GLOW <b id="vGlow">40%</b></label>
+<input type="range" id="rGlow" min="0" max="100" value="40"></div>
+</aside>
+</main>
+<script src="chassis-vx19.js?v=fbbcb7a4"></script>
+<script src="chassis-hooded.js?v=571439b4"></script>
+<script src="chassis-vx19w.js?v=d1b6fd7c"></script>
+<script src="workbench.js?v=bf538ccb"></script>
+<script>
+// thumbnails
+document.querySelectorAll('#chassisPick button').forEach(function (b) {
+  var k = b.dataset.c;
+  b.querySelector('img').src = (window.WB_CHASSIS || {})[k] || '';
+  b.addEventListener('click', function () {
+    document.querySelectorAll('#chassisPick button').forEach(function (x) { x.classList.remove('active'); });
+    b.classList.add('active');
+    WB.set('chassis', k);
+  });
+});
+document.querySelectorAll('#matPick button').forEach(function (b) {
+  b.addEventListener('click', function () {
+    document.querySelectorAll('#matPick button').forEach(function (x) { x.classList.remove('active'); });
+    b.classList.add('active');
+    WB.set('material', b.dataset.m);
+  });
+});
+function bindRange(id, key, label) {
+  var r = document.getElementById(id);
+  r.addEventListener('input', function () {
+    document.getElementById(label).textContent = r.value + '%';
+    WB.set(key, r.value / 100);
+  });
+}
+bindRange('rDetail', 'detail', 'vDetail');
+bindRange('rPolish', 'polish', 'vPolish');
+bindRange('rGlow', 'glow', 'vGlow');
+document.getElementById('matSlider').addEventListener('input', function (e) {
+  WB.set('materialize', e.target.value / 100);
+});
+document.getElementById('exportBtn').addEventListener('click', function () {
+  // export at full hyper-real
+  var prev = WB.state.materialize;
+  WB.set('materialize', 1);
+  setTimeout(function () { WB.export(); WB.set('materialize', prev); }, 60);
+});
+document.getElementById('resetBtn').addEventListener('click', function () {
+  WB.set('materialize', 0);
+  document.getElementById('matSlider').value = 0;
+});
+</script>
+</body>
+</html>
