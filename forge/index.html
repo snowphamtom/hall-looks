@@ -12,14 +12,14 @@
 <meta property="og:title" content="HEAVY IS THE CROWN — Forge">
 <meta property="og:description" content="Two figures on a canvas. Change armor, weapon and body, and save to the site locker.">
 <meta property="og:url" content="https://snowphamtom.github.io/hall-looks/forge/">
-<meta property="og:image" content="https://snowphamtom.github.io/hall-looks/images/og-home.jpg">
+<meta property="og:image" content="https://snowphamtom.github.io/hall-looks/images/look-white-samurai-realistic.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="The home plate: a see-through hologram figure holding a katana on a cyan grid.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="HEAVY IS THE CROWN — Forge">
 <meta name="twitter:description" content="Two figures on a canvas. Change armor, weapon and body, and save to the site locker.">
-<meta name="twitter:image" content="https://snowphamtom.github.io/hall-looks/images/og-home.jpg">
+<meta name="twitter:image" content="https://snowphamtom.github.io/hall-looks/images/look-white-samurai-realistic.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Outfit:wght@380;500;650&display=swap" rel="stylesheet">
@@ -99,7 +99,7 @@ select:disabled,input[type=range]:disabled{opacity:.35;cursor:not-allowed;filter
 <div class="bottom">
 <div class="panel">
 <div class="label">Base — Room with 2 Mannequins</div>
-<img class="blank-ref" id="blankRef" alt="Blank duo" src="../images/forge-blank-duo.jpg">
+<img class="blank-ref" id="blankRef" alt="Blank duo" src="" data-forge="BLANK">
 <div class="mono" style="font-size:9px;opacity:.5;margin-bottom:10px">Left: a preset. Right: the blank figure.</div>
 <div class="figpick">
 <button type="button" id="fig0" class="on" onclick="pickFig(0)">Left · hand on hip</button>
@@ -107,10 +107,10 @@ select:disabled,input[type=range]:disabled{opacity:.35;cursor:not-allowed;filter
 </div>
 <div class="label">Four looks — already drawn</div>
 <div class="presets-grid">
-<div class="preset-card hc-card hc-card--sm" role="button" tabindex="0" style="--tier:#8a78e8;--pos:50% 30%" onclick="selectPreset(0)" id="p0"><span class="hc-card__art"><img alt="Black Chrome" src="../images/forge-preset-black-chrome.webp"></span><span class="hc-card__sheen" aria-hidden="true"></span><span class="hc-card__rank"><b>14</b><span>Royal</span></span><span class="hc-card__plate"><strong>Black Chrome</strong><em>Black armor + cyan seams</em></span></div>
-<div class="preset-card hc-card hc-card--sm selected" role="button" tabindex="0" style="--tier:#f06a28;--pos:50% 30%" onclick="selectPreset(1)" id="p1"><span class="hc-card__art"><img alt="White Samurai" src="../images/forge-preset-white-samurai.webp"></span><span class="hc-card__sheen" aria-hidden="true"></span><span class="hc-card__rank"><b>21</b><span>Ember</span></span><span class="hc-card__plate"><strong>White Samurai</strong><em>Cracked white plates + katana</em></span></div>
-<div class="preset-card hc-card hc-card--sm" role="button" tabindex="0" style="--tier:#2fce86;--pos:50% 30%" onclick="selectPreset(2)" id="p2"><span class="hc-card__art"><img alt="Skull Champion" src="../images/forge-preset-skull-champion.webp"></span><span class="hc-card__sheen" aria-hidden="true"></span><span class="hc-card__rank"><b>8</b><span>Jade</span></span><span class="hc-card__plate"><strong>Skull Champion</strong><em>Bone fused armor</em></span></div>
-<div class="preset-card hc-card hc-card--sm" role="button" tabindex="0" style="--tier:#5eb6ee;--pos:50% 30%" onclick="selectPreset(3)" id="p3"><span class="hc-card__art"><img alt="Titan Gladiator" src="../images/forge-preset-titan-gladiator.webp"></span><span class="hc-card__sheen" aria-hidden="true"></span><span class="hc-card__rank"><b>11</b><span>Azure</span></span><span class="hc-card__plate"><strong>Titan Gladiator</strong><em>Heavy dark plates</em></span></div>
+<div class="preset-card hc-card hc-card--sm" role="button" tabindex="0" style="--tier:#8a78e8;--pos:50% 30%" onclick="selectPreset(0)" id="p0"><span class="hc-card__art"><img alt="Black Chrome" src="" data-forge="BC"></span><span class="hc-card__sheen" aria-hidden="true"></span><span class="hc-card__rank"><b>14</b><span>Royal</span></span><span class="hc-card__plate"><strong>Black Chrome</strong><em>Black armor + cyan seams</em></span></div>
+<div class="preset-card hc-card hc-card--sm selected" role="button" tabindex="0" style="--tier:#f06a28;--pos:50% 30%" onclick="selectPreset(1)" id="p1"><span class="hc-card__art"><img alt="White Samurai" src="" data-forge="WS"></span><span class="hc-card__sheen" aria-hidden="true"></span><span class="hc-card__rank"><b>21</b><span>Ember</span></span><span class="hc-card__plate"><strong>White Samurai</strong><em>Cracked white plates + katana</em></span></div>
+<div class="preset-card hc-card hc-card--sm" role="button" tabindex="0" style="--tier:#2fce86;--pos:50% 30%" onclick="selectPreset(2)" id="p2"><span class="hc-card__art"><img alt="Skull Champion" src="" data-forge="SC"></span><span class="hc-card__sheen" aria-hidden="true"></span><span class="hc-card__rank"><b>8</b><span>Jade</span></span><span class="hc-card__plate"><strong>Skull Champion</strong><em>Bone fused armor</em></span></div>
+<div class="preset-card hc-card hc-card--sm" role="button" tabindex="0" style="--tier:#5eb6ee;--pos:50% 30%" onclick="selectPreset(3)" id="p3"><span class="hc-card__art"><img alt="Titan Gladiator" src="" data-forge="TG"></span><span class="hc-card__sheen" aria-hidden="true"></span><span class="hc-card__rank"><b>11</b><span>Azure</span></span><span class="hc-card__plate"><strong>Titan Gladiator</strong><em>Heavy dark plates</em></span></div>
 </div>
 <div class="control" style="margin-top:12px">
 <div class="label">Armor — Customize</div>
@@ -167,8 +167,18 @@ select:disabled,input[type=range]:disabled{opacity:.35;cursor:not-allowed;filter
 </div>
 </div>
 </div>
+<script src="forge-data-a.js"></script>
+<script src="forge-data-b.js"></script>
+<script src="forge-data-c.js"></script>
+<script src="forge-data-d.js"></script>
+<script src="forge-data-e.js"></script>
 <script>
-const MASK_SRC="../images/forge-mask.png";
+document.querySelectorAll('img[data-forge]').forEach(function(img){
+  img.src = window['FORGE_DU_'+img.getAttribute('data-forge')];
+});
+</script>
+<script>
+const MASK_SRC=window.FORGE_DU_MASK;
 const BOXES=[{x0:49,y0:62,x1:524,y1:1361},{x0:499,y0:184,x1:1003,y1:1337}];
 const HEADS=[
   {cx:376,cy:158,rx:72,ry:84},
