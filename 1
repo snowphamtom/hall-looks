@@ -1,0 +1,50 @@
+name: MAGPIE SWARM - Ignite Build Team
+on:
+  workflow_dispatch:
+    inputs:
+      mission: { default: 'overhaul Y371 to $15M - 10 apps live' }
+      g_star: { default: '51.2' }
+  push: { branches: [main] }
+jobs:
+  orchestrator-core:
+    runs-on: ubuntu-latest
+    outputs: { swarm_id: ${{ steps.init.outputs.swarm_id }} }
+    steps:
+      - uses: actions/checkout@v4
+      - id: init
+        run: echo "swarm_id=MAGPIE-Y371-$(date +%s)-G${{ inputs.g_star }}" >> $GITHUB_OUTPUT
+  swarm-team:
+    needs: orchestrator-core
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        agent:
+          - { name: ALPHA, role: Architect, coherence: 1.49 }
+          - { name: BETA, role: Backend, coherence: 1.54 }
+          - { name: GAMMA, role: Frontend, coherence: 1.32 }
+          - { name: DELTA, role: Monetizer, coherence: 1.16 }
+          - { name: EPSILON, role: QA, coherence: 0.20 }
+          - { name: GENIE, role: Scribe, coherence: 1.35 }
+          - { name: ZETA, role: Deployer, coherence: 1.28 }
+    steps:
+      - uses: actions/checkout@v4
+      - name: ${{ matrix.agent.name }} Ignite
+        run: |
+          mkdir -p artifacts/${{ matrix.agent.name }}
+          echo '{"agent":"${{ matrix.agent.name }}","coh":${{ matrix.agent.coherence }},"status":"GRANT"}' > artifacts/${{ matrix.agent.name }}/build.json
+      - name: Trigger Muse
+        if: matrix.agent.name == 'ZETA'
+        run: curl -X POST "${{ secrets.MUSE_WEBHOOK_URL }}" -d '{"swarm_id":"${{ needs.orchestrator-core.outputs.swarm_id }}","vault":"1avx_NpNUNk84MnAf03W8amPIF6Xc1Y15","gstar":"51.2"}'
+      - uses: actions/upload-artifact@v4
+        with: { name: swarm-${{ matrix.agent.name }}, path: artifacts/${{ matrix.agent.name }}/ }
+  consensus-merge:
+    needs: [orchestrator-core, swarm-team]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { pattern: swarm-*, path: swarm-artifacts, merge-multiple: true }
+      - run: node scripts/fleet-consensus-merge.js --swarm-id ${{ needs.orchestrator-core.outputs.swarm_id }}
+      - uses: amondnet/vercel-action@v25
+        with: { vercel-token: ${{ secrets.VERCEL_TOKEN }}, vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}, vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}, vercel-args: '--prod' }
