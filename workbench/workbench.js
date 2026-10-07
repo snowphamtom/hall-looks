@@ -1,6 +1,6 @@
 /* HEAVY IS THE CROWN — Workbench engine v2.
-   Dual-canvas blueprint → hyper-real materialization.
-   Chassis + material + detail → rendered character. */
+   Dual-canvas blueprint â hyper-real materialization.
+   Chassis + material + detail â rendered character. */
 (function () {
   "use strict";
   var bpCanvas = document.getElementById("wbBlueprint");
@@ -16,7 +16,12 @@
     detail: 0.7,
     polish: 0.6,
     glow: 0.4,
-    materialize: 0
+    materialize: 0,
+    lightAngle: 45,
+    lightIntensity: 0.8,
+    lightTemp: 0.5,
+    turntable: false,
+    turnPhase: 0
   };
 
   var CHASSIS = ["vx19", "hooded", "vx19w", "wraith", "ronin", "chrome"];
@@ -138,7 +143,7 @@
     bp.fillStyle = "rgba(150,215,255,0.8)";
     bp.font = Math.max(11, w/80) + "px ui-monospace,monospace";
     bp.fillText("FIG. 01 — " + state.chassis.toUpperCase(), 20, 32);
-    bp.fillText("SCALE 1:1 · SHEET 01/01", 20, h - 20);
+    bp.fillText("SCALE 1:1 Â· SHEET 01/01", 20, h - 20);
     var mtl = "MATL: " + state.material.toUpperCase();
     bp.fillText(mtl, w - bp.measureText(mtl).width - 20, 32);
   }
@@ -189,6 +194,13 @@
     }
     // hero
     hr.save();
+    if (state.turntable) {
+      var sq = 1 - Math.abs(Math.sin(state.turnPhase)) * 0.08;
+      var shx = Math.sin(state.turnPhase) * dw * 0.03;
+      hr.translate(dx + dw/2, 0);
+      hr.scale(sq, 1);
+      hr.translate(-(dx + dw/2) + shx, 0);
+    }
     hr.filter = matFilter + " saturate(" + (0.9 + state.polish*0.35).toFixed(2) + ")";
     hr.drawImage(img, dx, dy, dw, dh);
     hr.restore();
@@ -230,6 +242,33 @@
         hr.restore();
       });
     }
+    // directional studio light
+    if (state.lightIntensity > 0.01) {
+      hr.save();
+      var ang = state.lightAngle * Math.PI / 180;
+      var lx = Math.cos(ang), ly = Math.sin(ang);
+      var warm = state.lightTemp < 0.5;
+      var tint = warm ? "255,190,120" : "150,200,255";
+      var amt = Math.abs(state.lightTemp - 0.5) * 2;
+      var lmask = document.createElement("canvas");
+      lmask.width = Math.max(2, Math.round(dw));
+      lmask.height = Math.max(2, Math.round(dh));
+      var lmx = lmask.getContext("2d");
+      lmx.drawImage(img, 0, 0, lmask.width, lmask.height);
+      lmx.globalCompositeOperation = "destination-in";
+      var lg2 = lmx.createLinearGradient(
+        lmask.width/2 - lx*lmask.width*0.7, lmask.height/2 - ly*lmask.height*0.7,
+        lmask.width/2 + lx*lmask.width*0.7, lmask.height/2 + ly*lmask.height*0.7
+      );
+      lg2.addColorStop(0, "rgba(" + tint + "," + (state.lightIntensity*0.45*(0.4+amt)).toFixed(3) + ")");
+      lg2.addColorStop(0.5, "rgba(128,128,128,0.10)");
+      lg2.addColorStop(1, "rgba(8,8,24," + (state.lightIntensity*0.5).toFixed(3) + ")");
+      lmx.fillStyle = lg2;
+      lmx.fillRect(0, 0, lmask.width, lmask.height);
+      hr.globalCompositeOperation = "overlay";
+      hr.drawImage(lmask, dx, dy, dw, dh);
+      hr.restore();
+    }
     // micro-contrast for detail
     if (state.detail > 0.45) {
       hr.save();
@@ -262,8 +301,25 @@
         requestAnimationFrame(loop);
       })();
     }
+    // turntable loop
+    if (state.turntable && !turnLoopOn && !reduceMotion) {
+      turnLoopOn = true;
+      (function tloop() {
+        if (!state.turntable) {
+          turnLoopOn = false;
+          state.turnPhase = 0;
+          render();
+          return;
+        }
+        state.turnPhase += 0.015;
+        renderHyperreal();
+        renderBlueprint();
+        requestAnimationFrame(tloop);
+      })();
+    }
   }
   var capeLoopOn = false;
+  var turnLoopOn = false;
 
   function applyMaterialize() {
     var m = state.materialize;
