@@ -30,6 +30,9 @@
 <style>
 #holoCanvas{display:block;width:100%;height:min(88vh,820px);min-height:480px;touch-action:pan-y;cursor:grab}
 #holoCanvas:active{cursor:grabbing}
+.holo-wrap{position:relative}
+.holo-wrap::after{content:"";position:absolute;inset:0;pointer-events:none;
+background:repeating-linear-gradient(to bottom,transparent 0 3px,rgba(0,0,0,var(--scan-op,.20)) 3px 4px)}
 </style>
 </head>
 <body class="page-home">
@@ -43,7 +46,7 @@
     <span class="plate-mark plate-se" aria-hidden="true"></span>
     <div class="stage stage-still">
       <div class="draft-plate">
-        <canvas id="holoCanvas" role="img" aria-label="Interactive 3D hologram: a green samurai figure in a straw hat holding a katana, standing on a glowing platform. Move your pointer over it to turn it."></canvas>
+        <div class="holo-wrap"><canvas id="holoCanvas" role="img" aria-label="Interactive 3D hologram: a green samurai figure in a straw hat holding a katana, standing on a glowing platform. Move your pointer over it to turn it."></canvas></div>
       </div>
       <p class="figure-caption">The weight sits.</p>
     </div>
@@ -75,6 +78,6 @@
 <script src="./card.js"></script>
 <script src="holo-data.js?v=79551b36"></script>
 <script src="holo-profile.js"></script>
-<script src="hologram-v2.js?v=a2fb32c4"></script>
+<script src="hologram-v3.js?v=a2fb32c4"></script>
 </body>
 </html>
