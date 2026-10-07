@@ -14,6 +14,9 @@
   var img = new Image(), loaded = false;
   img.onload = function () { loaded = true; };
   img.src = window.HOLO_SPATIAL || "";
+  var grid = new Image(), gridLoaded = false;
+  grid.onload = function () { gridLoaded = true; };
+  grid.src = window.HOLO_GRID || "";
 
   function fit() {
     var dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -72,6 +75,15 @@
 
     var cw = canvas.width, ch = canvas.height;
     ctx.clearRect(0, 0, cw, ch);
+
+    // far layer: grid room shifts least (0.4x) — sells the depth
+    if (gridLoaded) {
+      var gs = Math.max(cw / grid.naturalWidth, ch / grid.naturalHeight) * 1.08;
+      var gw = grid.naturalWidth * gs, gh = grid.naturalHeight * gs;
+      ctx.globalAlpha = 0.85;
+      ctx.drawImage(grid, (cw - gw) / 2 + tiltX * cw * 0.012, (ch - gh) / 2 + tiltY * ch * 0.012, gw, gh);
+      ctx.globalAlpha = 1;
+    }
     if (!loaded) { requestAnimationFrame(draw); return; }
 
     var s = Math.min(cw / img.naturalWidth, ch / img.naturalHeight) * 0.96;
