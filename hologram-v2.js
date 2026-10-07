@@ -36,9 +36,13 @@
     "uniform mat4 uP;\n" +
     "uniform mat4 uMV;\n" +
     "varying vec2 vUv;\n" +
+    "uniform float uTime;\n" +
+    "uniform float uWobble;\n" +
+    "uniform float uStill;\n" +
     "void main(){\n" +
     "  vUv = aUv;\n" +
-    "  gl_Position = uP * uMV * vec4(aPos, 0.0, 1.0);\n" +
+    "  float w = sin(aPos.y*18.0 + uTime*2.6) * uWobble * 0.012 * (1.0-uStill);\n" +
+    "  gl_Position = uP * uMV * vec4(aPos.x + w, aPos.y, 0.0, 1.0);\n" +
     "}";
   var FS =
     "precision highp float;\n" +
@@ -46,18 +50,27 @@
     "uniform sampler2D uTex;\n" +
     "uniform float uTime;\n" +
     "uniform float uStill;\n" +
+    "uniform vec3 uTint;\n" +
+    "uniform float uTintMix;\n" +
+    "uniform float uGlow;\n" +
+    "uniform float uScanSharp;\n" +
+    "uniform float uAlphaMul;\n" +
     "void main(){\n" +
     "  vec4 tex = texture2D(uTex, vUv);\n" +
     "  float lum = dot(tex.rgb, vec3(0.299, 0.587, 0.114));\n" +
     "  float alpha = smoothstep(0.035, 0.24, lum);\n" +           // key out the dark void
     "  float t = uTime * (1.0 - uStill);\n" +
-    "  float scan = 0.80 + 0.20 * sin(vUv.y * 820.0 + t * 2.2);\n" + // scanlines
     "  float bandPos = fract(t * 0.07);\n" +
     "  float band = smoothstep(0.10, 0.0, abs(vUv.y - bandPos)) * (1.0 - uStill);\n" +
     "  float flick = 0.93 + 0.07 * sin(t * 12.0) * sin(t * 7.1 + 1.7);\n" +
-    "  vec3 col = tex.rgb * vec3(0.82, 1.06, 1.12);\n" +            // hologram tint
-    "  col += vec3(0.10, 0.30, 0.32) * band;\n" +                  // sweep glow
-    "  float a = alpha * mix(scan, 1.0, uStill * 0.5) * mix(flick, 1.0, uStill) * 0.92;\n" +
+    "  vec3 baseTint = mix(vec3(0.82, 1.06, 1.12), uTint * 1.35, uTintMix);\n" +
+    "  vec3 col = tex.rgb * baseTint;\n" +
+    "  col += vec3(0.10, 0.30, 0.32) * band;\n" +
+    "  float rim = alpha * (1.0 - alpha) * 4.0;\n" +               // shell edge of keyed mask
+    "  col += vec3(0.35, 0.9, 1.0) * rim * uGlow * 0.55;\n" +
+    "  float scan = mix(0.90 + 0.10 * sin(vUv.y * 820.0 + t * 2.2),\n" +
+    "                   0.72 + 0.28 * sin(vUv.y * 820.0 + t * 2.2), uScanSharp);\n" +
+    "  float a = alpha * mix(scan, 1.0, uStill * 0.5) * mix(flick, 1.0, uStill) * 0.92 * uAlphaMul;\n" +
     "  if (a < 0.012) discard;\n" +
     "  gl_FragColor = vec4(col, a);\n" +
     "}";
@@ -82,6 +95,14 @@
   var uTex = gl.getUniformLocation(pr, "uTex");
   var uTime = gl.getUniformLocation(pr, "uTime");
   var uStill = gl.getUniformLocation(pr, "uStill");
+  var uTint = gl.getUniformLocation(pr, "uTint");
+  var uTintMix = gl.getUniformLocation(pr, "uTintMix");
+  var uGlow = gl.getUniformLocation(pr, "uGlow");
+  var uScanSharp = gl.getUniformLocation(pr, "uScanSharp");
+  var uAlphaMul = gl.getUniformLocation(pr, "uAlphaMul");
+  var uWobble = gl.getUniformLocation(pr, "uWobble");
+  var PROF = window.HOLO_PROFILE || {tint_rgb:[0.6,0.78,0.83],tint_mix:0,
+    edge_glow:0.5,scan_sharpness:0.7,translucency:0.92,wobble:0.1};
 
   // Full quad; aspect-corrected in JS by scaling x.
   var quad = new Float32Array([-1, -1, 0, 0,  1, -1, 1, 0,  -1, 1, 0, 1,  1, 1, 1, 1]);
@@ -191,6 +212,12 @@
     gl.uniform1i(uTex, 0);
     gl.uniform1f(uTime, time / 1000);
     gl.uniform1f(uStill, reduceMotion ? 1 : 0);
+    gl.uniform3f(uTint, PROF.tint_rgb[0], PROF.tint_rgb[1], PROF.tint_rgb[2]);
+    gl.uniform1f(uTintMix, PROF.tint_mix);
+    gl.uniform1f(uGlow, PROF.edge_glow);
+    gl.uniform1f(uScanSharp, PROF.scan_sharpness);
+    gl.uniform1f(uAlphaMul, PROF.translucency);
+    gl.uniform1f(uWobble, PROF.wobble);
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
