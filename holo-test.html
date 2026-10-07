@@ -6,14 +6,14 @@ body{background:#07070c;margin:0;display:flex;justify-content:center;padding:20p
 .holo-wrap{position:relative;width:min(400px,90vw)}
 .holo-wrap::before{content:"";position:absolute;left:8%;right:8%;bottom:1%;height:4px;z-index:2;pointer-events:none;
 background:radial-gradient(ellipse at center,rgba(184,245,230,.75),transparent 70%)}
-#holoCanvas{display:block;width:100%;aspect-ratio:480/840;touch-action:pan-y}
+#holoCanvas{display:block;width:100%;aspect-ratio:480/764;touch-action:pan-y}
 
 .holo-alive{animation:holo-flick 7s ease-in-out infinite}
 @keyframes holo-flick{0%,100%{opacity:1}93%{opacity:.965}94%{opacity:1}}
 </style></head><body>
 <div class="holo-wrap"><canvas id="holoCanvas"></canvas></div>
 
-<script src="holo-mirror-orig.js?v=1e334ba6"></script>
-<script src="holo-mirror-mir.js?v=a40d9944"></script>
+<script src="holo-mirror-orig.js?v=07f4ecbe"></script>
+<script src="holo-mirror-mir.js?v=e77c3341"></script>
 <script src="holo-mirror.js?v=7a901694"></script>
 </body></html>
