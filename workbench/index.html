@@ -2,46 +2,65 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>HEAVY IS THE CROWN — Workbench</title>
 <meta name="description" content="Customize your character from blueprint to hyper-real.">
 <meta name="theme-color" content="#070708">
 <style>
-:root{--bg:#070708;--panel:#101014;--line:rgba(140,210,255,.14);--txt:#e8eef4;--dim:#8a94a0;--accent:#8cd2ff}
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Outfit',system-ui,sans-serif;background:var(--bg);color:var(--txt);min-height:100vh}
-header{display:flex;justify-content:space-between;align-items:center;padding:16px 22px;border-bottom:1px solid var(--line)}
-header h1{font-size:15px;letter-spacing:4px;font-weight:800}
+:root{--bg:#070708;--panel:#0e1013;--line:rgba(140,210,255,.13);--txt:#e9eff5;--dim:#8b95a2;--accent:#8cd2ff}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Outfit',system-ui,sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;min-height:100dvh;display:flex;flex-direction:column}
+header{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line);flex:none}
+header h1{font-size:14px;letter-spacing:4px;font-weight:800}
 header a{color:var(--dim);text-decoration:none;font-size:12px;letter-spacing:1px}
 #wbReadout{font-family:ui-monospace,monospace;font-size:11px;color:var(--accent);letter-spacing:2px}
-main{display:grid;grid-template-columns:220px 1fr 240px;gap:0;min-height:calc(100vh - 57px)}
-aside{background:var(--panel);padding:18px;border-right:1px solid var(--line);overflow-y:auto}
-aside.right{border-right:none;border-left:1px solid var(--line)}
-aside h2{font-size:10px;letter-spacing:2px;color:var(--dim);margin-bottom:12px;font-weight:700}
+main{flex:1;display:grid;grid-template-columns:230px 1fr 250px;min-height:0}
+aside{background:var(--panel);padding:16px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+aside.left{border-right:1px solid var(--line)}
+aside.right{border-left:1px solid var(--line)}
+aside h2{font-size:10px;letter-spacing:2px;color:var(--dim);margin:0 0 12px;font-weight:700}
 .chassis{display:grid;gap:10px}
-.chassis button{background:#0a0d12;border:1px solid var(--line);border-radius:10px;padding:8px;cursor:pointer;color:var(--txt);transition:border-color .2s}
-.chassis button.active{border-color:var(--accent)}
-.chassis button img{width:100%;height:120px;object-fit:contain;display:block}
-.chassis button span{font-size:10px;letter-spacing:1px;display:block;margin-top:6px;color:var(--dim)}
+.chassis button{background:#0a0d12;border:1px solid var(--line);border-radius:12px;padding:8px;cursor:pointer;color:var(--txt);transition:border-color .2s,transform .15s;width:100%}
+.chassis button:active{transform:scale(.97)}
+.chassis button.active{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.chassis button img{width:100%;height:110px;object-fit:contain;display:block}
+.chassis button span{font-size:9px;letter-spacing:1px;display:block;margin-top:6px;color:var(--dim)}
 .chassis button.active span{color:var(--txt)}
-.mat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px}
-.mat-grid button{border:1px solid var(--line);background:#0a0d12;border-radius:10px;padding:10px 6px;cursor:pointer;color:var(--txt);font-size:10px;letter-spacing:.5px}
-.mat-grid button.active{border-color:var(--accent)}
-.mat-grid button i{display:block;width:22px;height:22px;border-radius:50%;margin:0 auto 6px}
-.ctrl{margin-bottom:14px}
-.ctrl label{font-size:10px;letter-spacing:1px;color:var(--dim);display:flex;justify-content:space-between;margin-bottom:6px}
-.ctrl input[type=range]{width:100%;accent-color:var(--accent)}
-.stage{position:relative;display:flex;flex-direction:column;background:#050507}
-#wbCanvas{flex:1;width:100%;min-height:400px;display:block;touch-action:none}
-.materialize{padding:18px 26px;border-top:1px solid var(--line);background:var(--panel)}
-.materialize .row{display:flex;align-items:center;gap:14px}
-.materialize span{font-size:10px;letter-spacing:2px;color:var(--dim);white-space:nowrap}
-.materialize span:last-child{color:var(--accent)}
-#matSlider{flex:1;accent-color:var(--accent);height:28px}
+.mat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px}
+.mat-grid button{border:1px solid var(--line);background:#0a0d12;border-radius:12px;padding:10px 4px;cursor:pointer;color:var(--txt);font-size:9px;letter-spacing:.5px;font-family:inherit}
+.mat-grid button.active{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.mat-grid button i{display:block;width:24px;height:24px;border-radius:50%;margin:0 auto 6px;border:1px solid rgba(255,255,255,.2)}
+.ctrl{margin-bottom:16px}
+.ctrl label{font-size:10px;letter-spacing:1px;color:var(--dim);display:flex;justify-content:space-between;margin-bottom:8px}
+.ctrl label b{color:var(--txt)}
+.ctrl input[type=range]{width:100%;accent-color:var(--accent);height:28px}
+.stage{position:relative;display:flex;flex-direction:column;min-height:0;background:#050507;min-width:0}
+.canvas-stack{position:relative;flex:1;min-height:320px}
+.canvas-stack canvas{position:absolute;inset:0;width:100%;height:100%;display:block;transition:opacity .08s linear}
+#wbHyperreal{opacity:0}
+.materialize{padding:16px 20px calc(16px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:var(--panel);flex:none}
+.materialize .row{display:flex;align-items:center;gap:12px}
+.materialize .row span{font-size:9px;letter-spacing:2px;color:var(--dim);white-space:nowrap}
+.materialize .row span:last-child{color:var(--accent)}
+#matSlider{flex:1;accent-color:var(--accent);height:32px}
 .export-row{display:flex;gap:10px;margin-top:12px}
-.btn{flex:1;background:var(--accent);color:#04121f;border:none;padding:12px;border-radius:10px;font-weight:800;font-size:12px;letter-spacing:1px;cursor:pointer}
+.btn{flex:1;background:var(--accent);color:#04121f;border:none;padding:14px;border-radius:12px;font-weight:800;font-size:13px;letter-spacing:1px;cursor:pointer;font-family:inherit}
+.btn:active{transform:scale(.98)}
 .btn.ghost{background:transparent;color:var(--txt);border:1px solid var(--line)}
-@media(max-width:900px){main{grid-template-columns:1fr}aside{border:none;border-bottom:1px solid var(--line)}}
+/* cinematic generate overlay */
+#genOverlay{position:absolute;inset:0;z-index:10;display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px;background:rgba(5,5,7,.55);backdrop-filter:blur(2px)}
+#genOverlay.on{display:flex}
+#genOverlay .scan{width:70%;height:2px;background:var(--accent);box-shadow:0 0 18px var(--accent);animation:scan 1.1s ease-in-out infinite}
+@keyframes scan{0%,100%{transform:translateY(-70px);opacity:0}15%,85%{opacity:1}50%{transform:translateY(70px)}}
+#genOverlay p{font-family:ui-monospace,monospace;font-size:11px;letter-spacing:3px;color:var(--accent)}
+@media(max-width:920px){
+main{grid-template-columns:1fr;grid-template-rows:auto 1fr auto}
+aside.left{border-right:none;border-bottom:1px solid var(--line);max-height:172px}
+aside.right{border-left:none;border-top:1px solid var(--line)}
+.chassis{grid-template-columns:repeat(6,110px);grid-auto-flow:column;overflow-x:auto;padding-bottom:6px}
+.chassis button img{height:74px}
+.canvas-stack{min-height:46vh}
+}
 </style>
 </head>
 <body>
@@ -51,16 +70,23 @@ aside h2{font-size:10px;letter-spacing:2px;color:var(--dim);margin-bottom:12px;f
 <a href="../">← HALL</a>
 </header>
 <main>
-<aside>
+<aside class="left">
 <h2>CHASSIS</h2>
 <div class="chassis" id="chassisPick">
 <button data-c="vx19" class="active"><img alt="VX-19 Dominus"><span>VX-19 DOMINUS</span></button>
-<button data-c="hooded"><img alt="Hooded Assassin"><span>HOODED ASSASSIN</span></button>
+<button data-c="wraith"><img alt="Wraith"><span>WRAITH</span></button>
+<button data-c="ronin"><img alt="Ronin"><span>RONIN</span></button>
+<button data-c="chrome"><img alt="Chrome"><span>CHROME</span></button>
+<button data-c="hooded"><img alt="Hooded Assassin"><span>HOODED</span></button>
 <button data-c="vx19w"><img alt="VX-19 Ghost"><span>VX-19 GHOST</span></button>
 </div>
 </aside>
 <div class="stage">
-<canvas id="wbCanvas"></canvas>
+<div class="canvas-stack" id="stack">
+<canvas id="wbBlueprint"></canvas>
+<canvas id="wbHyperreal"></canvas>
+<div id="genOverlay"><div class="scan"></div><p>MATERIALIZING</p></div>
+</div>
 <div class="materialize">
 <div class="row">
 <span>BLUEPRINT</span>
@@ -76,10 +102,12 @@ aside h2{font-size:10px;letter-spacing:2px;color:var(--dim);margin-bottom:12px;f
 <aside class="right">
 <h2>MATERIAL</h2>
 <div class="mat-grid" id="matPick">
-<button data-m="onyx" class="active"><i style="background:linear-gradient(135deg,#1a1a1a,#d4a843)"></i>ONYX GOLD</button>
-<button data-m="carbon"><i style="background:linear-gradient(135deg,#222,#555)"></i>CARBON</button>
-<button data-m="steel"><i style="background:linear-gradient(135deg,#5a6a7a,#c8d8e8)"></i>STEEL</button>
-<button data-m="ghost"><i style="background:linear-gradient(135deg,#c8f0e8,#fff)"></i>GHOST</button>
+<button data-m="onyx" class="active"><i style="background:linear-gradient(135deg,#151515,#d4a843)"></i>ONYX GOLD</button>
+<button data-m="carbon"><i style="background:linear-gradient(135deg,#1c1c1e,#5a5a5e)"></i>CARBON</button>
+<button data-m="steel"><i style="background:linear-gradient(135deg,#4a5a6a,#c8d8e8)"></i>STEEL</button>
+<button data-m="ghost"><i style="background:linear-gradient(135deg,#b8e8dc,#ffffff)"></i>GHOST</button>
+<button data-m="ember"><i style="background:linear-gradient(135deg,#2a0f08,#ff783c)"></i>EMBER</button>
+<button data-m="frost"><i style="background:linear-gradient(135deg,#0a2a3a,#78dcff)"></i>FROST</button>
 </div>
 <h2>DETAIL</h2>
 <div class="ctrl"><label>EDGE DEFINITION <b id="vDetail">70%</b></label>
@@ -93,9 +121,11 @@ aside h2{font-size:10px;letter-spacing:2px;color:var(--dim);margin-bottom:12px;f
 <script src="chassis-vx19.js?v=fbbcb7a4"></script>
 <script src="chassis-hooded.js?v=571439b4"></script>
 <script src="chassis-vx19w.js?v=d1b6fd7c"></script>
-<script src="workbench.js?v=bf538ccb"></script>
+<script src="chassis-wraith.js?v=5776c9a8"></script>
+<script src="chassis-ronin.js?v=f10845ae"></script>
+<script src="chassis-chrome.js?v=d5fb8d0a"></script>
+<script src="workbench.js?v=5fa3a1a0"></script>
 <script>
-// thumbnails
 document.querySelectorAll('#chassisPick button').forEach(function (b) {
   var k = b.dataset.c;
   b.querySelector('img').src = (window.WB_CHASSIS || {})[k] || '';
@@ -122,16 +152,34 @@ function bindRange(id, key, label) {
 bindRange('rDetail', 'detail', 'vDetail');
 bindRange('rPolish', 'polish', 'vPolish');
 bindRange('rGlow', 'glow', 'vGlow');
+// smooth slider: animate toward target for cinematic feel
+var sliderTarget = 0, sliderAnim = null;
 document.getElementById('matSlider').addEventListener('input', function (e) {
-  WB.set('materialize', e.target.value / 100);
+  sliderTarget = e.target.value / 100;
+  if (!sliderAnim) {
+    (function tick() {
+      var cur = WB.state.materialize;
+      var d = sliderTarget - cur;
+      if (Math.abs(d) < 0.004) { WB.set('materialize', sliderTarget); sliderAnim = null; return; }
+      WB.set('materialize', cur + d * 0.22);
+      sliderAnim = requestAnimationFrame(tick);
+    })();
+  }
 });
 document.getElementById('exportBtn').addEventListener('click', function () {
-  // export at full hyper-real
+  var ov = document.getElementById('genOverlay');
+  ov.classList.add('on');
   var prev = WB.state.materialize;
   WB.set('materialize', 1);
-  setTimeout(function () { WB.export(); WB.set('materialize', prev); }, 60);
+  setTimeout(function () {
+    WB.export();
+    ov.classList.remove('on');
+    WB.set('materialize', prev);
+    document.getElementById('matSlider').value = Math.round(prev * 100);
+  }, 1300);
 });
 document.getElementById('resetBtn').addEventListener('click', function () {
+  sliderTarget = 0;
   WB.set('materialize', 0);
   document.getElementById('matSlider').value = 0;
 });
