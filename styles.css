@@ -1,3 +1,4 @@
+@import url("blossom-bg.css");
 
 :root {
   --bg: #070708;
@@ -349,7 +350,7 @@ textarea {
 #sky { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
 .sky-blossom {
   position: absolute; inset: -6%;
-  background: url("images/blossom-drift.webp") center 32% / cover no-repeat;
+  background: var(--blossom-img) center 32% / cover no-repeat;
   animation: blossom-drift 90s ease-in-out infinite alternate;
   will-change: transform;
 }
