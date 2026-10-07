@@ -85,39 +85,55 @@
     var ox = (cw - dw) / 2, oy = (ch - dh) / 2;
     var pcx = ox + dw * 0.5, pcy = oy + dh * 0.86;
     var rx = dw * 0.34, ry = rx * 0.30;
+    var thick = ry * 0.55; // platform side-wall height
     platAngle += 0.016; // ~6.5s per revolution
     if (platAngle > Math.PI * 2) platAngle -= Math.PI * 2;
     ctx.save();
-    // mask the baked-in platform with darkness
-    ctx.globalAlpha = 0.85;
+    // soften (not black out) the baked-in platform
+    ctx.globalAlpha = 0.55;
     ctx.fillStyle = "#07070c";
     ctx.beginPath();
-    ctx.ellipse(pcx, pcy, rx * 1.15, ry * 1.6, 0, 0, Math.PI * 2);
+    ctx.ellipse(pcx, pcy, rx * 1.12, ry * 1.5 + thick, 0, 0, Math.PI * 2);
     ctx.fill();
-    // rotating spokes
-    ctx.globalAlpha = 0.55;
-    ctx.strokeStyle = "#7fd4c1";
+    // side wall: gives the disc real thickness
+    ctx.globalAlpha = 0.85;
+    var grad = ctx.createLinearGradient(0, pcy, 0, pcy + ry + thick);
+    grad.addColorStop(0, "rgba(60,110,100,0.0)");
+    grad.addColorStop(1, "rgba(40,90,80,0.55)");
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.ellipse(pcx, pcy + thick, rx, ry, 0, 0, Math.PI);
+    ctx.lineTo(pcx - rx, pcy);
+    ctx.ellipse(pcx, pcy, rx, ry, 0, Math.PI, 0, true);
+    ctx.closePath();
+    ctx.fill();
+    // rotating spokes with depth cue (front brighter)
     ctx.lineWidth = Math.max(1, s * 1.2);
     for (var i = 0; i < 16; i++) {
       var a = platAngle + (i / 16) * Math.PI * 2;
+      var depth = (Math.sin(a) + 1) / 2; // 0 back, 1 front
+      ctx.globalAlpha = 0.25 + 0.45 * depth;
+      ctx.strokeStyle = "#7fd4c1";
       ctx.beginPath();
       ctx.moveTo(pcx + Math.cos(a) * rx * 0.18, pcy + Math.sin(a) * ry * 0.18);
       ctx.lineTo(pcx + Math.cos(a) * rx, pcy + Math.sin(a) * ry);
       ctx.stroke();
     }
     // static rings
-    ctx.globalAlpha = 0.7;
+    ctx.globalAlpha = 0.6;
+    ctx.strokeStyle = "#7fd4c1";
     [1, 0.66, 0.33].forEach(function (k) {
       ctx.beginPath();
       ctx.ellipse(pcx, pcy, rx * k, ry * k, 0, 0, Math.PI * 2);
       ctx.stroke();
     });
-    // glow dot at center
+    // bright front rim
     ctx.globalAlpha = 0.9;
-    ctx.fillStyle = "#a8f0e0";
+    ctx.lineWidth = Math.max(1.5, s * 2);
+    ctx.strokeStyle = "#b8f5e6";
     ctx.beginPath();
-    ctx.arc(pcx, pcy, Math.max(1.5, s * 2.5), 0, Math.PI * 2);
-    ctx.fill();
+    ctx.ellipse(pcx, pcy, rx, ry, 0, 0.15 * Math.PI, 0.85 * Math.PI);
+    ctx.stroke();
     ctx.restore();
     ctx.globalAlpha = 1;
   }
