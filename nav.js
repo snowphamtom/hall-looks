@@ -14,3 +14,10 @@
     if (e.key === "Escape" && nav.classList.contains("open")) { btn.click(); btn.focus(); }
   });
 })();
+// Blossom sky: freeze drift and petals while the tab is hidden (battery).
+// Reduced-motion visitors get a static blossom via the CSS media query.
+(function () {
+  document.addEventListener("visibilitychange", function () {
+    document.documentElement.classList.toggle("sky-paused", document.hidden);
+  });
+})();

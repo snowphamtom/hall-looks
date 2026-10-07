@@ -66,7 +66,9 @@
   function applyLockerField() {
     const body = document.body;
     const list = contenders();
-    sky().innerHTML = "";
+    // #sky holds the static blossom composition in markup; never wipe it.
+    // (Rank color arrives as a translucent wash on body[data-rank], over the blossom.)
+    sky();
     if (!list.length) {
       body.dataset.rank = "0";
       body.style.removeProperty("--rank-glow");
@@ -100,9 +102,9 @@
       bar.append(mid, you);
       const cap = document.createElement("p");
       if (!lead) {
-        cap.textContent = "Nothing is in the locker, so the field stays dark. Save a character and the page takes the color of the single highest one here. Only Prism, rank 24, is holographic.";
+        cap.textContent = "Nothing is in the locker, so the hall rests on blossom. Save a character and the page takes on the color wash of the single highest one here. Only Prism, rank 24, is holographic.";
       } else {
-        cap.textContent = lead.name + " is the highest in the locker: " + meta.name + ", rank " + n + " of 24. The page wears that color." + (n === 24 ? " This is first place, the only holographic rank." : " Holographic stays at Prism, rank 24.");
+        cap.textContent = lead.name + " is the highest in the locker: " + meta.name + ", rank " + n + " of 24. The page wears that color over the blossom." + (n === 24 ? " This is first place, the only holographic rank." : " Holographic stays at Prism, rank 24.");
       }
       el.append(word, bar, cap);
     });
