@@ -33,6 +33,17 @@ header a{color:var(--dim);text-decoration:none;font-size:12px;letter-spacing:1px
 #measureCard .close{position:absolute;top:8px;right:10px;background:none;border:none;color:var(--dim);font-size:16px;cursor:pointer}
 #measureHint{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);z-index:15;font-family:ui-monospace,monospace;font-size:10px;letter-spacing:2px;color:var(--accent);background:rgba(10,14,20,.85);padding:8px 16px;border-radius:20px;border:1px solid var(--line);display:none;white-space:nowrap}
 #measureHint.on{display:block}
+/* sculpt mode */
+#sculptOverlay{position:absolute;inset:0;z-index:30;display:none;background:rgba(5,5,8,.97)}
+#sculptOverlay.on{display:flex;flex-direction:column}
+#sculptCanvas{flex:1;width:100%;min-height:0;touch-action:none;cursor:crosshair;display:block}
+#sculptBar{display:flex;gap:8px;padding:12px 16px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--line);background:var(--panel);align-items:center;flex:none;position:relative;z-index:2}
+#sculptBar button{padding:12px 16px;border-radius:10px;font-size:11px;letter-spacing:1px;cursor:pointer;font-family:ui-monospace,monospace;font-weight:700}
+#sculptDone{background:var(--accent);color:#04121f;border:none;flex:1}
+#sculptReset{background:transparent;color:var(--txt);border:1px solid var(--line)}
+#sculptMirror{background:transparent;color:var(--dim);border:1px solid var(--line)}
+#sculptMirror.on{background:var(--accent);color:#04121f;border-color:var(--accent)}
+#sculptLabel{font-family:ui-monospace,monospace;font-size:10px;letter-spacing:2px;color:var(--accent);text-align:center;padding:10px}
 main{flex:1;display:grid;grid-template-columns:230px 1fr 250px;min-height:0}
 aside{background:var(--panel);padding:16px;overflow-y:auto;-webkit-overflow-scrolling:touch}
 aside.left{border-right:1px solid var(--line)}
@@ -118,8 +129,27 @@ aside.right{border-left:none;border-top:1px solid var(--line)}
 <div class="spec"><span>EST. MASS</span><span id="mcM">—</span></div>
 <div class="spec"><span>COVERAGE</span><span id="mcC">—</span></div>
 <div class="spec"><span>ARTICULATION</span><span id="mcA">—</span></div>
+<div style="margin-top:10px">
+<div style="font-size:9px;color:var(--dim);letter-spacing:1px;margin-bottom:6px">PIECE MATERIAL</div>
+<select id="mcMat" style="width:100%;background:#0a0d12;color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:8px;font-size:11px;font-family:ui-monospace,monospace">
+<option value="">— Global —</option>
+</select>
+</div>
+<div style="display:flex;gap:8px;margin-top:10px">
+<button id="sculptBtn" style="flex:1;background:var(--accent);color:#04121f;border:none;padding:10px;border-radius:8px;font-weight:800;font-size:11px;letter-spacing:1px;cursor:pointer;font-family:ui-monospace,monospace">SCULPT</button>
+<button id="mirrorBtn" style="flex:1;background:transparent;color:var(--dim);border:1px solid var(--line);padding:10px;border-radius:8px;font-size:11px;letter-spacing:1px;cursor:pointer;font-family:ui-monospace,monospace">MIRROR: OFF</button>
+</div>
 </div>
 <div id="measureHint">TAP ARMOR TO MEASURE</div>
+<div id="sculptOverlay">
+<div id="sculptLabel">DRAG POINTS TO MOLD — PUTTY MODE</div>
+<canvas id="sculptCanvas"></canvas>
+<div id="sculptBar">
+<button id="sculptMirror">MIRROR</button>
+<button id="sculptReset">RESET</button>
+<button id="sculptDone">DONE</button>
+</div>
+</div>
 <div id="genOverlay"><div class="scan"></div><p>MATERIALIZING</p></div>
 </div>
 <div class="materialize">
@@ -143,6 +173,22 @@ aside.right{border-left:none;border-top:1px solid var(--line)}
 <button data-m="ghost"><i style="background:linear-gradient(135deg,#b8e8dc,#ffffff)"></i>GHOST</button>
 <button data-m="ember"><i style="background:linear-gradient(135deg,#2a0f08,#ff783c)"></i>EMBER</button>
 <button data-m="frost"><i style="background:linear-gradient(135deg,#0a2a3a,#78dcff)"></i>FROST</button>
+<button data-m="crimson"><i style="background:linear-gradient(135deg,#3d0a12,#ff3c46)"></i>CRIMSON</button>
+<button data-m="cobalt"><i style="background:linear-gradient(135deg,#0a1a4d,#466eff)"></i>COBALT</button>
+<button data-m="jade"><i style="background:linear-gradient(135deg,#0a3d24,#3cdc96)"></i>JADE</button>
+<button data-m="bone"><i style="background:linear-gradient(135deg,#8a8068,#e6dcbe)"></i>BONE</button>
+</div>
+<h2>CAPE</h2>
+<div style="display:flex;gap:8px;margin-bottom:12px">
+<button id="capeToggle" style="flex:1;background:transparent;color:var(--dim);border:1px solid var(--line);padding:10px;border-radius:10px;font-size:10px;letter-spacing:1px;cursor:pointer;font-family:inherit">CAPE: OFF</button>
+</div>
+<div class="mat-grid" id="capePick" style="display:none">
+<button data-f="velvet" class="active"><i style="background:linear-gradient(135deg,#3d0f1e,#7a1f3a)"></i>VELVET</button>
+<button data-f="wool"><i style="background:linear-gradient(135deg,#2a2320,#4a3f36)"></i>WOOL</button>
+<button data-f="leather"><i style="background:linear-gradient(135deg,#4a2f1a,#7a5230)"></i>LEATHER</button>
+<button data-f="silk"><i style="background:linear-gradient(135deg,#0d0d12,#2a2a35)"></i>SILK</button>
+<button data-f="mail"><i style="background:linear-gradient(135deg,#3a3f45,#6a7078)"></i>MAIL</button>
+<button data-f="canvas"><i style="background:linear-gradient(135deg,#5a5240,#8a8068)"></i>CANVAS</button>
 </div>
 <h2>DETAIL</h2>
 <div class="ctrl"><label>EDGE DEFINITION <b id="vDetail">70%</b></label>
@@ -161,7 +207,9 @@ aside.right{border-left:none;border-top:1px solid var(--line)}
 <script src="chassis-chrome.js?v=da80a0c3"></script>
 <script src="measure-atlas.js?v=2845ab78"></script>
 <script src="grid-3d.js?v=6578443a"></script>
-<script src="workbench.js?v=ca48f429"></script>
+<script src="sculpt.js?v=42858ea8"></script>
+<script src="cape.js?v=d1675a03"></script>
+<script src="workbench.js?v=d89592d5"></script>
 <script>
 document.querySelectorAll('#chassisPick button').forEach(function (b) {
   var k = b.dataset.c;
@@ -221,6 +269,44 @@ document.getElementById('resetBtn').addEventListener('click', function () {
   document.getElementById('matSlider').value = 0;
 });
 
+/* cape toggle */
+document.getElementById('capeToggle').addEventListener('click', function () {
+  var on = WB_CAPE.toggle();
+  this.textContent = on ? 'CAPE: ON' : 'CAPE: OFF';
+  this.style.borderColor = on ? 'var(--accent)' : '';
+  this.style.color = on ? 'var(--txt)' : '';
+  document.getElementById('capePick').style.display = on ? 'grid' : 'none';
+  WB.draw();
+});
+document.querySelectorAll('#capePick button').forEach(function (b) {
+  b.addEventListener('click', function () {
+    document.querySelectorAll('#capePick button').forEach(function (x) { x.classList.remove('active'); });
+    b.classList.add('active');
+    WB_CAPE.setFabric(b.dataset.f);
+    WB.draw();
+  });
+});
+
+/* per-piece materials */
+(function () {
+  var sel = document.getElementById('mcMat');
+  var mats = ['onyx','carbon','steel','ghost','ember','frost','crimson','cobalt','jade','bone'];
+  mats.forEach(function (m) {
+    var o = document.createElement('option');
+    o.value = m; o.textContent = m.toUpperCase();
+    sel.appendChild(o);
+  });
+  sel.addEventListener('change', function () {
+    var pk = window._selectedPiece;
+    if (!pk) return;
+    WB.setPieceMaterial(WB.state.chassis, pk, sel.value || null);
+  });
+  window._syncPieceMat = function (pk) {
+    var cur = WB.getPieceMaterial(WB.state.chassis, pk);
+    sel.value = cur || '';
+  };
+})();
+
 /* ---- 3D MEASURE MODE ---- */
 (function () {
   var mc = document.getElementById('wbMeasure');
@@ -257,6 +343,7 @@ document.getElementById('resetBtn').addEventListener('click', function () {
 
   function select(pk) {
     selected = pk;
+    window._selectedPiece = pk;
     var atlas = window.WB_ATLAS;
     if (pk && atlas) {
       var p = atlas.pieces[WB.state.chassis][pk];
@@ -270,6 +357,7 @@ document.getElementById('resetBtn').addEventListener('click', function () {
       document.getElementById('mcA').textContent = p.artic;
       card.classList.add('on');
       hint.classList.remove('on');
+      if (window._syncPieceMat) window._syncPieceMat(pk);
     } else {
       card.classList.remove('on');
       if (on) hint.classList.add('on');
@@ -316,6 +404,184 @@ document.getElementById('resetBtn').addEventListener('click', function () {
     origSet(k, v);
     if (k === 'chassis' && on) { selected = null; card.classList.remove('on'); hint.classList.add('on'); render(); }
   };
+})();
+
+/* ---- PUTTY SCULPT MODE ---- */
+(function () {
+  var overlay = document.getElementById('sculptOverlay');
+  var cv = document.getElementById('sculptCanvas');
+  var ctx = cv.getContext('2d');
+  var mirrorBtn = document.getElementById('sculptMirror');
+  var COLS = 7, ROWS = 9, mirror = false, dragPt = null;
+  var imgW = 0, imgH = 0, drawRect = null;
+
+  function chassisImg() {
+    // get current chassis image element from workbench
+    return document.querySelector('#chassisPick button.active img');
+  }
+
+  function fit() {
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var r = cv.getBoundingClientRect();
+    cv.width = Math.round(r.width * dpr);
+    cv.height = Math.round(r.height * dpr);
+  }
+
+  function getDrawRect() {
+    var w = cv.width, h = cv.height;
+    var img = WB._img();
+    if (!img || !img.naturalWidth) return null;
+    var s = Math.min(w / img.naturalWidth, (h - 40) / img.naturalHeight) * 0.92;
+    var dw = img.naturalWidth * s, dh = img.naturalHeight * s;
+    return { x: (w - dw) / 2, y: (h - dh) / 2, w: dw, h: dh, s: s };
+  }
+
+  function ptPos(ci, ri) {
+    var r = drawRect;
+    var o = WB_SCULPT.getOffset(WB.state.chassis, 'full', ci, ri);
+    var ox = o[0], oy = o[1];
+    if (mirror) {
+      // mirror display: show symmetric
+    }
+    return [r.x + (ci / (COLS - 1)) * r.w + ox * r.w,
+            r.y + (ri / (ROWS - 1)) * r.h + oy * r.h];
+  }
+
+  function render() {
+    var w = cv.width, h = cv.height;
+    ctx.clearRect(0, 0, w, h);
+    // dark backdrop
+    ctx.fillStyle = "#08090c";
+    ctx.fillRect(0, 0, w, h);
+    var img = WB._img();
+    if (!img || !img.naturalWidth) return;
+    drawRect = getDrawRect();
+    var r = drawRect;
+    // warped figure
+    var pr = { x: 0, y: 0, w: img.naturalWidth, h: img.naturalHeight };
+    var dr = { x: r.x, y: r.y, w: r.w, h: r.h };
+    // init grid dims
+    var g = WB_SCULPT.getGrid(WB.state.chassis, 'full', COLS, ROWS);
+    WB_SCULPT.renderSculpted(ctx, img, pr, dr, WB.state.chassis, 'full', false);
+    // control grid
+    ctx.strokeStyle = "rgba(140,210,255,0.25)";
+    ctx.lineWidth = 1;
+    for (var ri = 0; ri < ROWS; ri++) {
+      ctx.beginPath();
+      for (var ci = 0; ci < COLS; ci++) {
+        var p = ptPos(ci, ri);
+        if (ci === 0) ctx.moveTo(p[0], p[1]); else ctx.lineTo(p[0], p[1]);
+      }
+      ctx.stroke();
+    }
+    for (var ci2 = 0; ci2 < COLS; ci2++) {
+      ctx.beginPath();
+      for (var ri2 = 0; ri2 < ROWS; ri2++) {
+        var p2 = ptPos(ci2, ri2);
+        if (ri2 === 0) ctx.moveTo(p2[0], p2[1]); else ctx.lineTo(p2[0], p2[1]);
+      }
+      ctx.stroke();
+    }
+    // points
+    for (var r3 = 0; r3 < ROWS; r3++) {
+      for (var c3 = 0; c3 < COLS; c3++) {
+        var pp = ptPos(c3, r3);
+        var moved = WB_SCULPT.getOffset(WB.state.chassis, 'full', c3, r3);
+        var isMoved = Math.abs(moved[0]) > 0.001 || Math.abs(moved[1]) > 0.001;
+        ctx.fillStyle = isMoved ? "#ffcf6e" : "rgba(140,210,255,0.85)";
+        ctx.beginPath();
+        ctx.arc(pp[0], pp[1], isMoved ? 7 : 5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    // mirror axis
+    if (mirror) {
+      ctx.strokeStyle = "rgba(255,207,110,0.5)";
+      ctx.setLineDash([6, 6]);
+      ctx.beginPath();
+      ctx.moveTo(r.x + r.w / 2, r.y - 10); ctx.lineTo(r.x + r.w / 2, r.y + r.h + 10);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
+
+  function canvasPos(e) {
+    var r = cv.getBoundingClientRect();
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    return [(e.clientX - r.left) * dpr, (e.clientY - r.top) * dpr];
+  }
+
+  function findPt(x, y) {
+    var best = null, bestD = 30 * 30;
+    for (var ri = 0; ri < ROWS; ri++) {
+      for (var ci = 0; ci < COLS; ci++) {
+        var p = ptPos(ci, ri);
+        var d = (p[0] - x) * (p[0] - x) + (p[1] - y) * (p[1] - y);
+        if (d < bestD) { bestD = d; best = [ci, ri]; }
+      }
+    }
+    return best;
+  }
+
+  cv.addEventListener('pointerdown', function (e) {
+    var p = canvasPos(e);
+    dragPt = findPt(p[0], p[1]);
+    if (dragPt) { cv.setPointerCapture(e.pointerId); e.preventDefault(); }
+  });
+  cv.addEventListener('pointermove', function (e) {
+    if (!dragPt || !drawRect) return;
+    var p = canvasPos(e);
+    var r = drawRect;
+    var ci = dragPt[0], ri = dragPt[1];
+    // base position without offset
+    var bx = r.x + (ci / (COLS - 1)) * r.w;
+    var by = r.y + (ri / (ROWS - 1)) * r.h;
+    var dx = (p[0] - bx) / r.w, dy = (p[1] - by) / r.h;
+    // clamp
+    dx = Math.max(-0.2, Math.min(0.2, dx));
+    dy = Math.max(-0.2, Math.min(0.2, dy));
+    WB_SCULPT.setOffset(WB.state.chassis, 'full', ci, ri, dx, dy);
+    if (mirror) {
+      var mci = COLS - 1 - ci;
+      if (mci !== ci) WB_SCULPT.setOffset(WB.state.chassis, 'full', mci, ri, -dx, dy);
+    }
+    render();
+  });
+  cv.addEventListener('pointerup', function () { dragPt = null; });
+
+  mirrorBtn.addEventListener('click', function () {
+    mirror = !mirror;
+    mirrorBtn.classList.toggle('on', mirror);
+    mirrorBtn.textContent = mirror ? 'MIRROR: ON' : 'MIRROR';
+    render();
+  });
+
+  document.getElementById('sculptReset').addEventListener('click', function () {
+    WB_SCULPT.reset(WB.state.chassis, 'full');
+    WB._clearBake(WB.state.chassis);
+    render();
+  });
+
+  document.getElementById('sculptDone').addEventListener('click', function () {
+    WB._bakeSculpt(WB.state.chassis);
+    overlay.classList.remove('on');
+    WB.draw();
+  });
+
+  document.getElementById('sculptBtn').addEventListener('click', function () {
+    document.getElementById('measureCard').classList.remove('on');
+    overlay.classList.add('on');
+    // fit AFTER visible so rect is measurable
+    requestAnimationFrame(function () {
+      fit();
+      WB_SCULPT.getGrid(WB.state.chassis, 'full', COLS, ROWS);
+      render();
+    });
+  });
+
+  window.addEventListener('resize', function () {
+    if (overlay.classList.contains('on')) { fit(); render(); }
+  });
 })();
 
 </script>

@@ -21,6 +21,8 @@
 
   var CHASSIS = ["vx19", "hooded", "vx19w", "wraith", "ronin", "chrome"];
   var chassisImgs = {}, chassisLoaded = {}, edgeMaps = {};
+  var baked = {}, bakedEdges = {};
+  var pieceMats = {};  // chassis:piece -> material
 
   CHASSIS.forEach(function (k) {
     var img = new Image();
@@ -35,7 +37,8 @@
 
   function makeEdgeMap(img) {
     var c = document.createElement("canvas");
-    c.width = img.naturalWidth; c.height = img.naturalHeight;
+    var iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+    c.width = iw; c.height = ih;
     var x = c.getContext("2d");
     x.drawImage(img, 0, 0);
     var d = x.getImageData(0, 0, c.width, c.height);
@@ -65,7 +68,15 @@
     ember: { filter: "contrast(1.16) brightness(0.96) sepia(0.45) hue-rotate(-18deg)", glow: "255,120,60",
              brightFilter: "contrast(1.04) brightness(0.99) sepia(0.3) hue-rotate(-12deg)" },
     frost: { filter: "contrast(1.12) brightness(1.06) sepia(0.12) hue-rotate(140deg)", glow: "120,220,255",
-             brightFilter: "contrast(1.02) brightness(1.02) sepia(0.08) hue-rotate(140deg)" }
+             brightFilter: "contrast(1.02) brightness(1.02) sepia(0.08) hue-rotate(140deg)" },
+    crimson:{ filter: "contrast(1.15) brightness(0.92) sepia(0.5) hue-rotate(-45deg) saturate(1.4)", glow: "255,60,70",
+             brightFilter: "contrast(1.03) brightness(0.98) sepia(0.35) hue-rotate(-40deg)" },
+    cobalt:{ filter: "contrast(1.14) brightness(0.95) sepia(0.3) hue-rotate(180deg) saturate(1.3)", glow: "70,110,255",
+             brightFilter: "contrast(1.02) brightness(1.0) sepia(0.2) hue-rotate(180deg)" },
+    jade:  { filter: "contrast(1.12) brightness(0.98) sepia(0.25) hue-rotate(90deg) saturate(1.2)", glow: "60,220,150",
+             brightFilter: "contrast(1.02) brightness(1.01) sepia(0.15) hue-rotate(90deg)" },
+    bone:  { filter: "contrast(1.05) brightness(1.08) sepia(0.35) saturate(0.8)", glow: "230,220,190",
+             brightFilter: "contrast(1.0) brightness(1.03) sepia(0.25)" }
   };
   var BRIGHT_CHASSIS = { vx19w: true };
 
@@ -86,7 +97,7 @@
 
   function renderBlueprint() {
     var w = bpCanvas.width, h = bpCanvas.height;
-    var img = chassisImgs[state.chassis];
+    var img = baked[state.chassis] || chassisImgs[state.chassis];
     bp.fillStyle = "#0d2745";
     bp.fillRect(0, 0, w, h);
     // grid
@@ -109,7 +120,7 @@
       var dw = img.naturalWidth * s, dh = img.naturalHeight * s;
       var dx = (w - dw)/2, dy = (h - dh)/2;
       bp.globalAlpha = 0.5 + 0.5 * state.detail;
-      bp.drawImage(edgeMaps[state.chassis], dx, dy, dw, dh);
+      bp.drawImage(bakedEdges[state.chassis] || edgeMaps[state.chassis], dx, dy, dw, dh);
       bp.globalAlpha = 1;
       // part callouts
       bp.font = Math.max(10, w/90) + "px ui-monospace,monospace";
@@ -134,7 +145,7 @@
 
   function renderHyperreal() {
     var w = hrCanvas.width, h = hrCanvas.height;
-    var img = chassisImgs[state.chassis];
+    var img = baked[state.chassis] || chassisImgs[state.chassis];
     // studio backdrop
     var bg = hr.createRadialGradient(w/2, h*0.32, 10, w/2, h/2, Math.max(w,h)*0.75);
     bg.addColorStop(0, "#1c2027"); bg.addColorStop(0.6, "#0d0f13"); bg.addColorStop(1, "#060608");
@@ -145,6 +156,10 @@
     var s = Math.min(w / img.naturalWidth, h / img.naturalHeight) * 0.82;
     var dw = img.naturalWidth * s, dh = img.naturalHeight * s;
     var dx = (w - dw)/2, dy = (h - dh)/2;
+    // cape (behind figure)
+    if (window.WB_CAPE && WB_CAPE.state.on) {
+      WB_CAPE.drawCape(hr, { x: dx, y: dy, w: dw, h: dh }, performance.now());
+    }
     // floor reflection
     hr.save();
     hr.globalAlpha = 0.16;
@@ -177,6 +192,44 @@
     hr.filter = matFilter + " saturate(" + (0.9 + state.polish*0.35).toFixed(2) + ")";
     hr.drawImage(img, dx, dy, dw, dh);
     hr.restore();
+    // per-piece material overrides (feathered)
+    if (window.WB_ATLAS) {
+      var atlas = WB_ATLAS.pieces[state.chassis];
+      Object.keys(pieceMats).forEach(function (k) {
+        if (k.indexOf(state.chassis + ":") !== 0) return;
+        var pk = k.split(":")[1];
+        var pm = MATERIALS[pieceMats[k]];
+        if (!pm || !atlas[pk]) return;
+        var p = atlas[pk];
+        var px = dx + dw * p.x, py = dy + dh * p.y;
+        var pw = dw * p.w, ph = dh * p.h;
+        var pmf = (BRIGHT_CHASSIS[state.chassis] && pm.brightFilter) ? pm.brightFilter : pm.filter;
+        hr.save();
+        // feathered elliptical mask
+        var mg = hr.createRadialGradient(px+pw/2, py+ph/2, Math.min(pw,ph)*0.25, px+pw/2, py+ph/2, Math.max(pw,ph)*0.62);
+        mg.addColorStop(0, "rgba(0,0,0,1)");
+        mg.addColorStop(0.72, "rgba(0,0,0,1)");
+        mg.addColorStop(1, "rgba(0,0,0,0)");
+        hr.globalCompositeOperation = "source-over";
+        // draw piece with its material to temp, then mask composite
+        var tmp = document.createElement("canvas");
+        tmp.width = Math.max(2, Math.round(pw)); tmp.height = Math.max(2, Math.round(ph));
+        var tx2 = tmp.getContext("2d");
+        tx2.filter = pmf;
+        var iw = img.naturalWidth || img.width, ih = img.naturalHeight || img.height;
+        tx2.drawImage(img, p.x*iw, p.y*ih, p.w*iw, p.h*ih, 0, 0, tmp.width, tmp.height);
+        tx2.filter = "none";
+        tx2.globalCompositeOperation = "destination-in";
+        var mg2 = tx2.createRadialGradient(tmp.width/2, tmp.height/2, Math.min(tmp.width,tmp.height)*0.22, tmp.width/2, tmp.height/2, Math.max(tmp.width,tmp.height)*0.62);
+        mg2.addColorStop(0, "rgba(0,0,0,1)");
+        mg2.addColorStop(0.7, "rgba(0,0,0,1)");
+        mg2.addColorStop(1, "rgba(0,0,0,0)");
+        tx2.fillStyle = mg2;
+        tx2.fillRect(0, 0, tmp.width, tmp.height);
+        hr.drawImage(tmp, px, py, pw, ph);
+        hr.restore();
+      });
+    }
     // micro-contrast for detail
     if (state.detail > 0.45) {
       hr.save();
@@ -200,7 +253,17 @@
       var pct = Math.round(state.materialize * 100);
       el.textContent = (pct < 50 ? "BLUEPRINT — " : "HYPER-REAL — ") + pct + "%";
     }
+    // cape sway loop
+    if (window.WB_CAPE && WB_CAPE.state.on && !capeLoopOn && !reduceMotion) {
+      capeLoopOn = true;
+      (function loop() {
+        if (!WB_CAPE.state.on) { capeLoopOn = false; return; }
+        renderHyperreal();
+        requestAnimationFrame(loop);
+      })();
+    }
   }
+  var capeLoopOn = false;
 
   function applyMaterialize() {
     var m = state.materialize;
@@ -212,6 +275,37 @@
 
   window.WB = {
     state: state,
+    _img: function () {
+      // return baked sculpt if exists, else original
+      var b = baked[state.chassis];
+      return b || chassisImgs[state.chassis];
+    },
+    _bakeSculpt: function (ch) {
+      var img = chassisImgs[ch];
+      if (!img || !img.naturalWidth || !WB_SCULPT.hasSculpt(ch, 'full')) {
+        delete baked[ch]; delete bakedEdges[ch];
+        return;
+      }
+      var c = document.createElement('canvas');
+      c.width = img.naturalWidth; c.height = img.naturalHeight;
+      var x = c.getContext('2d');
+      WB_SCULPT.renderSculpted(x, img,
+        { x: 0, y: 0, w: img.naturalWidth, h: img.naturalHeight },
+        { x: 0, y: 0, w: img.naturalWidth, h: img.naturalHeight },
+        ch, 'full', false);
+      baked[ch] = c;
+      bakedEdges[ch] = makeEdgeMap(c);
+    },
+    _clearBake: function (ch) { delete baked[ch]; delete bakedEdges[ch]; },
+    setPieceMaterial: function (ch, pk, mat) {
+      if (mat) pieceMats[ch + ":" + pk] = mat;
+      else delete pieceMats[ch + ":" + pk];
+      render();
+    },
+    getPieceMaterial: function (ch, pk) { return pieceMats[ch + ":" + pk] || null; },
+    _edgeFor: function (ch) {
+      return bakedEdges[ch] || edgeMaps[ch];
+    },
     set: function (k, v) {
       var needFull = (k === "chassis" || k === "material" || k === "detail");
       state[k] = v;
@@ -229,7 +323,7 @@
       var w = 1200, h = 1600;
       var c = document.createElement("canvas"); c.width = w; c.height = h;
       var x = c.getContext("2d");
-      var img = chassisImgs[state.chassis];
+      var img = baked[state.chassis] || chassisImgs[state.chassis];
       var mat = MATERIALS[state.material];
       var matFilter = BRIGHT_CHASSIS[state.chassis] && mat.brightFilter ? mat.brightFilter : mat.filter;
       var bg = x.createRadialGradient(w/2, h*0.32, 10, w/2, h/2, 1200);
