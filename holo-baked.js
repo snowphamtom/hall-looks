@@ -38,7 +38,7 @@
     var r = canvas.getBoundingClientRect();
     point((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height);
   });
-  canvas.addEventListener("pointerleave", function () { tx = 1.5; ty = 0.5; });
+  canvas.addEventListener("pointerleave", function () { lastTouch = performance.now(); });
   canvas.addEventListener("touchmove", function (e) {
     var t = e.touches[0], r = canvas.getBoundingClientRect();
     point((t.clientX - r.left) / r.width, (t.clientY - r.top) / r.height);
@@ -54,9 +54,11 @@
   }
 
   function draw() {
-    if (!reduceMotion && performance.now() - lastTouch > 3500) {
-      tx = 1.5 + Math.sin(performance.now() * 0.00035) * 0.9;
-      ty = 0.5 + Math.cos(performance.now() * 0.00027) * 0.3;
+    var now = performance.now();
+    if (!reduceMotion && now - lastTouch > 2500) {
+      // constant slow rotation: full sweep every ~14s, ping-pong
+      tx = 1.5 + 1.5 * Math.sin(now * 0.00045);
+      ty = 0.5 + 0.35 * Math.sin(now * 0.00031 + 1.2);
     } else if (reduceMotion) { tx = 1.5; ty = 0.5; }
     cx += (tx - cx) * 0.12; cy += (ty - cy) * 0.12;
     var x0 = Math.max(0, Math.min(COLS - 2, Math.floor(cx)));
