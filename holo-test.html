@@ -4,6 +4,8 @@
 <style>
 body{background:#07070c;margin:0;display:flex;justify-content:center;padding:20px}
 .holo-wrap{position:relative;width:min(400px,90vw)}
+.holo-wrap::before{content:"";position:absolute;left:8%;right:8%;bottom:1%;height:4px;z-index:2;pointer-events:none;
+background:radial-gradient(ellipse at center,rgba(184,245,230,.75),transparent 70%)}
 #holoCanvas{display:block;width:100%;aspect-ratio:500/667;touch-action:pan-y}
 
 .holo-alive{animation:holo-flick 7s ease-in-out infinite}
@@ -18,5 +20,5 @@ body{background:#07070c;margin:0;display:flex;justify-content:center;padding:20p
 <script src="holo-frames-5.js?v=c77060f5"></script>
 <script src="holo-frames-6.js?v=a5da8804"></script>
 <script src="holo-frames-7.js?v=fff8d722"></script>
-<script src="holo-baked.js?v=acb34344"></script>
+<script src="holo-baked.js?v=f57452b1"></script>
 </body></html>

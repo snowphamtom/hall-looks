@@ -87,6 +87,41 @@
     blit(frames[y1 * COLS + x0], (1 - fx) * fy);
     blit(frames[y1 * COLS + x1], fx * fy);
     ctx.globalAlpha = 1;
+    drawProjection(now);
+  }
+
+  // projection cone: the plate throws him upward
+  function drawProjection(now) {
+    var cw = canvas.width, ch = canvas.height;
+    var s = Math.min(cw / 500, ch / 667) * 0.94;
+    var dw = 500 * s, dh = 667 * s;
+    var ox = (cw - dw) / 2, oy = (ch - dh) / 2;
+    var bx = ox + dw * 0.5, by = oy + dh * 0.97; // emitter at plate base
+    var pulse = reduceMotion ? 0.5 : 0.42 + 0.10 * Math.sin(now * 0.0021);
+    // cone
+    var g = ctx.createLinearGradient(0, by, 0, oy + dh * 0.15);
+    g.addColorStop(0, "rgba(127,212,193," + (pulse * 0.55).toFixed(3) + ")");
+    g.addColorStop(1, "rgba(127,212,193,0)");
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(bx - dw * 0.30, by);
+    ctx.lineTo(bx + dw * 0.30, by);
+    ctx.lineTo(bx + dw * 0.10, oy + dh * 0.15);
+    ctx.lineTo(bx - dw * 0.10, oy + dh * 0.15);
+    ctx.closePath();
+    ctx.fill();
+    // twin beams from base corners
+    ctx.strokeStyle = "rgba(184,245,230," + (pulse * 0.8).toFixed(3) + ")";
+    ctx.lineWidth = Math.max(1, s * 1.5);
+    [[-0.30, -0.10], [0.30, 0.10]].forEach(function (p) {
+      ctx.beginPath();
+      ctx.moveTo(bx + dw * p[0], by);
+      ctx.lineTo(bx + dw * p[1], oy + dh * 0.30);
+      ctx.stroke();
+    });
+    // emitter bar at the base
+    ctx.fillStyle = "rgba(184,245,230," + (pulse * 0.9).toFixed(3) + ")";
+    ctx.fillRect(bx - dw * 0.32, by - Math.max(1, s), dw * 0.64, Math.max(2, s * 2));
   }
 
   // gentle life: subtle CSS flicker on the wrap

@@ -31,6 +31,8 @@
 #holoCanvas{display:block;width:100%;aspect-ratio:500/667;max-height:88vh;touch-action:pan-y;cursor:grab}
 #holoCanvas:active{cursor:grabbing}
 .holo-wrap{position:relative}
+.holo-wrap::before{content:"";position:absolute;left:8%;right:8%;bottom:1%;height:4px;z-index:2;pointer-events:none;
+background:radial-gradient(ellipse at center,rgba(184,245,230,.75),transparent 70%)}
 .holo-alive{animation:holo-flick 7s ease-in-out infinite}
 @keyframes holo-flick{0%,100%{opacity:1}92%{opacity:1}93%{opacity:.965}94%{opacity:1}96.5%{opacity:.985}97.5%{opacity:1}}
 
@@ -86,6 +88,6 @@
 <script src="holo-frames-5.js?v=c77060f5"></script>
 <script src="holo-frames-6.js?v=a5da8804"></script>
 <script src="holo-frames-7.js?v=fff8d722"></script>
-<script src="holo-baked.js?v=acb34344"></script>
+<script src="holo-baked.js?v=f57452b1"></script>
 </body>
 </html>
