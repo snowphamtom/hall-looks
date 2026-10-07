@@ -55,28 +55,6 @@
     ctx.restore();
   }
 
-  function drawProjection(now) {
-    var cw = canvas.width, ch = canvas.height;
-    var s = Math.min(cw / 480, ch / 840);
-    var dw = 480 * s, dh = 840 * s;
-    var ox = (cw - dw) / 2, oy = (ch - dh) / 2;
-    var bx = ox + dw * 0.5, by = oy + dh * 0.985;
-    var pulse = reduceMotion ? 0.5 : 0.42 + 0.10 * Math.sin(now * 0.0021);
-    var g = ctx.createLinearGradient(0, by, 0, oy + dh * 0.4);
-    g.addColorStop(0, "rgba(127,212,193," + (pulse * 0.4).toFixed(3) + ")");
-    g.addColorStop(1, "rgba(127,212,193,0)");
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    ctx.moveTo(bx - dw * 0.28, by);
-    ctx.lineTo(bx + dw * 0.28, by);
-    ctx.lineTo(bx + dw * 0.08, oy + dh * 0.4);
-    ctx.lineTo(bx - dw * 0.08, oy + dh * 0.4);
-    ctx.closePath();
-    ctx.fill();
-    ctx.fillStyle = "rgba(184,245,230," + (pulse * 0.85).toFixed(3) + ")";
-    ctx.fillRect(bx - dw * 0.30, by - Math.max(1, s), dw * 0.60, Math.max(2, s * 2));
-  }
-
   function draw() {
     var now = performance.now();
     var phase;
@@ -94,7 +72,6 @@
     layer(imgA, aA, -shift);
     layer(imgB, aB, shift);
     ctx.globalAlpha = 1;
-    drawProjection(now);
   }
 
   if (reduceMotion) {
