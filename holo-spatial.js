@@ -23,8 +23,8 @@
   window.addEventListener("resize", fit);
   fit();
 
-  // tilt state: -1..1 on each axis
-  var tiltX = 0, tiltY = 0, tTX = 0, tTY = 0;
+  // tilt state: -1..1 on each axis (spring physics)
+  var tiltX = 0, tiltY = 0, tTX = 0, tTY = 0, vX = 0, vY = 0;
   var gyroOK = false, lastTouch = 0;
 
   function enableGyro() {
@@ -59,10 +59,12 @@
     tTY = ((e.clientY - r.top) / r.height) * 2 - 1;
   });
 
-  function draw() {
-    // ease toward target tilt (buttery, like iOS)
-    tiltX += (tTX - tiltX) * 0.08;
-    tiltY += (tTY - tiltY) * 0.08;
+  function draw(now) {
+    // spring toward target tilt (iOS-like physics)
+    var stiff = 0.045, damp = 0.82;
+    vX = (vX + (tTX - tiltX) * stiff) * damp;
+    vY = (vY + (tTY - tiltY) * stiff) * damp;
+    tiltX += vX; tiltY += vY;
     // decay to center when idle and no gyro
     if (!gyroOK && performance.now() - lastTouch > 4000) {
       tTX *= 0.98; tTY *= 0.98;
@@ -75,33 +77,37 @@
     var s = Math.min(cw / img.naturalWidth, ch / img.naturalHeight) * 0.96;
     var dw = img.naturalWidth * s, dh = img.naturalHeight * s;
     var cx = cw / 2, cy = ch / 2;
-    var px = tiltX * cw * 0.035, py = tiltY * ch * 0.035; // foreground shift
+    var px = tiltX * cw * 0.030, py = tiltY * ch * 0.030;
 
-    // depth echo: blurred copy shifted 2.2x, darkened — the "behind" layer
+    // hologram breath: barely-there flicker
+    var breath = reduceMotion ? 1 : 0.985 + 0.015 * Math.sin(now * 0.003);
+
+    // depth echo: soft, dark, shifted further — the "behind" layer
     ctx.save();
-    ctx.globalAlpha = 0.45;
-    ctx.filter = "blur(" + Math.max(2, s * 6) + "px) brightness(0.55)";
-    ctx.drawImage(img, cx - dw / 2 + px * 2.2, cy - dh / 2 + py * 2.2, dw, dh);
+    ctx.globalAlpha = 0.30;
+    ctx.filter = "blur(" + Math.max(2, s * 5) + "px) brightness(0.6)";
+    ctx.drawImage(img, cx - dw / 2 + px * 2.0, cy - dh / 2 + py * 2.0, dw, dh);
     ctx.restore();
 
-    // ground shadow shifts opposite, stretches with tilt
+    // ground shadow: soft, shifts opposite
     ctx.save();
-    ctx.globalAlpha = 0.35;
+    ctx.globalAlpha = 0.28;
     ctx.fillStyle = "#000";
-    ctx.filter = "blur(" + Math.max(3, s * 10) + "px)";
-    var shw = dw * 0.42, shy = dh * 0.035;
+    ctx.filter = "blur(" + Math.max(4, s * 12) + "px)";
     ctx.beginPath();
-    ctx.ellipse(cx - px * 1.5, cy + dh * 0.48 - py, shw, shy, 0, 0, Math.PI * 2);
+    ctx.ellipse(cx - px * 1.2, cy + dh * 0.47 - py * 0.8, dw * 0.38, dh * 0.030, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
 
-    // hero: sharp, shifts least
+    // hero
     ctx.filter = "none";
+    ctx.globalAlpha = breath;
     ctx.drawImage(img, cx - dw / 2 + px, cy - dh / 2 + py, dw, dh);
+    ctx.globalAlpha = 1;
 
-    // faint top-light sheen that follows tilt
+    // tilt-following sheen, whisper-subtle
     var g = ctx.createLinearGradient(0, 0, cw, ch);
-    var li = 0.06 + 0.05 * tiltX;
+    var li = 0.045 + 0.035 * tiltX;
     g.addColorStop(0, "rgba(184,245,230," + Math.max(0, li).toFixed(3) + ")");
     g.addColorStop(0.5, "rgba(184,245,230,0)");
     g.addColorStop(1, "rgba(184,245,230," + Math.max(0, -li).toFixed(3) + ")");

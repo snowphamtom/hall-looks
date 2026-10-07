@@ -31,8 +31,8 @@
 #holoCanvas{display:block;width:100%;aspect-ratio:480/764;max-height:88vh;touch-action:pan-y;cursor:grab}
 #holoCanvas:active{cursor:grabbing}
 .holo-wrap{position:relative}
-.holo-wrap::before{content:"";position:absolute;left:8%;right:8%;bottom:1%;height:4px;z-index:2;pointer-events:none;
-background:radial-gradient(ellipse at center,rgba(184,245,230,.75),transparent 70%)}
+.holo-wrap::after{content:"";position:absolute;inset:0;pointer-events:none;z-index:2;
+background:repeating-linear-gradient(to bottom,transparent 0 3px,rgba(0,0,0,.14) 3px 4px)}
 .holo-alive{animation:holo-flick 7s ease-in-out infinite}
 @keyframes holo-flick{0%,100%{opacity:1}92%{opacity:1}93%{opacity:.965}94%{opacity:1}96.5%{opacity:.985}97.5%{opacity:1}}
 
@@ -50,7 +50,7 @@ background:radial-gradient(ellipse at center,rgba(184,245,230,.75),transparent 7
     <span class="plate-mark plate-se" aria-hidden="true"></span>
     <div class="stage stage-still">
       <div class="draft-plate">
-        <div class="holo-wrap"><canvas id="holoCanvas" role="img" aria-label="Interactive 3D hologram: a green samurai figure in a straw hat holding a katana, standing on a glowing platform. Move your pointer over it to turn it."></canvas></div>
+        <div class="holo-wrap"><canvas id="holoCanvas" role="img" aria-label="Interactive hologram: a green samurai figure in a straw hat holding a katana. Tilt your device or move your pointer for parallax depth."></canvas></div>
       </div>
       <p class="figure-caption">The weight sits.</p>
     </div>
@@ -81,7 +81,7 @@ background:radial-gradient(ellipse at center,rgba(184,245,230,.75),transparent 7
 <script src="./nav.js"></script>
 <script src="./card.js"></script>
 
-<script src="holo-spatial-img.js?v=5d943a55"></script>
-<script src="holo-spatial.js?v=fabf87cc"></script>
+<script src="holo-spatial-img.js?v=83e8731c"></script>
+<script src="holo-spatial.js?v=32d9d2c5"></script>
 </body>
 </html>
