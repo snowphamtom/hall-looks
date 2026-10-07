@@ -5,8 +5,7 @@
 body{background:#07070c;margin:0;display:flex;justify-content:center;padding:20px}
 .holo-wrap{position:relative;width:min(400px,90vw)}
 #holoCanvas{display:block;width:100%;aspect-ratio:500/667;touch-action:pan-y}
-.holo-wrap::after{content:"";position:absolute;inset:0;pointer-events:none;
-background:repeating-linear-gradient(to bottom,transparent 0 3px,rgba(0,0,0,.28) 3px 4px)}
+
 .holo-alive{animation:holo-flick 7s ease-in-out infinite}
 @keyframes holo-flick{0%,100%{opacity:1}93%{opacity:.965}94%{opacity:1}}
 </style></head><body>
