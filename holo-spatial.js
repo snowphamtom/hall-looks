@@ -79,8 +79,8 @@
     var cx = cw / 2, cy = ch / 2;
     var px = tiltX * cw * 0.030, py = tiltY * ch * 0.030;
 
-    // hologram breath: barely-there flicker
-    var breath = reduceMotion ? 1 : 0.985 + 0.015 * Math.sin(now * 0.003);
+    // hologram breath: barely-there flicker, 25% translucent
+    var breath = (reduceMotion ? 1 : 0.985 + 0.015 * Math.sin(now * 0.003)) * 0.75;
 
     // depth echo: soft, dark, shifted further — the "behind" layer
     ctx.save();
