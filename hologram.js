@@ -41,7 +41,7 @@
     "  gl_Position = uP * uMV * vec4(aPos, 0.0, 1.0);\n" +
     "}";
   var FS =
-    "precision mediump float;\n" +
+    "precision highp float;\n" +
     "varying vec2 vUv;\n" +
     "uniform sampler2D uTex;\n" +
     "uniform float uTime;\n" +
@@ -180,9 +180,10 @@
     cRX += (tRX - cRX) * 0.07; cRY += (tRY - cRY) * 0.07;
 
     var P = perspective(0.7, aspect, 0.1, 10);
-    // contain-fit scale
-    var sx = 1, sy = 1;
-    if (aspect > texAspect) sx = texAspect / aspect; else sy = aspect / texAspect;
+    // contain-fit scale, with a small margin so the hat and platform are never cropped
+    var sx = 1, sy = 1, fitMargin = 0.92;
+    if (aspect > texAspect) sx = texAspect / aspect * fitMargin;
+    else sy = aspect / texAspect * fitMargin;
     var MV = multiply(translate(0, 0, -2.35),
              multiply(rotX(cRX), multiply(rotY(cRY), scaleM(sx, sy))));
     gl.uniformMatrix4fv(uP, false, new Float32Array(P));
