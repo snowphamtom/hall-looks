@@ -54,13 +54,20 @@
   }
 
   var MATERIALS = {
-    onyx:  { filter: "contrast(1.14) brightness(0.94) sepia(0.28)", glow: "212,168,67" },
-    carbon:{ filter: "contrast(1.28) brightness(0.86) saturate(0.35)", glow: "138,155,176" },
-    steel: { filter: "contrast(1.10) brightness(1.03) sepia(0.08) hue-rotate(-12deg)", glow: "168,200,224" },
-    ghost: { filter: "contrast(0.94) brightness(1.14) saturate(0.65)", glow: "200,240,232" },
-    ember: { filter: "contrast(1.16) brightness(0.96) sepia(0.45) hue-rotate(-18deg)", glow: "255,120,60" },
-    frost: { filter: "contrast(1.12) brightness(1.06) sepia(0.12) hue-rotate(140deg)", glow: "120,220,255" }
+    onyx:  { filter: "contrast(1.14) brightness(0.94) sepia(0.28)", glow: "212,168,67",
+             brightFilter: "contrast(1.02) brightness(0.98) sepia(0.18)" },
+    carbon:{ filter: "contrast(1.28) brightness(0.86) saturate(0.35)", glow: "138,155,176",
+             brightFilter: "contrast(1.08) brightness(0.94) saturate(0.5)" },
+    steel: { filter: "contrast(1.10) brightness(1.03) sepia(0.08) hue-rotate(-12deg)", glow: "168,200,224",
+             brightFilter: "contrast(1.02) brightness(1.0) sepia(0.05)" },
+    ghost: { filter: "contrast(0.94) brightness(1.14) saturate(0.65)", glow: "200,240,232",
+             brightFilter: "contrast(0.96) brightness(1.04) saturate(0.7)" },
+    ember: { filter: "contrast(1.16) brightness(0.96) sepia(0.45) hue-rotate(-18deg)", glow: "255,120,60",
+             brightFilter: "contrast(1.04) brightness(0.99) sepia(0.3) hue-rotate(-12deg)" },
+    frost: { filter: "contrast(1.12) brightness(1.06) sepia(0.12) hue-rotate(140deg)", glow: "120,220,255",
+             brightFilter: "contrast(1.02) brightness(1.02) sepia(0.08) hue-rotate(140deg)" }
   };
+  var BRIGHT_CHASSIS = { vx19w: true };
 
   function fit() {
     var dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -134,7 +141,8 @@
     hr.fillStyle = bg; hr.fillRect(0, 0, w, h);
     if (!chassisLoaded[state.chassis]) return;
     var mat = MATERIALS[state.material];
-    var s = Math.min(w / img.naturalWidth, h / img.naturalHeight) * 0.86;
+    var matFilter = BRIGHT_CHASSIS[state.chassis] && mat.brightFilter ? mat.brightFilter : mat.filter;
+    var s = Math.min(w / img.naturalWidth, h / img.naturalHeight) * 0.82;
     var dw = img.naturalWidth * s, dh = img.naturalHeight * s;
     var dx = (w - dw)/2, dy = (h - dh)/2;
     // floor reflection
@@ -166,7 +174,7 @@
     }
     // hero
     hr.save();
-    hr.filter = mat.filter + " saturate(" + (0.9 + state.polish*0.35).toFixed(2) + ")";
+    hr.filter = matFilter + " saturate(" + (0.9 + state.polish*0.35).toFixed(2) + ")";
     hr.drawImage(img, dx, dy, dw, dh);
     hr.restore();
     // micro-contrast for detail
@@ -223,12 +231,13 @@
       var x = c.getContext("2d");
       var img = chassisImgs[state.chassis];
       var mat = MATERIALS[state.material];
+      var matFilter = BRIGHT_CHASSIS[state.chassis] && mat.brightFilter ? mat.brightFilter : mat.filter;
       var bg = x.createRadialGradient(w/2, h*0.32, 10, w/2, h/2, 1200);
       bg.addColorStop(0, "#1c2027"); bg.addColorStop(1, "#060608");
       x.fillStyle = bg; x.fillRect(0, 0, w, h);
       var s = Math.min(w / img.naturalWidth, h / img.naturalHeight) * 0.86;
       var dw = img.naturalWidth*s, dh = img.naturalHeight*s;
-      x.filter = mat.filter;
+      x.filter = matFilter;
       x.drawImage(img, (w-dw)/2, (h-dh)/2, dw, dh);
       x.filter = "none";
       var vg = x.createRadialGradient(w/2, h/2, 400, w/2, h/2, 1000);
