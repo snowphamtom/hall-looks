@@ -30,6 +30,7 @@
   fit();
 
   var tx = 1.5, ty = 0.5, cx = 1.5, cy = 0.5, lastTouch = 0;
+  var spinAngle = 0;
   function point(nx, ny) {
     tx = nx * (COLS - 1); ty = ny * (ROWS - 1);
     lastTouch = performance.now();
@@ -49,17 +50,32 @@
     var cw = canvas.width, ch = canvas.height;
     var s = Math.min(cw / img.naturalWidth, ch / img.naturalHeight) * 0.94;
     var dw = img.naturalWidth * s, dh = img.naturalHeight * s;
-    ctx.globalAlpha = alpha;
+    // 360° spin: horizontal squash around center (card-turn fake)
+    var sx = Math.cos(spinAngle);
+    ctx.save();
+    ctx.translate(cw / 2, 0);
+    ctx.scale(sx || 0.001, 1);
+    ctx.translate(-cw / 2, 0);
+    ctx.globalAlpha = alpha * (0.35 + 0.65 * Math.abs(sx));
     ctx.drawImage(img, (cw - dw) / 2, (ch - dh) / 2, dw, dh);
+    ctx.restore();
   }
 
   function draw() {
     var now = performance.now();
     if (!reduceMotion && now - lastTouch > 2500) {
-      // constant slow rotation: full sweep every ~14s, ping-pong
-      tx = 1.5 + 1.5 * Math.sin(now * 0.00045);
-      ty = 0.5 + 0.35 * Math.sin(now * 0.00031 + 1.2);
+      // he spins 360° around the vertical axis, centered; ~8s per revolution
+      spinAngle += 0.013;
+      if (spinAngle > Math.PI * 2) spinAngle -= Math.PI * 2;
+      // parallax: tilt frames follow the turn
+      tx = 1.5 + 1.5 * Math.sin(spinAngle);
+      ty = 0.5 + 0.2 * Math.sin(now * 0.0004);
     } else if (reduceMotion) { tx = 1.5; ty = 0.5; }
+    else {
+      // user is steering: ease back to facing forward (nearest full turn)
+      var target = Math.round(spinAngle / (Math.PI * 2)) * Math.PI * 2;
+      spinAngle += (target - spinAngle) * 0.08;
+    }
     cx += (tx - cx) * 0.12; cy += (ty - cy) * 0.12;
     var x0 = Math.max(0, Math.min(COLS - 2, Math.floor(cx)));
     var y0 = Math.max(0, Math.min(ROWS - 2, Math.floor(cy)));
@@ -70,71 +86,6 @@
     blit(frames[y0 * COLS + x1], fx * (1 - fy));
     blit(frames[y1 * COLS + x0], (1 - fx) * fy);
     blit(frames[y1 * COLS + x1], fx * fy);
-    ctx.globalAlpha = 1;
-    drawPlatform(now);
-  }
-
-  // 360° spinning hologram platform beneath the figure
-  var platAngle = 0;
-  function drawPlatform(now) {
-    if (reduceMotion) return;
-    var cw = canvas.width, ch = canvas.height;
-    // platform sits in the bottom ~22% of the drawn frame
-    var s = Math.min(cw / 500, ch / 667) * 0.94;
-    var dw = 500 * s, dh = 667 * s;
-    var ox = (cw - dw) / 2, oy = (ch - dh) / 2;
-    var pcx = ox + dw * 0.5, pcy = oy + dh * 0.86;
-    var rx = dw * 0.34, ry = rx * 0.30;
-    var thick = ry * 0.55; // platform side-wall height
-    platAngle += 0.016; // ~6.5s per revolution
-    if (platAngle > Math.PI * 2) platAngle -= Math.PI * 2;
-    ctx.save();
-    // soften (not black out) the baked-in platform
-    ctx.globalAlpha = 0.55;
-    ctx.fillStyle = "#07070c";
-    ctx.beginPath();
-    ctx.ellipse(pcx, pcy, rx * 1.12, ry * 1.5 + thick, 0, 0, Math.PI * 2);
-    ctx.fill();
-    // side wall: gives the disc real thickness
-    ctx.globalAlpha = 0.85;
-    var grad = ctx.createLinearGradient(0, pcy, 0, pcy + ry + thick);
-    grad.addColorStop(0, "rgba(60,110,100,0.0)");
-    grad.addColorStop(1, "rgba(40,90,80,0.55)");
-    ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.ellipse(pcx, pcy + thick, rx, ry, 0, 0, Math.PI);
-    ctx.lineTo(pcx - rx, pcy);
-    ctx.ellipse(pcx, pcy, rx, ry, 0, Math.PI, 0, true);
-    ctx.closePath();
-    ctx.fill();
-    // rotating spokes with depth cue (front brighter)
-    ctx.lineWidth = Math.max(1, s * 1.2);
-    for (var i = 0; i < 16; i++) {
-      var a = platAngle + (i / 16) * Math.PI * 2;
-      var depth = (Math.sin(a) + 1) / 2; // 0 back, 1 front
-      ctx.globalAlpha = 0.25 + 0.45 * depth;
-      ctx.strokeStyle = "#7fd4c1";
-      ctx.beginPath();
-      ctx.moveTo(pcx + Math.cos(a) * rx * 0.18, pcy + Math.sin(a) * ry * 0.18);
-      ctx.lineTo(pcx + Math.cos(a) * rx, pcy + Math.sin(a) * ry);
-      ctx.stroke();
-    }
-    // static rings
-    ctx.globalAlpha = 0.6;
-    ctx.strokeStyle = "#7fd4c1";
-    [1, 0.66, 0.33].forEach(function (k) {
-      ctx.beginPath();
-      ctx.ellipse(pcx, pcy, rx * k, ry * k, 0, 0, Math.PI * 2);
-      ctx.stroke();
-    });
-    // bright front rim
-    ctx.globalAlpha = 0.9;
-    ctx.lineWidth = Math.max(1.5, s * 2);
-    ctx.strokeStyle = "#b8f5e6";
-    ctx.beginPath();
-    ctx.ellipse(pcx, pcy, rx, ry, 0, 0.15 * Math.PI, 0.85 * Math.PI);
-    ctx.stroke();
-    ctx.restore();
     ctx.globalAlpha = 1;
   }
 
