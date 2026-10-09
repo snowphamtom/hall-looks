@@ -56,6 +56,7 @@
     background: linear-gradient(90deg, var(--door), var(--holo-c));
     box-shadow: 0 0 24px rgba(34,255,136,0.45); font-family: inherit; }
   .bigbtn:active { transform: scale(0.97); }
+  .bigbtn:disabled { opacity: 0.55; }
   .gstatus { font-size: 12px; color: var(--muted); letter-spacing: 0.04em; text-align: center;
     padding: 0 24px; line-height: 1.5; }
   .tools { display: flex; gap: 8px; padding: 10px 12px calc(10px + var(--safe-b)); overflow-x: auto;
@@ -82,7 +83,7 @@
   <div class="pip" id="pip"><video id="cam" playsinline muted></video><canvas id="pov"></canvas><div class="plab" id="plab">HAND</div></div>
   <div class="handgate show" id="handgate">
     <button class="bigbtn" id="handAllow" type="button">ALLOW CAMERA</button>
-    <div class="gstatus" id="handStatus">Each fingertip is a laser pointer.<br>Pinch to flash them.</div>
+    <div class="gstatus" id="handStatus">Each fingertip is a laser pointer.<br>Pinch to flash them.<br><br><span style="opacity:.65">Open this page in Safari —<br>the in-app preview can't use the camera.</span></div>
   </div>
 </div>
 <div class="legend"><b>FINGERS</b> aim the threads · <b>PINCH</b> zoom out + flash · <b>SPREAD</b> zoom in · <b>PALM</b> brightness · <b>CAM</b> peek</div>
@@ -91,8 +92,27 @@
   <button class="chip" id="camBtn" type="button">CAM</button>
 </div>
 
+<script>
+window.__laserAlive = false;
+(function () {
+  var btn = document.getElementById("handAllow");
+  var stat = document.getElementById("handStatus");
+  function note(t) { if (stat) stat.innerHTML = t; }
+  if (btn) btn.addEventListener("click", function () {
+    if (!window.__laserAlive) {
+      note("The tap landed, but the page engine never started.<br>Its scripts are probably blocked — reload the page.");
+    }
+  }, true);
+  setTimeout(function () {
+    if (!window.__laserAlive) {
+      note("The page engine could not start.<br>Check your connection (this page loads code from cdn.jsdelivr.net),<br>then reload.");
+    }
+  }, 10000);
+})();
+</script>
 <script type="module">
 import { FilesetResolver, HandLandmarker } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
+window.__laserAlive = true;
 
 /* ---------- swarms ---------- */
 const SCOL = ["#00f0ff", "#22ff88", "#ffdd33", "#ff2bd6", "#b388ff"];
@@ -203,26 +223,32 @@ handBtn.onclick = () => {
   if (handOn) sizePip();
 };
 document.getElementById("handAllow").onclick = async () => {
+  const abtn = document.getElementById("handAllow");
+  abtn.disabled = true;
+  const fail = (t) => { say(t); abtn.disabled = false; };
+  const withTimeout = (p, ms, what) => Promise.race([
+    p, new Promise((_, rej) => setTimeout(() => rej(new Error(what + " timed out")), ms))
+  ]);
   if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    say("Camera needs a secure (https) page.<br>Open this page in Safari."); return;
+    fail("Camera needs a secure (https) page.<br>Open this page in Safari."); return;
   }
   say("Opening camera…");
   try {
-    const s = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } }, audio: false });
+    const s = await withTimeout(navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } }, audio: false }), 20000, "Camera");
     video.srcObject = s;
-    await video.play();
-  } catch (e) { say("Camera blocked.<br>Settings → Safari → Camera → Allow,<br>then tap again."); return; }
+    await withTimeout(video.play(), 10000, "Video");
+  } catch (e) { fail("Camera didn't respond.<br>Close other tabs or apps using the camera,<br>then tap again."); return; }
   say("Loading hand model…");
   try {
-    const vision = await FilesetResolver.forVisionTasks(
-      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
-    landmarker = await HandLandmarker.createFromOptions(vision, {
+    const vision = await withTimeout(FilesetResolver.forVisionTasks(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"), 45000, "Model");
+    landmarker = await withTimeout(HandLandmarker.createFromOptions(vision, {
       baseOptions: {
         modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
         delegate: "GPU" },
-      runningMode: "VIDEO", numHands: 1 });
-  } catch (e) { say("Model failed to load.<br>Check connection and retry."); return; }
+      runningMode: "VIDEO", numHands: 1 }), 45000, "Model");
+  } catch (e) { fail("Hand model failed to load.<br>Check your connection and tap again."); return; }
   ready = true; handOn = true;
   gate.classList.remove("show");
   pip.classList.add("live");
