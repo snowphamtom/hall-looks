@@ -80,11 +80,10 @@
 <div class="tools">
   <button class="chip" id="vidBtn" type="button">VIDEO</button>
   <button class="chip" id="liveBtn" type="button">LIVE</button>
-  <button class="chip" id="modeBtn" type="button">MODE: LIVE</button>
   <label class="blend">BLEND <input type="range" id="opRange" min="10" max="100" value="72"></label>
   <input type="file" id="vidPick" accept="video/*" style="display:none">
 </div>
-<div class="legend"><b>FINGERS</b> aim the threads · <b>PINCH</b> zoom out + flash · <b>SPREAD</b> zoom in · <b>PALM</b> brightness · <b>WALLPAPER</b> follows your last-moved finger · <b>VIDEO</b> overlap a recording · <b>MODE</b> see the invisible</div>
+<div class="legend"><b>FINGERS</b> aim the threads · <b>PINCH</b> zoom out + flash · <b>SPREAD</b> zoom in · <b>PALM</b> brightness · <b>WALLPAPER</b> follows your last-moved finger · <b>VIDEO</b> overlap a recording · <b>SWIPE</b> &#9664; &#9654; hand to change vision</div>
 
 <script>
 window.__arAlive = false;
@@ -228,8 +227,30 @@ window.addEventListener("resize", () => { sizeView(); sizeProc(); });
 /* frame (camera) -> screen, with cover-fit + digital zoom */
 let zoom = 1, zoomT = 1, footAlpha = 0.72;
 /* ---------- vision modes: what the naked eye can't see ---------- */
-const VMODES = ["LIVE", "GHOST", "X-RAY", "HEAT"];
-let visionMode = 0;
+const VMODES = ["LIVE", "GHOST", "X-RAY", "HEAT", "ECHO", "SPECTRA", "PULSE", "KALEIDO"];
+let visionMode = 0, seedVision = true;
+const ECHO_N = 16, ECHO_PUSH = 4;
+const echoCans = [], echoCtx = [];
+for (let ei = 0; ei < ECHO_N; ei++) {
+  const ec = document.createElement("canvas");
+  echoCans.push(ec); echoCtx.push(ec.getContext("2d"));
+}
+let echoIdx = 0, echoFilled = 0, echoTick = 0, avgLum = null;
+function resetVision() { seedVision = true; echoIdx = 0; echoFilled = 0; echoTick = 0; }
+function sizeEcho() {
+  for (let ei = 0; ei < ECHO_N; ei++) { echoCans[ei].width = PW; echoCans[ei].height = PH; }
+}
+function pushEcho(vw, vh) {
+  if ((echoTick++ % ECHO_PUSH) !== 0) return;
+  const x = echoCtx[echoIdx % ECHO_N];
+  const base = Math.max(PW / vw, PH / vh) * zoom;
+  x.drawImage(video, (PW - vw * base) / 2, (PH - vh * base) / 2, vw * base, vh * base);
+  echoIdx++; echoFilled = Math.min(ECHO_N, echoFilled + 1);
+}
+function echoCanAt(pushesAgo) {
+  if (echoFilled <= pushesAgo) return null;
+  return echoCans[(echoIdx - 1 - pushesAgo + ECHO_N * 4) % ECHO_N];
+}
 const procCan = document.createElement("canvas");
 const pctx = procCan.getContext("2d", { willReadFrequently: true });
 let PW = 180, PH = 320;
@@ -249,8 +270,58 @@ function sizeProc() {
   procCan.width = PW; procCan.height = PH;
   lumA = new Float32Array(PW * PH); lumB = new Float32Array(PW * PH);
   trail = new Float32Array(PW * PH); outImg = pctx.createImageData(PW, PH);
+  avgLum = new Float32Array(PW * PH); sizeEcho();
+}
+function drawEcho(vw, vh) {
+  pushEcho(vw, vh);
+  const cur0 = echoCanAt(0);
+  if (!cur0) {
+    const base = Math.max(PW / vw, PH / vh) * zoom;
+    pctx.drawImage(video, (PW - vw * base) / 2, (PH - vh * base) / 2, vw * base, vh * base);
+    return;
+  }
+  const bands = [0, 5, 10, 15], bw = PW / 4;
+  for (let b = 0; b < 4; b++) {
+    const src = echoCanAt(bands[b]) || cur0;
+    pctx.drawImage(src, b * bw, 0, bw, PH, b * bw, 0, bw, PH);
+  }
+  pctx.fillStyle = "rgba(255,255,255,0.55)";
+  for (let b = 1; b < 4; b++) pctx.fillRect(b * bw - 1, 0, 2, PH);
+}
+function drawSpectra(vw, vh) {
+  pushEcho(vw, vh);
+  if (echoFilled <= 10) {
+    const base = Math.max(PW / vw, PH / vh) * zoom;
+    pctx.drawImage(video, (PW - vw * base) / 2, (PH - vh * base) / 2, vw * base, vh * base);
+    return;
+  }
+  const d0 = echoCtx[(echoIdx - 1 + ECHO_N * 4) % ECHO_N].getImageData(0, 0, PW, PH).data;
+  const d5 = echoCtx[(echoIdx - 6 + ECHO_N * 4) % ECHO_N].getImageData(0, 0, PW, PH).data;
+  const d10 = echoCtx[(echoIdx - 11 + ECHO_N * 4) % ECHO_N].getImageData(0, 0, PW, PH).data;
+  const out = outImg.data, n = PW * PH;
+  for (let i = 0; i < n; i++) {
+    const o = i * 4;
+    out[o] = d0[o]; out[o + 1] = d5[o + 1]; out[o + 2] = d10[o + 2]; out[o + 3] = 255;
+  }
+  pctx.putImageData(outImg, 0, 0);
+}
+function drawKaleido(vw, vh) {
+  const kc = echoCans[0], kx = echoCtx[0];
+  const base = Math.max(PW / vw, PH / vh) * zoom;
+  kx.drawImage(video, (PW - vw * base) / 2, (PH - vh * base) / 2, vw * base, vh * base);
+  const qw = PW / 2, qh = PH / 2, sx = PW / 4, sw = PW / 2;
+  pctx.drawImage(kc, sx, 0, sw, PH, 0, 0, qw, qh);
+  pctx.save(); pctx.translate(PW, 0); pctx.scale(-1, 1);
+  pctx.drawImage(kc, sx, 0, sw, PH, 0, 0, qw, qh); pctx.restore();
+  pctx.save(); pctx.translate(0, PH); pctx.scale(1, -1);
+  pctx.drawImage(kc, sx, 0, sw, PH, 0, 0, qw, qh); pctx.restore();
+  pctx.save(); pctx.translate(PW, PH); pctx.scale(-1, -1);
+  pctx.drawImage(kc, sx, 0, sw, PH, 0, 0, qw, qh); pctx.restore();
 }
 function drawVision(vw, vh) {
+  if (visionMode === 4) return drawEcho(vw, vh);
+  if (visionMode === 5) return drawSpectra(vw, vh);
+  if (visionMode === 7) return drawKaleido(vw, vh);
   const base = Math.max(PW / vw, PH / vh) * zoom;
   const dw = vw * base, dh = vh * base;
   pctx.drawImage(video, (PW - dw) / 2, (PH - dh) / 2, dw, dh);
@@ -260,6 +331,7 @@ function drawVision(vw, vh) {
   for (let i = 0; i < n; i++) {
     cur[i] = (src[i * 4] * 0.299 + src[i * 4 + 1] * 0.587 + src[i * 4 + 2] * 0.114) / 255;
   }
+  if (seedVision) { prv.set(cur); trail.fill(0); avgLum.set(cur); seedVision = false; }
   if (visionMode === 1) {
     for (let i = 0; i < n; i++) {
       const diff = Math.abs(cur[i] - prv[i]);
@@ -279,6 +351,12 @@ function drawVision(vw, vh) {
         out[o] = v; out[o + 1] = v; out[o + 2] = v; out[o + 3] = 255;
       }
     }
+  } else if (visionMode === 6) {
+    for (let i = 0; i < n; i++) {
+      avgLum[i] += (cur[i] - avgLum[i]) * 0.06;
+      const v = Math.max(0, Math.min(1, cur[i] + (cur[i] - avgLum[i]) * 10)) * 255 | 0, o = i * 4;
+      out[o] = v; out[o + 1] = v; out[o + 2] = v; out[o + 3] = 255;
+    }
   } else {
     for (let i = 0; i < n; i++) {
       const c = heatLUT[(cur[i] * 255) | 0], o = i * 4;
@@ -288,11 +366,6 @@ function drawVision(vw, vh) {
   const tmp = lumA; lumA = lumB; lumB = tmp;
   pctx.putImageData(outImg, 0, 0);
 }
-document.getElementById("modeBtn").onclick = () => {
-  visionMode = (visionMode + 1) % VMODES.length;
-  document.getElementById("modeBtn").textContent = "MODE: " + VMODES[visionMode];
-  if (trail) trail.fill(0);
-};
 sizeProc();
 let noteTxt = "", noteUntil = 0;
 function note(t, ms) { noteTxt = t; noteUntil = performance.now() + (ms || 2200); }
@@ -318,6 +391,7 @@ const tips = [];
 for (let i = 0; i < NS; i++) tips.push({ x: 0.5, y: 0.5, dx: 0, dy: -1, n: 0 });
 const lastMove = [0, 0, 0, 0, 0], moveAcc = [0, 0, 0, 0, 0];
 let activeNode = 1;
+let swipeAnchor = null, swipeCool = 0;
 
 const withTimeout = (p, ms, what) => Promise.race([
   p, new Promise((_, rej) => setTimeout(() => rej(new Error(what + " timed out")), ms))
@@ -475,7 +549,23 @@ function loop(t) {
       for (let k = 0; k < NS; k++) if (lastMove[k] > bwt) { bwt = lastMove[k]; bw = k; }
       if (bw !== activeNode) { activeNode = bw; switchFractal(bw); }
     }
+    /* swipe: a fast whole-hand flick of the nodes changes vision — no buttons */
+    let ncx = 0, ncy = 0;
+    for (let k = 0; k < NS; k++) { ncx += tips[k].x; ncy += tips[k].y; }
+    ncx /= NS; ncy /= NS;
+    if (!swipeAnchor) swipeAnchor = { x: ncx, y: ncy, t };
+    else {
+      const sdx = ncx - swipeAnchor.x, sdy = ncy - swipeAnchor.y, sdt = t - swipeAnchor.t;
+      if (t > swipeCool && Math.abs(sdx) > CW * 0.22 && sdt < 900 && Math.abs(sdy) < Math.abs(sdx) * 0.6) {
+        visionMode = (visionMode + (sdx > 0 ? 1 : VMODES.length - 1)) % VMODES.length;
+        note(VMODES[visionMode] + " VISION");
+        resetVision();
+        swipeCool = t + 1200;
+        swipeAnchor = null;
+      } else if (sdt > 1200) swipeAnchor = { x: ncx, y: ncy, t };
+    }
   } else if (syncing) { syncHold = 0; }
+  if (!handSeen) swipeAnchor = null;
   if (syncing && ready) {
     const a = Math.floor(t / 6000) % NS;
     if (a !== activeNode) { activeNode = a; switchFractal(a); }
