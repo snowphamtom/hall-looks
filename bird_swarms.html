@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#04060b">
+<title>Bird Swarms · Hand Flocking</title>
+<style>
+  :root {
+    --bg: #04060b;
+    --line: rgba(255,255,255,0.12);
+    --door: #22ff88;
+    --holo-c: #00f0ff;
+    --muted: rgba(255,255,255,0.55);
+    --safe-t: env(safe-area-inset-top, 0px);
+    --safe-b: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: #fff;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  body { min-height: 100svh; display: flex; flex-direction: column;
+    padding-top: var(--safe-t); overscroll-behavior: none; }
+  body::after { content: ""; position: fixed; inset: 0; z-index: 60; pointer-events: none; opacity: .05;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="140" height="140"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2"/></filter><rect width="140" height="140" filter="url(%23n)" opacity="0.7"/></svg>'); }
+  header { padding: 12px 16px 10px; border-bottom: 1px solid var(--line);
+    background: rgba(5,7,10,0.92); position: relative; z-index: 1; }
+  header::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--door), var(--holo-c), transparent); }
+  h1 { font-size: 15px; letter-spacing: 0.06em; margin: 0; font-weight: 700;
+    text-shadow: 0 0 14px rgba(34,255,136,0.55); }
+  .sub { margin-top: 4px; font-size: 12px; color: var(--muted); }
+  .stage { position: relative; flex: 1; min-height: 420px; overflow: hidden; background: #020304; }
+  .stage canvas#room { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .hud { position: absolute; left: 12px; top: 10px; z-index: 5; font-size: 11px; line-height: 1.7;
+    letter-spacing: 0.06em; color: var(--muted); pointer-events: none;
+    text-shadow: 0 0 8px rgba(0,0,0,0.9); }
+  .hud b { color: #fff; }
+  .hud .gv { color: var(--holo-c); }
+  .pip { position: absolute; right: 10px; bottom: 10px; width: 132px; height: 96px; z-index: 6;
+    border: 1px solid rgba(0,240,255,0.5); border-radius: 8px; overflow: hidden;
+    background: #020304; box-shadow: 0 0 14px rgba(0,240,255,0.25); display: none;
+    transition: opacity 0.7s ease; }
+  .pip.live { display: block; }
+  .pip.gone { opacity: 0; pointer-events: none; }
+  .pip video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+    transform: scaleX(-1); opacity: 0.55; }
+  .pip canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .pip .plab { position: absolute; left: 5px; top: 3px; font-size: 9px; letter-spacing: 0.12em;
+    color: #8af6ff; text-shadow: 0 0 6px rgba(0,240,255,0.8); }
+  .handgate { position: absolute; inset: 0; z-index: 8; display: none; flex-direction: column;
+    align-items: center; justify-content: center; gap: 12px; background: rgba(2,4,6,0.84); }
+  .handgate.show { display: flex; }
+  .bigbtn { min-height: 56px; padding: 0 28px; border-radius: 999px; font-size: 15px;
+    letter-spacing: 0.08em; color: #04140a; font-weight: 700; border: 0;
+    background: linear-gradient(90deg, var(--door), var(--holo-c));
+    box-shadow: 0 0 24px rgba(34,255,136,0.45); font-family: inherit; }
+  .bigbtn:active { transform: scale(0.97); }
+  .gstatus { font-size: 12px; color: var(--muted); letter-spacing: 0.04em; text-align: center;
+    padding: 0 24px; line-height: 1.5; }
+  .tools { display: flex; gap: 8px; padding: 10px 12px calc(10px + var(--safe-b)); overflow-x: auto;
+    position: relative; z-index: 1; }
+  .chip { flex: none; min-height: 44px; padding: 0 16px; border-radius: 999px;
+    border: 1px solid var(--line); background: rgba(255,255,255,0.04);
+    color: var(--muted); font-size: 13px; letter-spacing: 0.04em; font-family: inherit; }
+  .chip.on { color: #8af6ff; border-color: rgba(0,229,255,0.65);
+    text-shadow: 0 0 10px rgba(0,229,255,0.9);
+    box-shadow: 0 0 14px rgba(0,229,255,0.28), inset 0 0 10px rgba(0,229,255,0.12); }
+  .legend { padding: 2px 16px 0; font-size: 11px; line-height: 1.7; color: var(--muted);
+    position: relative; z-index: 1; }
+  .legend b { color: #fff; }
+</style>
+</head>
+<body>
+<header>
+  <h1>BIRD SWARMS · HAND FLOCKING</h1>
+  <div class="sub" id="sub">5 swarms · 5 fingertips · one hand</div>
+</header>
+<div class="stage" id="stage">
+  <canvas id="room"></canvas>
+  <div class="hud" id="hud"><b>5</b> SWARMS · <b>70</b> BIRDS<br>FLOCK <span class="gv" id="hFlock">—</span> · POV <span class="gv" id="hPov">100%</span></div>
+  <div class="pip" id="pip"><video id="cam" playsinline muted></video><canvas id="pov"></canvas><div class="plab" id="plab">HAND</div></div>
+  <div class="handgate show" id="handgate">
+    <button class="bigbtn" id="handAllow" type="button">ALLOW CAMERA</button>
+    <div class="gstatus" id="handStatus">Each fingertip leads a swarm.<br>Pinch to scatter them.</div>
+  </div>
+</div>
+<div class="legend"><b>FINGERS</b> each fingertip leads its swarm · <b>PINCH</b> burst scatter · <b>PALM</b> fist tightens, open spreads · <b>CAM</b> peek</div>
+<div class="tools">
+  <button class="chip" id="handBtn" type="button">HAND</button>
+  <button class="chip" id="camBtn" type="button">CAM</button>
+  <button class="chip" id="resetBtn" type="button">SCATTER</button>
+</div>
+
+<script type="module">
+import { FilesetResolver, HandLandmarker } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
+
+/* ---------- swarms ---------- */
+const SCOL = ["#00f0ff", "#22ff88", "#ffdd33", "#ff2bd6", "#b388ff"];
+const SNAMES = ["THUMB", "INDEX", "MIDDLE", "RING", "PINKY"];
+const TIPS = [4, 8, 12, 16, 20];
+const NS = 5, PER = 14;
+const RX = 1, RY = 2, RZ = 1;
+const birds = [];
+const anchors = [];
+function scatterBirds() {
+  birds.length = 0;
+  for (let s = 0; s < NS; s++) {
+    anchors[s] = { x: (Math.random() - 0.5) * 1.2, y: 0.8 + Math.random() * 0.8, z: (Math.random() - 0.5) * 1.2 };
+    for (let i = 0; i < PER; i++) {
+      const a = Math.random() * Math.PI * 2;
+      birds.push({
+        s,
+        p: { x: anchors[s].x + (Math.random() - 0.5) * 0.5, y: anchors[s].y + (Math.random() - 0.5) * 0.5, z: anchors[s].z + (Math.random() - 0.5) * 0.5 },
+        v: { x: Math.cos(a) * 1.5, y: (Math.random() - 0.5), z: Math.sin(a) * 1.5 }
+      });
+    }
+  }
+}
+scatterBirds();
+document.getElementById("resetBtn").onclick = scatterBirds;
+
+/* ---------- camera projection ---------- */
+const camBase = { x: 0, y: 1.5, z: 3.8 }, tgt = { x: 0, y: 0.85, z: 0 };
+let cam = { ...camBase };
+let _f = { x: 0, y: 0, z: 1 }, _r = { x: 1, y: 0, z: 0 }, _u = { x: 0, y: 1, z: 0 };
+let camX = 0, camY = 0, camZoom = 1;
+function sub(a, b) { return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z }; }
+function cross(a, b) { return { x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x }; }
+function norm(a) { const l = Math.hypot(a.x, a.y, a.z) || 1; return { x: a.x / l, y: a.y / l, z: a.z / l }; }
+function dot(a, b) { return a.x * b.x + a.y * b.y + a.z * b.z; }
+function computeBasis() {
+  cam = { x: camBase.x + camX, y: camBase.y + camY, z: camBase.z / camZoom };
+  _f = norm(sub(tgt, cam));
+  _r = norm(cross(_f, { x: 0, y: 1, z: 0 }));
+  _u = cross(_r, _f);
+}
+computeBasis();
+let VW = 0, VH = 0, FOC = 800;
+function proj(p) {
+  const d = sub(p, cam);
+  const cx = dot(d, _r), cy = dot(d, _u), cz = dot(d, _f);
+  if (cz < 0.15) return null;
+  return { x: VW / 2 + (cx / cz) * FOC, y: VH * 0.54 - (cy / cz) * FOC, z: cz };
+}
+
+/* ---------- canvas ---------- */
+const stage = document.getElementById("stage");
+const cv = document.getElementById("room");
+const ctx = cv.getContext("2d");
+function sizeRoom() {
+  const r = stage.getBoundingClientRect();
+  const d = Math.min(window.devicePixelRatio || 1, 2);
+  cv.width = Math.max(1, Math.round(r.width * d));
+  cv.height = Math.max(1, Math.round(r.height * d));
+  VW = cv.width; VH = cv.height; FOC = VH * 1.05;
+}
+sizeRoom();
+window.addEventListener("resize", sizeRoom);
+
+/* ---------- hand ---------- */
+const pip = document.getElementById("pip");
+const video = document.getElementById("cam");
+const pov = document.getElementById("pov");
+const pctx = pov.getContext("2d");
+const plab = document.getElementById("plab");
+const gate = document.getElementById("handgate");
+const gstat = document.getElementById("handStatus");
+const handBtn = document.getElementById("handBtn");
+const camBtn = document.getElementById("camBtn");
+const hFlock = document.getElementById("hFlock");
+const hPov = document.getElementById("hPov");
+let landmarker = null, ready = false, handOn = false;
+let syncing = false, syncFrozen = null, syncT0 = 0, syncHold = 0;
+let handOpen = 0.7, handSize = 0, baseSize = 0, handCX = 0.5, handCY = 0.5;
+let handSeen = false, cohesion = 0.6;
+let burstAt = { x: 0, y: 0 }, burstT = -9999, lastBurst = 0;
+let pinchWas = false;
+const say = t => { gstat.innerHTML = t; };
+function sizePip() {
+  const r = pip.getBoundingClientRect();
+  const d = Math.min(window.devicePixelRatio || 1, 2);
+  pov.width = Math.max(1, Math.round(r.width * d));
+  pov.height = Math.max(1, Math.round(r.height * d));
+}
+camBtn.onclick = () => {
+  const hidden = pip.classList.toggle("gone");
+  camBtn.classList.toggle("on", !hidden);
+  if (!hidden) sizePip();
+};
+handBtn.onclick = () => {
+  if (!ready) { sizePip(); gate.classList.add("show"); return; }
+  handOn = !handOn;
+  handBtn.textContent = handOn ? "HAND·LIVE" : "HAND";
+  handBtn.classList.toggle("on", handOn);
+  pip.classList.toggle("live", handOn);
+  if (handOn) sizePip();
+};
+document.getElementById("handAllow").onclick = async () => {
+  if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    say("Camera needs a secure (https) page.<br>Open this page in Safari."); return;
+  }
+  say("Opening camera…");
+  try {
+    const s = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } }, audio: false });
+    video.srcObject = s;
+    await video.play();
+  } catch (e) { say("Camera blocked.<br>Settings → Safari → Camera → Allow,<br>then tap again."); return; }
+  say("Loading hand model…");
+  try {
+    const vision = await FilesetResolver.forVisionTasks(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
+    landmarker = await HandLandmarker.createFromOptions(vision, {
+      baseOptions: {
+        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+        delegate: "GPU" },
+      runningMode: "VIDEO", numHands: 1 });
+  } catch (e) { say("Model failed to load.<br>Check connection and retry."); return; }
+  ready = true; handOn = true;
+  gate.classList.remove("show");
+  pip.classList.add("live");
+  pip.classList.remove("gone");
+  camBtn.classList.add("on");
+  sizePip();
+  handBtn.textContent = "HAND·LIVE";
+  handBtn.classList.add("on");
+  syncing = true;
+  plab.textContent = "HOLD STILL";
+};
+
+/* ---------- boids ---------- */
+function stepBirds(dt, t) {
+  const open01 = Math.max(0, Math.min(1, (handOpen - 0.42) / 0.5));
+  cohesion = 1 - open01 * 0.75;
+  for (let i = 0; i < birds.length; i++) {
+    const b = birds[i];
+    let sx = 0, sy = 0, sz = 0, ax = 0, ay = 0, az = 0, cx = 0, cy = 0, cz = 0, n = 0;
+    for (let j = 0; j < birds.length; j++) {
+      if (i === j || birds[j].s !== b.s) continue;
+      const o = birds[j];
+      const dx = b.p.x - o.p.x, dy = b.p.y - o.p.y, dz = b.p.z - o.p.z;
+      const d2 = dx * dx + dy * dy + dz * dz;
+      if (d2 < 0.36) {
+        n++; ax += o.v.x; ay += o.v.y; az += o.v.z; cx += o.p.x; cy += o.p.y; cz += o.p.z;
+        if (d2 < 0.1225 && d2 > 1e-6) {
+          const d = Math.sqrt(d2), push = (0.35 - d) / d * 3;
+          sx += dx * push; sy += dy * push; sz += dz * push;
+        }
+      }
+    }
+    let fx = sx, fy = sy, fz = sz;
+    if (n > 0) {
+      fx += (ax / n - b.v.x) * 1.1 + (cx / n - b.p.x) * 1.4 * cohesion;
+      fy += (ay / n - b.v.y) * 1.1 + (cy / n - b.p.y) * 1.4 * cohesion;
+      fz += (az / n - b.v.z) * 1.1 + (cz / n - b.p.z) * 1.4 * cohesion;
+    }
+    const an = anchors[b.s];
+    const ak = handSeen && !syncing ? 2.0 : 1.1;
+    fx += (an.x - b.p.x) * ak; fy += (an.y - b.p.y) * ak; fz += (an.z - b.p.z) * ak;
+    /* soft walls */
+    const m = 0.3, w = 7;
+    if (b.p.x < -RX + m) fx += (-RX + m - b.p.x) * w;
+    if (b.p.x > RX - m) fx -= (b.p.x - RX + m) * w;
+    if (b.p.z < -RZ + m) fz += (-RZ + m - b.p.z) * w;
+    if (b.p.z > RZ - m) fz -= (b.p.z - RZ + m) * w;
+    if (b.p.y < m) fy += (m - b.p.y) * w;
+    if (b.p.y > RY - m) fy -= (b.p.y - RY + m) * w;
+    b.v.x += fx * dt; b.v.y += fy * dt; b.v.z += fz * dt;
+    const sp = Math.hypot(b.v.x, b.v.y, b.v.z) || 1;
+    const cs = Math.max(0.8, Math.min(5.2, sp));
+    b.v.x *= cs / sp; b.v.y *= cs / sp; b.v.z *= cs / sp;
+    b.p.x += b.v.x * dt; b.p.y += b.v.y * dt; b.p.z += b.v.z * dt;
+    if (b.p.x < -RX + 0.05) { b.p.x = -RX + 0.05; b.v.x = Math.abs(b.v.x); }
+    if (b.p.x > RX - 0.05) { b.p.x = RX - 0.05; b.v.x = -Math.abs(b.v.x); }
+    if (b.p.z < -RZ + 0.05) { b.p.z = -RZ + 0.05; b.v.z = Math.abs(b.v.z); }
+    if (b.p.z > RZ - 0.05) { b.p.z = RZ - 0.05; b.v.z = -Math.abs(b.v.z); }
+    if (b.p.y < 0.05) { b.p.y = 0.05; b.v.y = Math.abs(b.v.y); }
+    if (b.p.y > RY - 0.05) { b.p.y = RY - 0.05; b.v.y = -Math.abs(b.v.y); }
+  }
+}
+
+/* ---------- main loop ---------- */
+let lastT = 0;
+function loop(t) {
+  const dt = Math.min(0.033, Math.max(0.001, (t - lastT) / 1000 || 0.016));
+  lastT = t;
+  const W = pov.width, H = pov.height;
+
+  /* hand sense */
+  let lm = null;
+  if (ready && handOn) {
+    try {
+      const r = landmarker.detectForVideo(video, performance.now());
+      if (r.landmarks && r.landmarks.length) lm = r.landmarks[0];
+    } catch (e) {}
+  }
+  pctx.clearRect(0, 0, W, H);
+  handSeen = !!lm;
+  if (lm) {
+    const hsc = Math.hypot(lm[9].x - lm[0].x, lm[9].y - lm[0].y) || 1;
+    handCX += ((1 - lm[9].x) - handCX) * 0.25;
+    handCY += (lm[9].y - handCY) * 0.25;
+    const hsz = Math.hypot(lm[0].x - lm[12].x, lm[0].y - lm[12].y);
+    handSize = handSize ? handSize + (hsz - handSize) * 0.2 : hsz;
+    let open = 0;
+    TIPS.forEach(id => { open += Math.hypot(lm[id].x - lm[9].x, lm[id].y - lm[9].y); });
+    open /= 5 * hsc;
+    handOpen += (open - handOpen) * 0.15;
+
+    if (syncing) {
+      if (!syncFrozen) { syncFrozen = TIPS.map(id => ({ x: 1 - lm[id].x, y: lm[id].y })); syncT0 = t; syncHold = 0; }
+      else {
+        let ok = true;
+        TIPS.forEach((id, i) => {
+          if (Math.hypot((1 - lm[id].x) - syncFrozen[i].x, lm[id].y - syncFrozen[i].y) > 0.05) ok = false;
+        });
+        if (ok) syncHold = t - syncT0; else { syncT0 = t; syncHold = 0; }
+        if (syncHold >= 1200) {
+          syncing = false; plab.textContent = "HAND";
+          pip.classList.add("gone");
+          camBtn.classList.remove("on");
+          if (handSize > 0.01) baseSize = handSize;
+        }
+      }
+    } else {
+      /* each fingertip leads its swarm */
+      for (let i = 0; i < NS; i++) {
+        const tx = ((1 - lm[TIPS[i]].x) - 0.5) * 2 * RX;
+        const ty = (0.5 - lm[TIPS[i]].y) * 1.8 + 0.15;
+        const tzp = -0.6 + i * 0.3;
+        const a = anchors[i];
+        a.x += (Math.max(-RX + 0.2, Math.min(RX - 0.2, tx)) - a.x) * 0.12;
+        a.y += (Math.max(0.25, Math.min(RY - 0.2, ty)) - a.y) * 0.12;
+        a.z += (tzp - a.z) * 0.12;
+      }
+      /* pinch = burst scatter */
+      const pinchD = Math.hypot(lm[4].x - lm[8].x, lm[4].y - lm[8].y) / hsc;
+      const pinched = pinchD < 0.30;
+      if (pinched && !pinchWas && t - lastBurst > 900) {
+        lastBurst = t;
+        const px = ((1 - (lm[4].x + lm[8].x) / 2) - 0.5) * 2 * RX;
+        const py = (0.5 - (lm[4].y + lm[8].y) / 2) * 1.8 + 0.15;
+        burstAt = { x: px, y: py }; burstT = t;
+        plab.textContent = "BURST";
+        setTimeout(() => { if (!syncing) plab.textContent = "HAND"; }, 700);
+        for (const b of birds) {
+          const dx = b.p.x - px, dy = b.p.y - py, dz = b.p.z;
+          const d = Math.hypot(dx, dy, dz) || 1;
+          const imp = 4.2 * Math.max(0.25, 1 - d / 3);
+          b.v.x += dx / d * imp; b.v.y += dy / d * imp; b.v.z += dz / d * imp;
+        }
+      }
+      pinchWas = pinched;
+    }
+    /* pip nodes */
+    TIPS.forEach((id, i) => {
+      const x = (1 - lm[id].x) * W, y = lm[id].y * H;
+      pctx.strokeStyle = SCOL[i]; pctx.lineWidth = 2;
+      pctx.beginPath(); pctx.arc(x, y, 6, 0, Math.PI * 2); pctx.stroke();
+      pctx.fillStyle = "#fff";
+      pctx.beginPath(); pctx.arc(x, y, 2, 0, Math.PI * 2); pctx.fill();
+      pctx.fillStyle = SCOL[i];
+      pctx.font = "600 8px ui-monospace, monospace";
+      pctx.fillText(SNAMES[i][0], x + 8, y + 3);
+    });
+    if (syncing && syncFrozen) {
+      pctx.fillStyle = "rgba(255,255,255,0.15)";
+      pctx.fillRect(8, H - 14, W - 16, 5);
+      pctx.fillStyle = "#22ff88";
+      pctx.fillRect(8, H - 14, (W - 16) * Math.min(1, syncHold / 1200), 5);
+    }
+  } else if (syncing) { syncFrozen = null; }
+
+  /* autonomous anchors when no hand */
+  if (!handSeen || syncing) {
+    const tt = t / 1000;
+    for (let i = 0; i < NS; i++) {
+      const a = anchors[i];
+      a.x += (Math.sin(tt * 0.31 + i * 1.7) * 0.7 - a.x) * 0.03;
+      a.y += ((1 + Math.sin(tt * 0.23 + i * 2.3) * 0.55) - a.y) * 0.03;
+      a.z += (Math.cos(tt * 0.27 + i * 1.1) * 0.6 - a.z) * 0.03;
+    }
+  }
+
+  /* POV follows hand */
+  if (handSeen && !syncing && baseSize > 0.01) {
+    const tz = Math.max(0.55, Math.min(1.9, handSize / baseSize));
+    camZoom += (tz - camZoom) * 0.06;
+    camX += ((0.5 - handCX) * 1.6 - camX) * 0.08;
+    camY += ((0.5 - handCY) * 1.0 - camY) * 0.08;
+  } else {
+    camZoom += (1 - camZoom) * 0.03;
+    camX *= 0.97; camY *= 0.97;
+  }
+  computeBasis();
+
+  stepBirds(dt, t);
+
+  /* ---------- render ---------- */
+  ctx.clearRect(0, 0, VW, VH);
+  const bg = ctx.createRadialGradient(VW / 2, VH * 0.45, 10, VW / 2, VH * 0.5, VW * 0.7);
+  bg.addColorStop(0, "rgba(34,255,136,0.05)");
+  bg.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, VW, VH);
+
+  ctx.lineWidth = 1;
+  for (let i = -4; i <= 4; i++) {
+    const a = proj({ x: i / 4 * RX, y: 0, z: -RZ }), b = proj({ x: i / 4 * RX, y: 0, z: RZ });
+    const c = proj({ x: -RX, y: 0, z: i / 4 * RZ }), d = proj({ x: RX, y: 0, z: i / 4 * RZ });
+    if (a && b) { ctx.strokeStyle = "rgba(34,255,136,0.20)"; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); }
+    if (c && d) { ctx.strokeStyle = "rgba(0,240,255,0.14)"; ctx.beginPath(); ctx.moveTo(c.x, c.y); ctx.lineTo(d.x, d.y); ctx.stroke(); }
+  }
+  const C = [];
+  for (const x of [-RX, RX]) for (const y of [0, RY]) for (const z of [-RZ, RZ]) C.push(proj({ x, y, z }));
+  const E = [[0,1],[0,2],[0,4],[1,3],[1,5],[2,3],[2,6],[3,7],[4,5],[4,6],[5,7],[6,7]];
+  ctx.strokeStyle = "rgba(34,255,136,0.45)";
+  ctx.lineWidth = 1.5;
+  E.forEach(([i, j]) => {
+    if (C[i] && C[j]) { ctx.beginPath(); ctx.moveTo(C[i].x, C[i].y); ctx.lineTo(C[j].x, C[j].y); ctx.stroke(); }
+  });
+
+  /* burst flash */
+  if (t - burstT < 600) {
+    const bp = proj({ x: burstAt.x, y: burstAt.y, z: 0 });
+    if (bp) {
+      const k = (t - burstT) / 600;
+      ctx.strokeStyle = "#ffdd33";
+      ctx.globalAlpha = 0.8 * (1 - k);
+      ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(bp.x, bp.y, 10 + k * 130, 0, Math.PI * 2); ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  /* birds, far to near */
+  const order = birds.map((b, i) => i).sort((a, b2) => {
+    const pa = proj(birds[a].p), pb = proj(birds[b2].p);
+    return (pb ? pb.z : 0) - (pa ? pa.z : 0);
+  });
+  for (const i of order) {
+    const b = birds[i];
+    const p0 = proj(b.p);
+    if (!p0) continue;
+    const p1 = proj({ x: b.p.x + b.v.x * 0.07, y: b.p.y + b.v.y * 0.07, z: b.p.z + b.v.z * 0.07 });
+    if (!p1) continue;
+    const ang = Math.atan2(p1.y - p0.y, p1.x - p0.x);
+    const s = Math.max(4, 26 / p0.z);
+    const col = SCOL[b.s];
+    ctx.globalAlpha = 0.28;
+    ctx.fillStyle = col;
+    ctx.beginPath(); ctx.arc(p0.x, p0.y, s * 1.7, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.moveTo(p0.x + Math.cos(ang) * s * 1.6, p0.y + Math.sin(ang) * s * 1.6);
+    ctx.lineTo(p0.x + Math.cos(ang + 2.5) * s, p0.y + Math.sin(ang + 2.5) * s);
+    ctx.lineTo(p0.x + Math.cos(ang - 2.5) * s, p0.y + Math.sin(ang - 2.5) * s);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "#fff";
+    ctx.beginPath(); ctx.arc(p0.x, p0.y, s * 0.32, 0, Math.PI * 2); ctx.fill();
+  }
+
+  hFlock.textContent = handSeen && !syncing ? (cohesion > 0.7 ? "TIGHT" : cohesion > 0.4 ? "LOOSE" : "WILD") : "DRIFT";
+  hPov.textContent = Math.round(camZoom * 100) + "%";
+
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
