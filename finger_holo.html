@@ -861,8 +861,10 @@ function draw() {
   const hs = window.handState;
   const handLive = hs && hs.active && hs.seen && !reducedMotion;
   if (handLive) {
-    yaw += hs.dx * 0.055;
-    pitch = Math.max(-1.25, Math.min(1.25, pitch + hs.dy * 0.04));
+    yaw += hs.dYaw || 0;
+    pitch = Math.max(-1.25, Math.min(1.25, pitch + (hs.dPitch || 0)));
+    if (typeof hs.explode === "number") explodeTo = hs.explode;
+    if (!(hs.dYaw || hs.dPitch)) yaw += 0.0015;
   } else if (gyroOn && gyroTarget) {
     let ty = gyroTarget.yaw;
     if (northLock && compassHeading != null) ty = northYaw0 - (compassHeading - northBase) * Math.PI / 180;
@@ -990,7 +992,7 @@ draw();
 import { FilesetResolver, HandLandmarker } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
 const FC = ["#00f0ff", "#22ff88", "#ffdd33", "#ff2bd6", "#b388ff"];
 const TIPS = [4, 8, 12, 16, 20];
-window.handState = { active: false, seen: false, dx: 0, dy: 0 };
+window.handState = { active: false, seen: false, dYaw: 0, dPitch: 0, explode: null };
 const hs = window.handState;
 const pip = document.getElementById("pip");
 const video = document.getElementById("cam");
@@ -1001,7 +1003,8 @@ const gate = document.getElementById("handgate");
 const gstat = document.getElementById("handStatus");
 const handBtn = document.getElementById("handBtn");
 let landmarker = null, ready = false, syncFrozen = null, syncT0 = 0, syncHold = 0, syncing = false;
-let pinchPrev = false, lastSel = 0;
+let gDown = false, gT0 = 0, gMoved = 0, gPX = 0, gPY = 0, gDrag = false;
+let vYaw = 0, vPitch = 0;
 const say = t => { gstat.innerHTML = t; };
 function sizePip() {
   const r = pip.getBoundingClientRect();
@@ -1057,6 +1060,7 @@ function loop(t) {
     if (r.landmarks && r.landmarks.length) lm = r.landmarks[0];
   } catch (e) {}
   pctx.clearRect(0, 0, W, H);
+  hs.dYaw = 0; hs.dPitch = 0;
   if (lm) {
     if (syncing) {
       if (!syncFrozen) {
@@ -1070,23 +1074,45 @@ function loop(t) {
         if (ok) syncHold = t - syncT0; else { syncT0 = t; syncHold = 0; }
         if (syncHold >= 1200) { syncing = false; plab.textContent = "HAND"; }
       }
+    } else {
+      const nx = 1 - lm[8].x, ny = lm[8].y;
+      const hsc = Math.hypot(lm[9].x - lm[0].x, lm[9].y - lm[0].y) || 1;
+      const pinched = Math.hypot(lm[4].x - lm[8].x, lm[4].y - lm[8].y) / hsc < 0.30;
+      if (pinched && !gDown) {
+        gDown = true; gT0 = t; gMoved = 0; gPX = nx; gPY = ny;
+        gDrag = false; vYaw = 0; vPitch = 0;
+        plab.textContent = "GRAB";
+      }
+      if (pinched && gDown) {
+        const dx = nx - gPX, dy = ny - gPY;
+        gMoved += Math.hypot(dx, dy);
+        if (gMoved > 0.045) gDrag = true;
+        if (gDrag) {
+          hs.dYaw = dx * 7; hs.dPitch = dy * 4.5;
+          vYaw = vYaw * 0.6 + hs.dYaw * 0.4;
+          vPitch = vPitch * 0.6 + hs.dPitch * 0.4;
+        }
+        gPX = nx; gPY = ny;
+      }
+      if (!pinched && gDown) {
+        if (!gDrag && t - gT0 < 400 && window.handSelect) window.handSelect();
+        gDown = false; gDrag = false;
+        plab.textContent = "HAND";
+      }
+      if (!pinched && !gDown) {
+        hs.dYaw = vYaw; hs.dPitch = vPitch;
+        vYaw *= 0.94; vPitch *= 0.94;
+        if (Math.abs(vYaw) < 0.0004) vYaw = 0;
+        if (Math.abs(vPitch) < 0.0004) vPitch = 0;
+      }
+      let open = 0;
+      TIPS.forEach(id => { open += Math.hypot(lm[id].x - lm[9].x, lm[id].y - lm[9].y); });
+      open /= 5 * hsc;
+      const target = Math.max(0, Math.min(1, (open - 0.42) / 0.5)) * 0.7;
+      const cur = typeof hs.explode === "number" ? hs.explode : target;
+      hs.explode = cur + (target - cur) * 0.12;
     }
-    const ix = 1 - lm[8].x, iy = lm[8].y;
-    let dx = ix - 0.5, dy = iy - 0.5;
-    const dz = 0.07;
-    dx = Math.abs(dx) < dz ? 0 : dx - Math.sign(dx) * dz;
-    dy = Math.abs(dy) < dz ? 0 : dy - Math.sign(dy) * dz;
-    hs.dx += (dx * 1.6 - hs.dx) * 0.3;
-    hs.dy += (dy * 1.6 - hs.dy) * 0.3;
     hs.seen = true;
-    const hsc = Math.hypot(lm[9].x - lm[0].x, lm[9].y - lm[0].y) || 1;
-    const pinch = 1 - Math.hypot(lm[4].x - lm[8].x, lm[4].y - lm[8].y) / hsc / 0.55;
-    const pinched = pinch > 0.62;
-    if (pinched && !pinchPrev && t - lastSel > 900) {
-      lastSel = t;
-      if (window.handSelect) window.handSelect();
-    }
-    pinchPrev = pinched;
     TIPS.forEach((id, i) => {
       const x = (1 - lm[id].x) * W, y = lm[id].y * H;
       pctx.strokeStyle = FC[i];
@@ -1095,6 +1121,15 @@ function loop(t) {
       pctx.fillStyle = "#fff";
       pctx.beginPath(); pctx.arc(x, y, 2, 0, Math.PI * 2); pctx.fill();
     });
+    if (gDown) {
+      const ax = (1 - lm[4].x) * W, ay = lm[4].y * H;
+      const bx = (1 - lm[8].x) * W, by = lm[8].y * H;
+      pctx.strokeStyle = "#22ff88";
+      pctx.lineWidth = 2.5;
+      pctx.shadowColor = "#22ff88"; pctx.shadowBlur = 8;
+      pctx.beginPath(); pctx.moveTo(ax, ay); pctx.lineTo(bx, by); pctx.stroke();
+      pctx.shadowBlur = 0;
+    }
     if (syncing && syncFrozen) {
       pctx.fillStyle = "rgba(255,255,255,0.15)";
       pctx.fillRect(8, H - 14, W - 16, 5);
@@ -1102,9 +1137,10 @@ function loop(t) {
       pctx.fillRect(8, H - 14, (W - 16) * Math.min(1, syncHold / 1200), 5);
     }
   } else {
-    hs.seen = false; hs.dx *= 0.85; hs.dy *= 0.85;
+    hs.seen = false;
+    vYaw = 0; vPitch = 0;
+    if (gDown) { gDown = false; gDrag = false; plab.textContent = "HAND"; }
     if (syncing) { syncFrozen = null; plab.textContent = "SHOW HAND"; }
-    else plab.textContent = "HAND";
   }
   requestAnimationFrame(loop);
 }
