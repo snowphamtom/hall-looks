@@ -56,7 +56,7 @@
 <body>
 <header>
   <h1>AR LASERS · REAR CAMERA</h1>
-  <div class="sub" id="sub">your world, with threads coming out of your fingers</div>
+  <div class="sub" id="sub">your world, with threads coming out of your fingers · fractal wallpaper wired to your hand</div>
 </header>
 <div class="stage" id="stage">
   <canvas id="view"></canvas>
@@ -67,7 +67,7 @@
     <div class="gstatus" id="handStatus">Point the rear camera at your other hand.<br>Each fingertip fires a thread into your world.<br><br><span style="opacity:.65">Open this page in Safari —<br>the in-app preview can't use the camera.</span></div>
   </div>
 </div>
-<div class="legend"><b>FINGERS</b> aim the threads · <b>PINCH</b> zoom out + flash · <b>SPREAD</b> zoom in · <b>PALM</b> brightness</div>
+<div class="legend"><b>FINGERS</b> aim the threads · <b>PINCH</b> zoom out + flash · <b>SPREAD</b> zoom in · <b>PALM</b> brightness · <b>WALLPAPER</b> follows your last-moved finger</div>
 
 <script>
 window.__arAlive = false;
@@ -95,6 +95,101 @@ const SCOL = ["#00f0ff", "#22ff88", "#ffdd33", "#ff2bd6", "#b388ff"];
 const TIPS = [4, 8, 12, 16, 20];
 const BASE = { 4: 2, 8: 6, 12: 10, 16: 14, 20: 18 };
 const NS = 5;
+
+/* ---------- fractal wallpaper: 5 endless loops, one per fingertip ----------
+   Rendered live in a worker (no downloads, true device HD, seamless).      */
+const FW_SRC = `
+"use strict";
+var BASES = [[0,240,255],[34,255,136],[255,221,51],[255,43,214],[179,136,255]];
+var LUTS = BASES.map(function(base){
+  var lut = [];
+  for(var i=0;i<256;i++){
+    var t=i/255, r,g,b;
+    if(t<0.45){var k=t/0.45; r=base[0]*0.28*k; g=base[1]*0.28*k; b=base[2]*0.28*k;}
+    else if(t<0.8){var k2=(t-0.45)/0.35; r=base[0]*(0.28+0.72*k2); g=base[1]*(0.28+0.72*k2); b=base[2]*(0.28+0.72*k2);}
+    else{var k3=(t-0.8)/0.2; r=base[0]+(255-base[0])*k3; g=base[1]+(255-base[1])*k3; b=base[2]+(255-base[2])*k3;}
+    lut.push([r|0,g|0,b|0]);
+  }
+  return lut;
+});
+function viewFor(fi,t){
+  var s1=Math.sin(t*0.10), s2=Math.sin(t*0.063+1.7);
+  if(fi===0){var z=1+(s1*0.5+0.5)*3.4; return {cx:-0.745428+s2*0.015, cy:0.113008, sc:1.7/Math.pow(2,z), m:0};}
+  if(fi===1){var th=t*0.22; return {cx:0, cy:0, sc:1.5, m:1, cr:-0.123+0.06*Math.cos(th), ci:0.745+0.06*Math.sin(th)};}
+  if(fi===2){var z2=1+(s2*0.5+0.5)*1.4; return {cx:-0.5+s1*0.05, cy:-0.5, sc:1.8/Math.pow(2,z2), m:2};}
+  if(fi===3){var z3=1+(s1*0.5+0.5)*1.2; return {cx:0, cy:0.1+s2*0.05, sc:1.7/Math.pow(2,z3), m:3};}
+  return {cx:0, cy:0, sc:1.6, m:5, rot:t*0.06};
+}
+function esc(m, zx, zy, cr, ci, maxI, rot){
+  if(m===5){
+    var ca=Math.cos(rot||0), sa=Math.sin(rot||0);
+    var x=zx*ca+zy*sa, y=-zx*sa+zy*ca, i2=0;
+    for(;i2<40;i2++){
+      var x2=x*x, y2=y*y;
+      var fx=x2*x-3*x*y2-1, fy=3*x2*y-y2*y;
+      var gx=3*(x2-y2), gy=6*x*y;
+      var den=gx*gx+gy*gy+1e-12;
+      x=x-(fx*gx+fy*gy)/den; y=y-(fy*gx-fx*gy)/den;
+      if(fx*fx+fy*fy<1e-8) break;
+    }
+    return i2>=40?-1:Math.sqrt(i2/40)*64;
+  }
+  var x = m===1?zx:0, y = m===1?zy:0;
+  var cxx = m===1?cr:zx, cyy = m===1?ci:zy;
+  var i=0;
+  for(;i<maxI;i++){
+    var x2=x*x, y2=y*y;
+    if(x2+y2>4) break;
+    var nx, ny;
+    if(m===4){ nx = x2*x2 - 6*x2*y2 + y2*y2 + cxx; ny = 4*x2*x*y - 4*x*y2*y + cyy; }
+    else if(m===3){ nx = x2 - y2 + cxx; ny = -2*x*y + cyy; }
+    else if(m===2){ var ax=x<0?-x:x, ay=y<0?-y:y; nx = ax*ax - ay*ay + cxx; ny = 2*ax*ay + cyy; }
+    else { nx = x2 - y2 + cxx; ny = 2*x*y + cyy; }
+    x=nx; y=ny;
+  }
+  if(i>=maxI) return -1;
+  var lz = Math.log(x*x+y*y)/2;
+  if(lz<=0) return i;
+  var nu = Math.log(lz/Math.LN2)/Math.LN2;
+  return i + 1 - nu;
+}
+onmessage = function(e){
+  var fi=e.data.fi, t=e.data.t, w=e.data.w, h=e.data.h;
+  var v = viewFor(fi,t), lut = LUTS[fi], maxI = 64;
+  var img = new ImageData(w,h), d = img.data, aspect = w/h;
+  for(var py=0; py<h; py++){
+    var im = v.cy + (py/h - 0.5) * 2 * v.sc;
+    for(var px=0; px<w; px++){
+      var re = v.cx + (px/w - 0.5) * 2 * v.sc * aspect;
+      var sm = esc(v.m, re, im, v.cr||0, v.ci||0, maxI, v.rot||0);
+      var o = (py*w+px)*4;
+      if(sm<0){ var ic = v.m===1 ? lut[215] : [6,8,14]; d[o]=ic[0]; d[o+1]=ic[1]; d[o+2]=ic[2]; }
+      else { var c = lut[Math.min(254, (sm/maxI*255)|0)]; d[o]=c[0]; d[o+1]=c[1]; d[o+2]=c[2]; }
+      d[o+3]=255;
+    }
+  }
+  postMessage({fi:fi, buf:img.data.buffer}, [img.data.buffer]);
+};
+`;
+const FW_ = 426, FH_ = 240;
+const fWorker = new Worker(URL.createObjectURL(new Blob([FW_SRC], { type: "text/javascript" })));
+const fCanA = document.createElement("canvas"), fCanB = document.createElement("canvas");
+fCanA.width = fCanB.width = FW_; fCanA.height = fCanB.height = FH_;
+const fxA = fCanA.getContext("2d"), fxB = fCanB.getContext("2d");
+let fCur = 1, fNxt = -1, fFade = 0, fT = 0;
+fWorker.onmessage = e => {
+  const img = new ImageData(new Uint8ClampedArray(e.data.buf), FW_, FH_);
+  if (e.data.fi === fNxt) fxB.putImageData(img, 0, 0); else fxA.putImageData(img, 0, 0);
+  if (!document.hidden) setTimeout(() => {
+    fT += 0.14;
+    fWorker.postMessage({ fi: fNxt >= 0 ? fNxt : fCur, t: fT, w: FW_, h: FH_ });
+  }, 30);
+};
+function switchFractal(i) {
+  if (i === fCur) { fNxt = -1; return; }
+  fNxt = i; fFade = 0;
+}
+fWorker.postMessage({ fi: fCur, t: 0, w: FW_, h: FH_ });
 
 /* ---------- canvas ---------- */
 const stage = document.getElementById("stage");
@@ -134,7 +229,9 @@ let handSeen = false, handOpen = 0.7;
 let prevPd = 0, pinchWas = false, lastBurst = 0;
 let flashT = -9999, flashAt = { x: 0.5, y: 0.5 };
 const tips = [];
-for (let i = 0; i < NS; i++) tips.push({ x: 0.5, y: 0.5, dx: 0, dy: -1 });
+for (let i = 0; i < NS; i++) tips.push({ x: 0.5, y: 0.5, dx: 0, dy: -1, n: 0 });
+const lastMove = [0, 0, 0, 0, 0], moveAcc = [0, 0, 0, 0, 0];
+let activeNode = 1;
 
 document.getElementById("handAllow").onclick = async () => {
   const abtn = document.getElementById("handAllow");
@@ -211,14 +308,25 @@ function loop(t) {
 
     if (syncing) {
       syncHold = Math.min(1200, syncHold + dt * 1000);
-      if (syncHold >= 1200) syncing = false;
+      if (syncHold >= 1200) {
+        syncing = false;
+        let bi = 1, bm = -1;
+        for (let k = 0; k < NS; k++) if (moveAcc[k] > bm) { bm = moveAcc[k]; bi = k; }
+        activeNode = bi; switchFractal(bi);
+      }
     } else {
       for (let i = 0; i < NS; i++) {
         const id = TIPS[i], b = BASE[id];
         const tp = frameToScreen(lm[id].x, lm[id].y);
         const bp = frameToScreen(lm[b].x, lm[b].y);
         const T = tips[i];
-        if (tp) { T.x += (tp.x - T.x) * 0.5; T.y += (tp.y - T.y) * 0.5; }
+        if (tp) {
+          const moved = T.n ? Math.hypot(tp.x - T.x, tp.y - T.y) : 0;
+          T.n++;
+          if (syncing) moveAcc[i] += moved;
+          else if (moved > 12) lastMove[i] = t;
+          T.x += (tp.x - T.x) * 0.5; T.y += (tp.y - T.y) * 0.5;
+        }
         if (tp && bp) {
           let dx = tp.x - bp.x, dy = tp.y - bp.y;
           const l = Math.hypot(dx, dy);
@@ -239,20 +347,38 @@ function loop(t) {
         if (Math.abs(r - 1) > 0.008) zoomT = Math.max(1, Math.min(3, zoomT * r));
       }
       prevPd = pd;
+      let bw = activeNode, bwt = lastMove[activeNode] || 0;
+      for (let k = 0; k < NS; k++) if (lastMove[k] > bwt) { bwt = lastMove[k]; bw = k; }
+      if (bw !== activeNode) { activeNode = bw; switchFractal(bw); }
     }
   } else if (syncing) { syncHold = 0; }
+  if (syncing && ready) {
+    const a = Math.floor(t / 6000) % NS;
+    if (a !== activeNode) { activeNode = a; switchFractal(a); }
+  }
   if (!handSeen) prevPd = 0;
   zoom += (zoomT - zoom) * 0.12;
 
   /* ---------- render ---------- */
-  ctx.fillStyle = "#000";
-  ctx.fillRect(0, 0, CW, CH);
+  ctx.drawImage(fCanA, 0, 0, CW, CH);
+  if (fNxt >= 0) {
+    ctx.globalAlpha = Math.min(1, fFade);
+    ctx.drawImage(fCanB, 0, 0, CW, CH);
+    ctx.globalAlpha = 1;
+    fFade += dt / 0.7;
+    if (fFade >= 1) { fxA.drawImage(fCanB, 0, 0); fCur = fNxt; fNxt = -1; }
+  }
   const vw = video.videoWidth, vh = video.videoHeight;
+  ctx.globalAlpha = 0.72;
   if (vw && vh) {
     const base = Math.max(CW / vw, CH / vh);
     const dw = vw * base * zoom, dh = vh * base * zoom;
     ctx.drawImage(video, (CW - dw) / 2, (CH - dh) / 2, dw, dh);
+  } else {
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, CW, CH);
   }
+  ctx.globalAlpha = 1;
 
   /* status */
   ctx.textAlign = "center";
