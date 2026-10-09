@@ -85,7 +85,7 @@
     <div class="gstatus" id="handStatus">Each fingertip is a laser pointer.<br>Pinch to flash them.</div>
   </div>
 </div>
-<div class="legend"><b>FINGERS</b> aim the threads · <b>PINCH</b> flash · <b>PALM</b> brightness · <b>CAM</b> peek</div>
+<div class="legend"><b>FINGERS</b> aim the threads · <b>PINCH</b> zoom out + flash · <b>SPREAD</b> zoom in · <b>PALM</b> brightness · <b>CAM</b> peek</div>
 <div class="tools">
   <button class="chip" id="handBtn" type="button">HAND</button>
   <button class="chip" id="camBtn" type="button">CAM</button>
@@ -177,7 +177,8 @@ const hFlock = document.getElementById("hFlock");
 const hPov = document.getElementById("hPov");
 let landmarker = null, ready = false, handOn = false;
 let syncing = false, syncFrozen = null, syncT0 = 0, syncHold = 0;
-let handOpen = 0.7, handSize = 0, baseSize = 0, handCX = 0.5, handCY = 0.5;
+let handOpen = 0.7, handCX = 0.5, handCY = 0.5;
+let zoomT = 1, prevPd = 0;
 let handSeen = false;
 let flashT = -9999, flashAt = { x: 0.5, y: 0.5 }, lastBurst = 0;
 let pinchWas = false;
@@ -255,8 +256,6 @@ function loop(t) {
     const hsc = Math.hypot(lm[9].x - lm[0].x, lm[9].y - lm[0].y) || 1;
     handCX += ((1 - lm[9].x) - handCX) * 0.25;
     handCY += (lm[9].y - handCY) * 0.25;
-    const hsz = Math.hypot(lm[0].x - lm[12].x, lm[0].y - lm[12].y);
-    handSize = handSize ? handSize + (hsz - handSize) * 0.2 : hsz;
     let open = 0;
     TIPS.forEach(id => { open += Math.hypot(lm[id].x - lm[9].x, lm[id].y - lm[9].y); });
     open /= 5 * hsc;
@@ -274,7 +273,6 @@ function loop(t) {
           syncing = false; plab.textContent = "HAND";
           pip.classList.add("gone");
           camBtn.classList.remove("on");
-          if (handSize > 0.01) baseSize = handSize;
         }
       }
     } else {
@@ -299,6 +297,13 @@ function loop(t) {
         setTimeout(() => { if (!syncing) plab.textContent = "HAND"; }, 700);
       }
       pinchWas = pinched;
+      /* iPhone pinch zoom: spread fingers = zoom in, pinch = zoom out */
+      const pd = Math.hypot(lm[4].x - lm[8].x, lm[4].y - lm[8].y) / hsc;
+      if (prevPd > 0.001 && pd > 0.001) {
+        const r = 1 + (pd / prevPd - 1) * 0.5;
+        if (Math.abs(r - 1) > 0.008) zoomT = Math.max(0.55, Math.min(1.9, zoomT * r));
+      }
+      prevPd = pd;
     }
     /* pip nodes */
     TIPS.forEach((id, i) => {
@@ -330,14 +335,13 @@ function loop(t) {
     }
   }
 
-  /* POV follows hand */
-  if (handSeen && !syncing && baseSize > 0.01) {
-    const tz = Math.max(0.55, Math.min(1.9, handSize / baseSize));
-    camZoom += (tz - camZoom) * 0.06;
+  /* POV: sway with hand position, zoom via iPhone pinch gesture */
+  if (handSeen && !syncing) {
+    camZoom += (zoomT - camZoom) * 0.12;
     camX += ((0.5 - handCX) * 1.6 - camX) * 0.08;
     camY += ((0.5 - handCY) * 1.0 - camY) * 0.08;
   } else {
-    camZoom += (1 - camZoom) * 0.03;
+    prevPd = 0;
     camX *= 0.97; camY *= 0.97;
   }
   computeBasis();
