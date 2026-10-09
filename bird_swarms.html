@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#04060b">
-<title>Bird Swarms · Hand Flocking</title>
+<title>Five Lasers · Hand Optics</title>
 <style>
   :root {
     --bg: #04060b;
@@ -73,23 +73,22 @@
 </head>
 <body>
 <header>
-  <h1>BIRD SWARMS · HAND FLOCKING</h1>
-  <div class="sub" id="sub">5 swarms · 5 fingertips · one hand</div>
+  <h1>FIVE LASERS · HAND OPTICS</h1>
+  <div class="sub" id="sub">5 laser pointers · 5 fingertips · one hand</div>
 </header>
 <div class="stage" id="stage">
   <canvas id="room"></canvas>
-  <div class="hud" id="hud"><b>5</b> SWARMS · <b>70</b> BIRDS<br>FLOCK <span class="gv" id="hFlock">—</span> · POV <span class="gv" id="hPov">100%</span></div>
+  <div class="hud" id="hud"><b>5</b> LASERS<br>POWER <span class="gv" id="hFlock">—</span> · POV <span class="gv" id="hPov">100%</span></div>
   <div class="pip" id="pip"><video id="cam" playsinline muted></video><canvas id="pov"></canvas><div class="plab" id="plab">HAND</div></div>
   <div class="handgate show" id="handgate">
     <button class="bigbtn" id="handAllow" type="button">ALLOW CAMERA</button>
-    <div class="gstatus" id="handStatus">Each fingertip leads a swarm.<br>Pinch to scatter them.</div>
+    <div class="gstatus" id="handStatus">Each fingertip is a laser pointer.<br>Pinch to flash them.</div>
   </div>
 </div>
-<div class="legend"><b>FINGERS</b> each fingertip leads its swarm · <b>PINCH</b> burst scatter · <b>PALM</b> fist tightens, open spreads · <b>CAM</b> peek</div>
+<div class="legend"><b>FINGERS</b> aim the lasers · <b>PINCH</b> flash · <b>PALM</b> beam power · <b>CAM</b> peek</div>
 <div class="tools">
   <button class="chip" id="handBtn" type="button">HAND</button>
   <button class="chip" id="camBtn" type="button">CAM</button>
-  <button class="chip" id="resetBtn" type="button">SCATTER</button>
 </div>
 
 <script type="module">
@@ -99,26 +98,10 @@ import { FilesetResolver, HandLandmarker } from "https://cdn.jsdelivr.net/npm/@m
 const SCOL = ["#00f0ff", "#22ff88", "#ffdd33", "#ff2bd6", "#b388ff"];
 const SNAMES = ["THUMB", "INDEX", "MIDDLE", "RING", "PINKY"];
 const TIPS = [4, 8, 12, 16, 20];
-const NS = 5, PER = 14;
+const NS = 5;
 const RX = 1, RY = 2, RZ = 1;
-const birds = [];
-const anchors = [];
-function scatterBirds() {
-  birds.length = 0;
-  for (let s = 0; s < NS; s++) {
-    anchors[s] = { x: (Math.random() - 0.5) * 1.2, y: 0.8 + Math.random() * 0.8, z: (Math.random() - 0.5) * 1.2 };
-    for (let i = 0; i < PER; i++) {
-      const a = Math.random() * Math.PI * 2;
-      birds.push({
-        s,
-        p: { x: anchors[s].x + (Math.random() - 0.5) * 0.5, y: anchors[s].y + (Math.random() - 0.5) * 0.5, z: anchors[s].z + (Math.random() - 0.5) * 0.5 },
-        v: { x: Math.cos(a) * 1.5, y: (Math.random() - 0.5), z: Math.sin(a) * 1.5 }
-      });
-    }
-  }
-}
-scatterBirds();
-document.getElementById("resetBtn").onclick = scatterBirds;
+const dots = [];
+for (let i = 0; i < NS; i++) dots.push({ x: 0, y: 1, z: -0.6 + i * 0.3, sx: 0.5, sy: 0.5 });
 
 /* ---------- camera projection ---------- */
 const camBase = { x: 0, y: 1.5, z: 3.8 }, tgt = { x: 0, y: 0.85, z: 0 };
@@ -173,8 +156,8 @@ const hPov = document.getElementById("hPov");
 let landmarker = null, ready = false, handOn = false;
 let syncing = false, syncFrozen = null, syncT0 = 0, syncHold = 0;
 let handOpen = 0.7, handSize = 0, baseSize = 0, handCX = 0.5, handCY = 0.5;
-let handSeen = false, cohesion = 0.6;
-let burstAt = { x: 0, y: 0 }, burstT = -9999, lastBurst = 0;
+let handSeen = false;
+let flashT = -9999, flashAt = { x: 0.5, y: 0.5 }, lastBurst = 0;
 let pinchWas = false;
 const say = t => { gstat.innerHTML = t; };
 function sizePip() {
@@ -229,57 +212,6 @@ document.getElementById("handAllow").onclick = async () => {
   plab.textContent = "HOLD STILL";
 };
 
-/* ---------- boids ---------- */
-function stepBirds(dt, t) {
-  const open01 = Math.max(0, Math.min(1, (handOpen - 0.42) / 0.5));
-  cohesion = 1 - open01 * 0.75;
-  for (let i = 0; i < birds.length; i++) {
-    const b = birds[i];
-    let sx = 0, sy = 0, sz = 0, ax = 0, ay = 0, az = 0, cx = 0, cy = 0, cz = 0, n = 0;
-    for (let j = 0; j < birds.length; j++) {
-      if (i === j || birds[j].s !== b.s) continue;
-      const o = birds[j];
-      const dx = b.p.x - o.p.x, dy = b.p.y - o.p.y, dz = b.p.z - o.p.z;
-      const d2 = dx * dx + dy * dy + dz * dz;
-      if (d2 < 0.36) {
-        n++; ax += o.v.x; ay += o.v.y; az += o.v.z; cx += o.p.x; cy += o.p.y; cz += o.p.z;
-        if (d2 < 0.1225 && d2 > 1e-6) {
-          const d = Math.sqrt(d2), push = (0.35 - d) / d * 3;
-          sx += dx * push; sy += dy * push; sz += dz * push;
-        }
-      }
-    }
-    let fx = sx, fy = sy, fz = sz;
-    if (n > 0) {
-      fx += (ax / n - b.v.x) * 1.1 + (cx / n - b.p.x) * 1.4 * cohesion;
-      fy += (ay / n - b.v.y) * 1.1 + (cy / n - b.p.y) * 1.4 * cohesion;
-      fz += (az / n - b.v.z) * 1.1 + (cz / n - b.p.z) * 1.4 * cohesion;
-    }
-    const an = anchors[b.s];
-    const ak = handSeen && !syncing ? 2.0 : 1.1;
-    fx += (an.x - b.p.x) * ak; fy += (an.y - b.p.y) * ak; fz += (an.z - b.p.z) * ak;
-    /* soft walls */
-    const m = 0.3, w = 7;
-    if (b.p.x < -RX + m) fx += (-RX + m - b.p.x) * w;
-    if (b.p.x > RX - m) fx -= (b.p.x - RX + m) * w;
-    if (b.p.z < -RZ + m) fz += (-RZ + m - b.p.z) * w;
-    if (b.p.z > RZ - m) fz -= (b.p.z - RZ + m) * w;
-    if (b.p.y < m) fy += (m - b.p.y) * w;
-    if (b.p.y > RY - m) fy -= (b.p.y - RY + m) * w;
-    b.v.x += fx * dt; b.v.y += fy * dt; b.v.z += fz * dt;
-    const sp = Math.hypot(b.v.x, b.v.y, b.v.z) || 1;
-    const cs = Math.max(0.8, Math.min(5.2, sp));
-    b.v.x *= cs / sp; b.v.y *= cs / sp; b.v.z *= cs / sp;
-    b.p.x += b.v.x * dt; b.p.y += b.v.y * dt; b.p.z += b.v.z * dt;
-    if (b.p.x < -RX + 0.05) { b.p.x = -RX + 0.05; b.v.x = Math.abs(b.v.x); }
-    if (b.p.x > RX - 0.05) { b.p.x = RX - 0.05; b.v.x = -Math.abs(b.v.x); }
-    if (b.p.z < -RZ + 0.05) { b.p.z = -RZ + 0.05; b.v.z = Math.abs(b.v.z); }
-    if (b.p.z > RZ - 0.05) { b.p.z = RZ - 0.05; b.v.z = -Math.abs(b.v.z); }
-    if (b.p.y < 0.05) { b.p.y = 0.05; b.v.y = Math.abs(b.v.y); }
-    if (b.p.y > RY - 0.05) { b.p.y = RY - 0.05; b.v.y = -Math.abs(b.v.y); }
-  }
-}
-
 /* ---------- main loop ---------- */
 let lastT = 0;
 function loop(t) {
@@ -324,32 +256,25 @@ function loop(t) {
         }
       }
     } else {
-      /* each fingertip leads its swarm */
+      /* fingertips aim the lasers, direct and tight */
       for (let i = 0; i < NS; i++) {
-        const tx = ((1 - lm[TIPS[i]].x) - 0.5) * 2 * RX;
-        const ty = (0.5 - lm[TIPS[i]].y) * 1.8 + 0.15;
-        const tzp = -0.6 + i * 0.3;
-        const a = anchors[i];
-        a.x += (Math.max(-RX + 0.2, Math.min(RX - 0.2, tx)) - a.x) * 0.12;
-        a.y += (Math.max(0.25, Math.min(RY - 0.2, ty)) - a.y) * 0.12;
-        a.z += (tzp - a.z) * 0.12;
+        const tx = Math.max(-RX + 0.15, Math.min(RX - 0.15, ((1 - lm[TIPS[i]].x) - 0.5) * 2 * RX));
+        const ty = Math.max(0.15, Math.min(RY - 0.15, (0.5 - lm[TIPS[i]].y) * 1.8 + 0.15));
+        const d = dots[i];
+        d.x += (tx - d.x) * 0.55;
+        d.y += (ty - d.y) * 0.55;
+        d.z = -0.6 + i * 0.3;
+        d.sx = 1 - lm[TIPS[i]].x;
+        d.sy = lm[TIPS[i]].y;
       }
       /* pinch = burst scatter */
       const pinchD = Math.hypot(lm[4].x - lm[8].x, lm[4].y - lm[8].y) / hsc;
       const pinched = pinchD < 0.30;
       if (pinched && !pinchWas && t - lastBurst > 900) {
-        lastBurst = t;
-        const px = ((1 - (lm[4].x + lm[8].x) / 2) - 0.5) * 2 * RX;
-        const py = (0.5 - (lm[4].y + lm[8].y) / 2) * 1.8 + 0.15;
-        burstAt = { x: px, y: py }; burstT = t;
-        plab.textContent = "BURST";
+        lastBurst = t; flashT = t;
+        flashAt = { x: 1 - (lm[4].x + lm[8].x) / 2, y: (lm[4].y + lm[8].y) / 2 };
+        plab.textContent = "FLASH";
         setTimeout(() => { if (!syncing) plab.textContent = "HAND"; }, 700);
-        for (const b of birds) {
-          const dx = b.p.x - px, dy = b.p.y - py, dz = b.p.z;
-          const d = Math.hypot(dx, dy, dz) || 1;
-          const imp = 4.2 * Math.max(0.25, 1 - d / 3);
-          b.v.x += dx / d * imp; b.v.y += dy / d * imp; b.v.z += dz / d * imp;
-        }
       }
       pinchWas = pinched;
     }
@@ -372,14 +297,14 @@ function loop(t) {
     }
   } else if (syncing) { syncFrozen = null; }
 
-  /* autonomous anchors when no hand */
+  /* idle drift when no hand */
   if (!handSeen || syncing) {
     const tt = t / 1000;
     for (let i = 0; i < NS; i++) {
-      const a = anchors[i];
-      a.x += (Math.sin(tt * 0.31 + i * 1.7) * 0.7 - a.x) * 0.03;
-      a.y += ((1 + Math.sin(tt * 0.23 + i * 2.3) * 0.55) - a.y) * 0.03;
-      a.z += (Math.cos(tt * 0.27 + i * 1.1) * 0.6 - a.z) * 0.03;
+      const d = dots[i];
+      d.x += (Math.sin(tt * 0.4 + i * 1.7) * 0.6 - d.x) * 0.02;
+      d.y += ((1 + Math.sin(tt * 0.33 + i * 2.1) * 0.5) - d.y) * 0.02;
+      d.z = -0.6 + i * 0.3;
     }
   }
 
@@ -394,8 +319,6 @@ function loop(t) {
     camX *= 0.97; camY *= 0.97;
   }
   computeBasis();
-
-  stepBirds(dt, t);
 
   /* ---------- render ---------- */
   ctx.clearRect(0, 0, VW, VH);
@@ -421,48 +344,54 @@ function loop(t) {
     if (C[i] && C[j]) { ctx.beginPath(); ctx.moveTo(C[i].x, C[i].y); ctx.lineTo(C[j].x, C[j].y); ctx.stroke(); }
   });
 
-  /* burst flash */
-  if (t - burstT < 600) {
-    const bp = proj({ x: burstAt.x, y: burstAt.y, z: 0 });
-    if (bp) {
-      const k = (t - burstT) / 600;
-      ctx.strokeStyle = "#ffdd33";
-      ctx.globalAlpha = 0.8 * (1 - k);
-      ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.arc(bp.x, bp.y, 10 + k * 130, 0, Math.PI * 2); ctx.stroke();
+  /* lasers: beam from finger node to dot */
+  const flashK = t - flashT < 450 ? 1 + (1 - (t - flashT) / 450) * 2.2 : 1;
+  const power = 0.6 + Math.max(0, Math.min(1, (handOpen - 0.42) / 0.5)) * 1.3;
+  for (let i = 0; i < NS; i++) {
+    const d = dots[i];
+    const p = proj({ x: d.x, y: d.y, z: d.z });
+    if (!p) continue;
+    const col = SCOL[i];
+    if (handSeen && !syncing) {
+      const nx = d.sx * VW, ny = d.sy * VH;
+      const wdt = (1.5 + power) * flashK;
+      ctx.lineCap = "round";
+      ctx.strokeStyle = col;
+      ctx.globalAlpha = 0.13 * flashK;
+      ctx.lineWidth = wdt * 3;
+      ctx.beginPath(); ctx.moveTo(nx, ny); ctx.lineTo(p.x, p.y); ctx.stroke();
+      ctx.globalAlpha = 0.45;
+      ctx.lineWidth = wdt * 1.4;
+      ctx.beginPath(); ctx.moveTo(nx, ny); ctx.lineTo(p.x, p.y); ctx.stroke();
+      ctx.globalAlpha = 0.95;
+      ctx.lineWidth = Math.max(1.5, wdt * 0.6);
+      ctx.beginPath(); ctx.moveTo(nx, ny); ctx.lineTo(p.x, p.y); ctx.stroke();
       ctx.globalAlpha = 1;
+      ctx.fillStyle = col;
+      ctx.beginPath(); ctx.arc(nx, ny, 5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#fff";
+      ctx.beginPath(); ctx.arc(nx, ny, 2, 0, Math.PI * 2); ctx.fill();
     }
-  }
-
-  /* birds, far to near */
-  const order = birds.map((b, i) => i).sort((a, b2) => {
-    const pa = proj(birds[a].p), pb = proj(birds[b2].p);
-    return (pb ? pb.z : 0) - (pa ? pa.z : 0);
-  });
-  for (const i of order) {
-    const b = birds[i];
-    const p0 = proj(b.p);
-    if (!p0) continue;
-    const p1 = proj({ x: b.p.x + b.v.x * 0.07, y: b.p.y + b.v.y * 0.07, z: b.p.z + b.v.z * 0.07 });
-    if (!p1) continue;
-    const ang = Math.atan2(p1.y - p0.y, p1.x - p0.x);
-    const s = Math.max(4, 26 / p0.z);
-    const col = SCOL[b.s];
-    ctx.globalAlpha = 0.28;
-    ctx.fillStyle = col;
-    ctx.beginPath(); ctx.arc(p0.x, p0.y, s * 1.7, 0, Math.PI * 2); ctx.fill();
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = col;
-    ctx.beginPath();
-    ctx.moveTo(p0.x + Math.cos(ang) * s * 1.6, p0.y + Math.sin(ang) * s * 1.6);
-    ctx.lineTo(p0.x + Math.cos(ang + 2.5) * s, p0.y + Math.sin(ang + 2.5) * s);
-    ctx.lineTo(p0.x + Math.cos(ang - 2.5) * s, p0.y + Math.sin(ang - 2.5) * s);
-    ctx.closePath(); ctx.fill();
+    const pr = Math.max(5, 700 / p.z) * (0.8 + power * 0.35) * flashK;
+    const g = ctx.createRadialGradient(p.x, p.y, 1, p.x, p.y, pr * 3);
+    g.addColorStop(0, "#ffffff");
+    g.addColorStop(0.3, col);
+    g.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(p.x, p.y, pr * 3, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = "#fff";
-    ctx.beginPath(); ctx.arc(p0.x, p0.y, s * 0.32, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(2.5, pr * 0.45), 0, Math.PI * 2); ctx.fill();
+  }
+  if (t - flashT < 500) {
+    const k = (t - flashT) / 500;
+    ctx.strokeStyle = "#ffffff";
+    ctx.globalAlpha = 0.7 * (1 - k);
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(flashAt.x * VW, flashAt.y * VH, 12 + k * 150, 0, Math.PI * 2); ctx.stroke();
+    ctx.globalAlpha = 1;
   }
 
-  hFlock.textContent = handSeen && !syncing ? (cohesion > 0.7 ? "TIGHT" : cohesion > 0.4 ? "LOOSE" : "WILD") : "DRIFT";
+  hFlock.textContent = Math.round(power * 100) + "%";
   hPov.textContent = Math.round(camZoom * 100) + "%";
 
   requestAnimationFrame(loop);
