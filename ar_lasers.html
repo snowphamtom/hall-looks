@@ -80,10 +80,11 @@
 <div class="tools">
   <button class="chip" id="vidBtn" type="button">VIDEO</button>
   <button class="chip" id="liveBtn" type="button">LIVE</button>
+  <button class="chip" id="modeBtn" type="button">MODE: LIVE</button>
   <label class="blend">BLEND <input type="range" id="opRange" min="10" max="100" value="72"></label>
   <input type="file" id="vidPick" accept="video/*" style="display:none">
 </div>
-<div class="legend"><b>FINGERS</b> aim the threads · <b>PINCH</b> zoom out + flash · <b>SPREAD</b> zoom in · <b>PALM</b> brightness · <b>WALLPAPER</b> follows your last-moved finger · <b>VIDEO</b> overlap a recording</div>
+<div class="legend"><b>FINGERS</b> aim the threads · <b>PINCH</b> zoom out + flash · <b>SPREAD</b> zoom in · <b>PALM</b> brightness · <b>WALLPAPER</b> follows your last-moved finger · <b>VIDEO</b> overlap a recording · <b>MODE</b> see the invisible</div>
 
 <script>
 window.__arAlive = false;
@@ -222,10 +223,77 @@ function sizeView() {
   CW = cv.width; CH = cv.height;
 }
 sizeView();
-window.addEventListener("resize", sizeView);
+window.addEventListener("resize", () => { sizeView(); sizeProc(); });
 
 /* frame (camera) -> screen, with cover-fit + digital zoom */
 let zoom = 1, zoomT = 1, footAlpha = 0.72;
+/* ---------- vision modes: what the naked eye can't see ---------- */
+const VMODES = ["LIVE", "GHOST", "X-RAY", "HEAT"];
+let visionMode = 0;
+const procCan = document.createElement("canvas");
+const pctx = procCan.getContext("2d", { willReadFrequently: true });
+let PW = 180, PH = 320;
+let lumA = null, lumB = null, trail = null, outImg = null;
+const heatLUT = [];
+for (let hi = 0; hi < 256; hi++) {
+  const ht = hi / 255;
+  let hr, hg, hb;
+  if (ht < 0.25) { const k = ht / 0.25; hr = 20 * k; hg = 0; hb = 80 * k; }
+  else if (ht < 0.5) { const k = (ht - 0.25) / 0.25; hr = 20 + 140 * k; hg = 0; hb = 80 - 40 * k; }
+  else if (ht < 0.75) { const k = (ht - 0.5) / 0.25; hr = 160 + 60 * k; hg = 140 * k; hb = 40 - 40 * k; }
+  else { const k = (ht - 0.75) / 0.25; hr = 220 + 35 * k; hg = 140 + 80 * k; hb = 220 * k; }
+  heatLUT.push([hr | 0, hg | 0, hb | 0]);
+}
+function sizeProc() {
+  PH = 288; PW = Math.max(2, Math.round(PH * CW / CH));
+  procCan.width = PW; procCan.height = PH;
+  lumA = new Float32Array(PW * PH); lumB = new Float32Array(PW * PH);
+  trail = new Float32Array(PW * PH); outImg = pctx.createImageData(PW, PH);
+}
+function drawVision(vw, vh) {
+  const base = Math.max(PW / vw, PH / vh) * zoom;
+  const dw = vw * base, dh = vh * base;
+  pctx.drawImage(video, (PW - dw) / 2, (PH - dh) / 2, dw, dh);
+  const src = pctx.getImageData(0, 0, PW, PH).data;
+  const out = outImg.data, n = PW * PH;
+  const cur = lumA, prv = lumB;
+  for (let i = 0; i < n; i++) {
+    cur[i] = (src[i * 4] * 0.299 + src[i * 4 + 1] * 0.587 + src[i * 4 + 2] * 0.114) / 255;
+  }
+  if (visionMode === 1) {
+    for (let i = 0; i < n; i++) {
+      const diff = Math.abs(cur[i] - prv[i]);
+      trail[i] = Math.max(diff * 1.6, trail[i] * 0.93);
+      const v = Math.min(1, trail[i]) * 255 | 0, o = i * 4;
+      out[o] = v; out[o + 1] = v; out[o + 2] = v; out[o + 3] = 255;
+    }
+  } else if (visionMode === 2) {
+    for (let y = 1; y < PH - 1; y++) {
+      for (let x = 1; x < PW - 1; x++) {
+        const i = y * PW + x;
+        const gx = -cur[i - PW - 1] - 2 * cur[i - 1] - cur[i + PW - 1]
+                   + cur[i - PW + 1] + 2 * cur[i + 1] + cur[i + PW + 1];
+        const gy = -cur[i - PW - 1] - 2 * cur[i - PW] - cur[i - PW + 1]
+                   + cur[i + PW - 1] + 2 * cur[i + PW] + cur[i + PW + 1];
+        const v = Math.min(1, Math.sqrt(gx * gx + gy * gy) * 2.2) * 255 | 0, o = i * 4;
+        out[o] = v; out[o + 1] = v; out[o + 2] = v; out[o + 3] = 255;
+      }
+    }
+  } else {
+    for (let i = 0; i < n; i++) {
+      const c = heatLUT[(cur[i] * 255) | 0], o = i * 4;
+      out[o] = c[0]; out[o + 1] = c[1]; out[o + 2] = c[2]; out[o + 3] = 255;
+    }
+  }
+  const tmp = lumA; lumA = lumB; lumB = tmp;
+  pctx.putImageData(outImg, 0, 0);
+}
+document.getElementById("modeBtn").onclick = () => {
+  visionMode = (visionMode + 1) % VMODES.length;
+  document.getElementById("modeBtn").textContent = "MODE: " + VMODES[visionMode];
+  if (trail) trail.fill(0);
+};
+sizeProc();
 let noteTxt = "", noteUntil = 0;
 function note(t, ms) { noteTxt = t; noteUntil = performance.now() + (ms || 2200); }
 function frameToScreen(nx, ny) {
@@ -427,9 +495,14 @@ function loop(t) {
   const vw = video.videoWidth, vh = video.videoHeight;
   ctx.globalAlpha = footAlpha;
   if (vw && vh) {
-    const base = Math.max(CW / vw, CH / vh);
-    const dw = vw * base * zoom, dh = vh * base * zoom;
-    ctx.drawImage(video, (CW - dw) / 2, (CH - dh) / 2, dw, dh);
+    if (visionMode === 0) {
+      const base = Math.max(CW / vw, CH / vh);
+      const dw = vw * base * zoom, dh = vh * base * zoom;
+      ctx.drawImage(video, (CW - dw) / 2, (CH - dh) / 2, dw, dh);
+    } else {
+      drawVision(vw, vh);
+      ctx.drawImage(procCan, 0, 0, CW, CH);
+    }
   } else {
     ctx.fillStyle = "#000";
     ctx.fillRect(0, 0, CW, CH);
