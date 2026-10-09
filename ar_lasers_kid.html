@@ -80,10 +80,11 @@
 <div class="tools">
   <button class="chip" id="vidBtn" type="button">VIDEO</button>
   <button class="chip" id="liveBtn" type="button">LIVE</button>
+  <button class="chip" id="flipBtn" type="button">FLIP</button>
   <label class="blend">BLEND <input type="range" id="opRange" min="10" max="100" value="72"></label>
   <input type="file" id="vidPick" accept="video/*" style="display:none">
 </div>
-<div class="legend"><b>TAP</b> new lens · <b>DOUBLE-TAP</b> Haunter · <b>PRESS HAUNTER</b> ignite · <b>FINGERS</b> aim the threads · <b>PINCH</b> zoom out + flash · <b>SPREAD</b> zoom in · <b>PALM</b> brightness · <b>WALLPAPER</b> follows your last-moved finger · <b>VIDEO</b> overlap a recording · <b>SWIPE</b> &#9664; &#9654; hand works too</div>
+<div class="legend"><b>TAP</b> new lens · <b>DOUBLE-TAP</b> Haunter · <b>PRESS HAUNTER</b> ignite · <b>FLIP</b> front/rear · <b>FINGERS</b> aim the threads · <b>PINCH</b> zoom out + flash · <b>SPREAD</b> zoom in · <b>PALM</b> brightness · <b>WALLPAPER</b> follows your last-moved finger · <b>VIDEO</b> overlap a recording · <b>SWIPE</b> &#9664; &#9654; hand works too</div>
 
 <script>
 window.__arAlive = false;
@@ -483,7 +484,7 @@ let swipeAnchor = null, swipeCool = 0;
 const withTimeout = (p, ms, what) => Promise.race([
   p, new Promise((_, rej) => setTimeout(() => rej(new Error(what + " timed out")), ms))
 ]);
-let camMirror = false;
+let camMirror = false, camMode = "environment";
 function vDraw(c, dx, dy, dw, dh) {
   if (camMirror) { c.save(); c.translate(dx + dw, dy); c.scale(-1, 1); c.drawImage(video, 0, 0, dw, dh); c.restore(); }
   else c.drawImage(video, dx, dy, dw, dh);
@@ -492,8 +493,12 @@ async function acquireCamera() {
   const tryCam = (mode) => navigator.mediaDevices.getUserMedia({
     video: { facingMode: mode, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
   let s;
-  try { s = await withTimeout(tryCam("user"), 20000, "Camera"); camMirror = true; }
-  catch (e) { s = await withTimeout(tryCam("environment"), 20000, "Camera"); camMirror = false; }
+  try { s = await withTimeout(tryCam(camMode), 20000, "Camera"); }
+  catch (e) {
+    camMode = camMode === "environment" ? "user" : "environment";
+    s = await withTimeout(tryCam(camMode), 20000, "Camera");
+  }
+  camMirror = (camMode === "user");
   video.srcObject = s;
   await withTimeout(video.play(), 10000, "Video");
 }
@@ -555,6 +560,18 @@ document.getElementById("liveBtn").onclick = async () => {
     video.removeAttribute("src"); video.src = ""; video.loop = false;
     await acquireCamera();
     note("LIVE CAMERA");
+  } catch (e) { note("CAMERA FAILED — TAP AGAIN"); }
+  b.disabled = false;
+};
+document.getElementById("flipBtn").onclick = async () => {
+  const b = document.getElementById("flipBtn");
+  b.disabled = true;
+  try {
+    stopCamera();
+    video.removeAttribute("src"); video.src = ""; video.loop = false;
+    camMode = camMode === "environment" ? "user" : "environment";
+    await acquireCamera();
+    note(camMode === "user" ? "FRONT CAMERA" : "REAR CAMERA");
   } catch (e) { note("CAMERA FAILED — TAP AGAIN"); }
   b.disabled = false;
 };
