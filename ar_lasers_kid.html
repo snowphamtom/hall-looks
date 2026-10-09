@@ -83,7 +83,7 @@
   <label class="blend">BLEND <input type="range" id="opRange" min="10" max="100" value="72"></label>
   <input type="file" id="vidPick" accept="video/*" style="display:none">
 </div>
-<div class="legend"><b>TAP</b> the screen for a new magic lens · <b>FINGERS</b> aim the threads · <b>PINCH</b> zoom out + flash · <b>SPREAD</b> zoom in · <b>PALM</b> brightness · <b>WALLPAPER</b> follows your last-moved finger · <b>VIDEO</b> overlap a recording · <b>SWIPE</b> &#9664; &#9654; hand works too</div>
+<div class="legend"><b>TAP</b> new lens · <b>DOUBLE-TAP</b> Haunter orb · <b>FINGERS</b> aim the threads · <b>PINCH</b> zoom out + flash · <b>SPREAD</b> zoom in · <b>PALM</b> brightness · <b>WALLPAPER</b> follows your last-moved finger · <b>VIDEO</b> overlap a recording · <b>SWIPE</b> &#9664; &#9654; hand works too</div>
 
 <script>
 window.__arAlive = false;
@@ -226,143 +226,229 @@ window.addEventListener("resize", () => { sizeView(); sizeProc(); });
 
 /* frame (camera) -> screen, with cover-fit + digital zoom */
 let zoom = 1, zoomT = 1, footAlpha = 0.72;
-/* ---------- kid vision: 8 original magic lenses ---------- */
+/* ---------- kid vision: how animals see (10 lenses) ---------- */
 const procCan = document.createElement("canvas");
 const pctx = procCan.getContext("2d", { willReadFrequently: true });
 let PW = 180, PH = 320;
-let lumA = null, outImg = null;
-const VMODES = ["NORMAL", "RAINBOW", "CARTOON", "PIXEL", "JELLY", "STARDUST", "STROBE", "GLOW", "DOUBLE"];
+let lumA = null, outImg = null, vig = null, phPrev = null, phTrail = null, snakeTiny = null;
+let phSeed = true;
+const VMODES = ["NORMAL", "NIGHT", "FLY", "DOG", "SNAKE", "BEE", "MANTIS", "PHOSPHOR", "HIVE", "BAT"];
 let visionMode = 0;
 const echoCans = [], echoCtx = [];
 for (let ei = 0; ei < 4; ei++) {
   const ec = document.createElement("canvas");
   echoCans.push(ec); echoCtx.push(ec.getContext("2d"));
 }
-let kidFrame = 0, stars = [];
-const KID_RAINBOW = [];
-for (let ri = 0; ri < 256; ri++) {
-  const h = ri / 255 * 360, c = 1, x = c * (1 - Math.abs(((h / 60) % 2) - 1));
-  let rr = 0, gg = 0, bb = 0;
-  if (h < 60) { rr = c; gg = x; } else if (h < 120) { rr = x; gg = c; }
-  else if (h < 180) { gg = c; bb = x; } else if (h < 240) { gg = x; bb = c; }
-  else if (h < 300) { rr = x; bb = c; } else { rr = c; bb = x; }
-  KID_RAINBOW.push([rr * 255 | 0, gg * 255 | 0, bb * 255 | 0]);
+const KID_HEAT = [];
+for (let hi = 0; hi < 256; hi++) {
+  const ht = hi / 255;
+  let hr, hg, hb;
+  if (ht < 0.25) { const k = ht / 0.25; hr = 20 * k; hg = 0; hb = 80 * k; }
+  else if (ht < 0.5) { const k = (ht - 0.25) / 0.25; hr = 20 + 140 * k; hg = 0; hb = 80 - 40 * k; }
+  else if (ht < 0.75) { const k = (ht - 0.5) / 0.25; hr = 160 + 60 * k; hg = 140 * k; hb = 40 - 40 * k; }
+  else { const k = (ht - 0.75) / 0.25; hr = 220 + 35 * k; hg = 140 + 80 * k; hb = 220 * k; }
+  KID_HEAT.push([hr | 0, hg | 0, hb | 0]);
 }
-function resetVision() {}
+function resetVision() { phSeed = true; ripples.length = 0; }
 function sizeProc() {
   PH = 288; PW = Math.max(2, Math.round(PH * CW / CH));
   procCan.width = PW; procCan.height = PH;
   lumA = new Float32Array(PW * PH);
   outImg = pctx.createImageData(PW, PH);
-  for (let ai = 3; ai < outImg.data.length; ai += 4) outImg.data[ai] = 255;
+  phPrev = new Float32Array(PW * PH);
+  phTrail = new Float32Array(PW * PH);
+  vig = new Float32Array(PW * PH);
+  for (let vy = 0; vy < PH; vy++) for (let vx = 0; vx < PW; vx++) {
+    const dx = vx / PW - 0.5, dy = vy / PH - 0.5;
+    vig[vy * PW + vx] = Math.max(0.2, 1 - (dx * dx + dy * dy) * 1.5);
+  }
   for (let ei = 0; ei < 4; ei++) { echoCans[ei].width = PW; echoCans[ei].height = PH; }
-  stars = [];
-  for (let si = 0; si < 90; si++) {
-    stars.push({ x: Math.random() * PW, y: Math.random() * PH,
-      r: 1 + Math.random() * 2.5, ph: Math.random() * 6.28, sp: 1 + Math.random() * 3 });
+  snakeTiny = null;
+}
+function hexPath(cx, cy, hr) {
+  for (let k = 0; k < 6; k++) {
+    const a = -Math.PI / 2 + k * Math.PI / 3;
+    const px = cx + hr * Math.cos(a), py = cy + hr * Math.sin(a);
+    if (k) pctx.lineTo(px, py); else pctx.moveTo(px, py);
+  }
+  pctx.closePath();
+}
+function hexField(hr, fn) {
+  const wStep = Math.sqrt(3) * hr, hStep = 1.5 * hr;
+  for (let row = 0, y = hr * 0.9; y < PH + hStep; row++, y += hStep) {
+    for (let col = 0, x = wStep / 2 + (row % 2 ? wStep / 2 : 0); x < PW + wStep; col++, x += wStep) {
+      if (x < 0 || x >= PW || y < 0 || y >= PH) continue;
+      fn(x, y);
+    }
   }
 }
-function kidPixel(vw, vh) {
-  const kc = echoCans[0], kx = echoCtx[0];
-  const tt = performance.now() / 1000;
-  const bs = 5 + Math.round(4 * (0.5 + 0.5 * Math.sin(tt * 2.2)));
-  const tw = Math.max(8, Math.round(PW / bs)), th = Math.max(8, Math.round(PH / bs));
-  const base = Math.max(tw / vw, th / vh) * zoom;
-  vDraw(kx, (tw - vw * base) / 2, (th - vh * base) / 2, vw * base, vh * base);
-  pctx.imageSmoothingEnabled = false;
-  pctx.drawImage(kc, 0, 0, tw, th, 0, 0, PW, PH);
-  pctx.imageSmoothingEnabled = true;
-}
-function kidStrobe(vw, vh) {
-  const kc = echoCans[1], kx = echoCtx[1];
-  if ((kidFrame++ % 9) < 6) {
-    const base = Math.max(PW / vw, PH / vh) * zoom;
-    vDraw(kx, (PW - vw * base) / 2, (PH - vh * base) / 2, vw * base, vh * base);
-  }
-  pctx.drawImage(kc, 0, 0);
-}
-function kidGlow(vw, vh) {
-  const kc = echoCans[0], kx = echoCtx[0];
+function kidFly(vw, vh) {
   const base = Math.max(PW / vw, PH / vh) * zoom;
   vDraw(pctx, (PW - vw * base) / 2, (PH - vh * base) / 2, vw * base, vh * base);
-  const gw = 28, gh = Math.max(8, Math.round(28 * PH / PW));
-  const gb = Math.max(gw / vw, gh / vh) * zoom;
-  vDraw(kx, (gw - vw * gb) / 2, (gh - vh * gb) / 2, vw * gb, vh * gb);
-  pctx.save();
-  pctx.globalCompositeOperation = "lighter";
-  pctx.globalAlpha = 0.65;
-  pctx.drawImage(kc, 0, 0, gw, gh, 0, 0, PW, PH);
-  pctx.restore();
+  const src = pctx.getImageData(0, 0, PW, PH).data;
+  pctx.fillStyle = "#000";
+  pctx.fillRect(0, 0, PW, PH);
+  hexField(10, (x, y) => {
+    const si = ((y | 0) * PW + (x | 0)) * 4;
+    pctx.fillStyle = "rgb(" + src[si] + "," + src[si + 1] + "," + src[si + 2] + ")";
+    pctx.beginPath();
+    hexPath(x, y, 9.4);
+    pctx.fill();
+  });
 }
-function kidDouble(vw, vh) {
-  const kc = echoCans[0], kx = echoCtx[0];
+function kidHive(vw, vh) {
   const base = Math.max(PW / vw, PH / vh) * zoom;
-  vDraw(kx, (PW - vw * base) / 2, (PH - vh * base) / 2, vw * base, vh * base);
-  const hw = PW / 2;
-  pctx.drawImage(kc, 0, 0, hw, PH, 0, 0, hw, PH);
-  pctx.save(); pctx.translate(PW, 0); pctx.scale(-1, 1);
-  pctx.drawImage(kc, 0, 0, hw, PH, 0, 0, hw, PH); pctx.restore();
+  vDraw(pctx, (PW - vw * base) / 2, (PH - vh * base) / 2, vw * base, vh * base);
+  const src = pctx.getImageData(0, 0, PW, PH).data;
+  pctx.fillStyle = "#000";
+  pctx.fillRect(0, 0, PW, PH);
+  hexField(10, (x, y) => {
+    const si = ((y | 0) * PW + (x | 0)) * 4;
+    const lum = (src[si] * 0.299 + src[si + 1] * 0.587 + src[si + 2] * 0.114) / 255;
+    const c = KID_HEAT[(lum * 255) | 0];
+    pctx.fillStyle = "rgb(" + c[0] + "," + c[1] + "," + c[2] + ")";
+    pctx.beginPath();
+    hexPath(x, y, 9.4);
+    pctx.fill();
+  });
+}
+function kidSnake(vw, vh) {
+  const kc = echoCans[0], kx = echoCtx[0];
+  const tw = 36, th = Math.max(8, Math.round(36 * PH / PW));
+  if (!snakeTiny || snakeTiny.width !== tw || snakeTiny.height !== th) snakeTiny = kx.createImageData(tw, th);
+  const base = Math.max(tw / vw, th / vh) * zoom;
+  vDraw(kx, (tw - vw * base) / 2, (th - vh * base) / 2, vw * base, vh * base);
+  const sd = kx.getImageData(0, 0, tw, th).data;
+  const od = snakeTiny.data, nn = tw * th;
+  for (let i = 0; i < nn; i++) {
+    const lum = (sd[i * 4] * 0.299 + sd[i * 4 + 1] * 0.587 + sd[i * 4 + 2] * 0.114) / 255;
+    const c = KID_HEAT[(lum * 255) | 0], o = i * 4;
+    od[o] = c[0]; od[o + 1] = c[1]; od[o + 2] = c[2]; od[o + 3] = 255;
+  }
+  kx.putImageData(snakeTiny, 0, 0);
+  pctx.imageSmoothingEnabled = true;
+  pctx.drawImage(kc, 0, 0, tw, th, 0, 0, PW, PH);
+}
+function kidBat(vw, vh) {
+  const base = Math.max(PW / vw, PH / vh) * zoom;
+  vDraw(pctx, (PW - vw * base) / 2, (PH - vh * base) / 2, vw * base, vh * base);
+  const src = pctx.getImageData(0, 0, PW, PH).data;
+  const out = outImg.data, n = PW * PH;
+  for (let i = 0; i < n; i++) {
+    const o = i * 4;
+    const lum = (src[o] * 0.299 + src[o + 1] * 0.587 + src[o + 2] * 0.114) / 255;
+    out[o] = lum * 16; out[o + 1] = lum * 28; out[o + 2] = lum * 92; out[o + 3] = 255;
+  }
+  pctx.putImageData(outImg, 0, 0);
+  for (let k = 0; k < 5; k++) {
+    const T = tips[k], L = lastRip[k];
+    if (T.n > 3 && Math.hypot(T.x - L.x, T.y - L.y) > 26) {
+      lastRip[k] = { x: T.x, y: T.y };
+      if (ripples.length < 24) ripples.push({ x: T.x / CW * PW, y: T.y / CH * PH, r: 6 });
+    }
+  }
+  const maxR = Math.max(PW, PH) * 1.1;
+  pctx.lineWidth = 2;
+  for (let i = ripples.length - 1; i >= 0; i--) {
+    const rp = ripples[i];
+    rp.r += 8;
+    const a = Math.max(0, 1 - rp.r / maxR);
+    if (a <= 0) { ripples.splice(i, 1); continue; }
+    pctx.strokeStyle = "rgba(130,220,255," + (a * 0.85).toFixed(3) + ")";
+    pctx.beginPath(); pctx.arc(rp.x, rp.y, rp.r, 0, 6.2832); pctx.stroke();
+    pctx.strokeStyle = "rgba(130,220,255," + (a * 0.4).toFixed(3) + ")";
+    pctx.beginPath(); pctx.arc(rp.x, rp.y, rp.r * 0.82, 0, 6.2832); pctx.stroke();
+  }
 }
 function drawVision(vw, vh) {
   const m = visionMode;
-  if (m === 3) return kidPixel(vw, vh);
-  if (m === 6) return kidStrobe(vw, vh);
-  if (m === 7) return kidGlow(vw, vh);
-  if (m === 8) return kidDouble(vw, vh);
+  if (m === 2) return kidFly(vw, vh);
+  if (m === 4) return kidSnake(vw, vh);
+  if (m === 8) return kidHive(vw, vh);
+  if (m === 9) return kidBat(vw, vh);
   const base = Math.max(PW / vw, PH / vh) * zoom;
-  const dw = vw * base, dh = vh * base;
-  vDraw(pctx, (PW - dw) / 2, (PH - dh) / 2, dw, dh);
+  if (m === 3) {
+    const kc = echoCans[0], kx = echoCtx[0];
+    const hw = PW >> 1, hh = PH >> 1;
+    const hb = Math.max(hw / vw, hh / vh) * zoom;
+    vDraw(kx, (hw - vw * hb) / 2, (hh - vh * hb) / 2, vw * hb, vh * hb);
+    pctx.drawImage(kc, 0, 0, hw, hh, 0, 0, PW, PH);
+  } else {
+    const dw = vw * base, dh = vh * base;
+    vDraw(pctx, (PW - dw) / 2, (PH - dh) / 2, dw, dh);
+  }
   const src = pctx.getImageData(0, 0, PW, PH).data;
   const out = outImg.data, n = PW * PH;
   const tt = performance.now() / 1000;
   if (m === 1) {
+    const flick = 0.9 + 0.1 * Math.sin(tt * 39.0) * Math.sin(tt * 11.3);
     for (let i = 0; i < n; i++) {
-      const lum = (src[i * 4] * 0.299 + src[i * 4 + 1] * 0.587 + src[i * 4 + 2] * 0.114) / 255;
-      const c = KID_RAINBOW[((lum * 255 + tt * 70) | 0) % 256], o = i * 4;
-      out[o] = c[0]; out[o + 1] = c[1]; out[o + 2] = c[2]; out[o + 3] = 255;
+      const yy = (i / PW) | 0;
+      let lum = (src[i * 4] * 0.299 + src[i * 4 + 1] * 0.587 + src[i * 4 + 2] * 0.114) / 255;
+      lum = Math.min(1, lum * 1.6);
+      const gr = (Math.random() - 0.5) * 36;
+      let gg = lum * 255 * flick * vig[i] + gr;
+      gg = Math.max(0, Math.min(255, gg));
+      const scan = (yy % 3 === 0) ? 0.72 : 1;
+      const o = i * 4;
+      out[o] = gg * 0.12 * scan; out[o + 1] = gg * scan; out[o + 2] = gg * 0.12 * scan; out[o + 3] = 255;
     }
-  } else if (m === 2) {
+  } else if (m === 3) {
     for (let i = 0; i < n; i++) {
-      lumA[i] = (src[i * 4] * 0.299 + src[i * 4 + 1] * 0.587 + src[i * 4 + 2] * 0.114) / 255;
-    }
-    for (let y = 1; y < PH - 1; y++) for (let x = 1; x < PW - 1; x++) {
-      const i = y * PW + x, o = i * 4;
-      const gx = -lumA[i - PW - 1] - 2 * lumA[i - 1] - lumA[i + PW - 1]
-                 + lumA[i - PW + 1] + 2 * lumA[i + 1] + lumA[i + PW + 1];
-      const gy = -lumA[i - PW - 1] - 2 * lumA[i - PW] - lumA[i - PW + 1]
-                 + lumA[i + PW - 1] + 2 * lumA[i + PW] + lumA[i + PW + 1];
-      if (Math.sqrt(gx * gx + gy * gy) > 0.45) { out[o] = out[o + 1] = out[o + 2] = 20; }
-      else {
-        out[o] = (Math.floor(src[o] / 64) * 64 + 32) | 0;
-        out[o + 1] = (Math.floor(src[o + 1] / 64) * 64 + 32) | 0;
-        out[o + 2] = (Math.floor(src[o + 2] / 64) * 64 + 32) | 0;
-      }
+      const o = i * 4, r = src[o], g = src[o + 1], b = src[o + 2];
+      out[o] = 0.567 * r + 0.433 * g;
+      out[o + 1] = 0.558 * r + 0.442 * g;
+      out[o + 2] = 0.242 * g + 0.758 * b;
       out[o + 3] = 255;
-    }
-  } else if (m === 4) {
-    for (let i = 0; i < n; i++) {
-      lumA[i] = (src[i * 4] * 0.299 + src[i * 4 + 1] * 0.587 + src[i * 4 + 2] * 0.114) / 255;
-    }
-    for (let y = 0; y < PH; y++) for (let x = 0; x < PW; x++) {
-      const sx = Math.max(0, Math.min(PW - 1, Math.round(x + 10 * Math.sin(y * 0.09 + tt * 3.2))));
-      const sy = Math.max(0, Math.min(PH - 1, Math.round(y + 8 * Math.sin(x * 0.07 + tt * 2.1))));
-      const v = lumA[sy * PW + sx] * 255 | 0, o = (y * PW + x) * 4;
-      out[o] = out[o + 1] = out[o + 2] = v; out[o + 3] = 255;
     }
   } else if (m === 5) {
     for (let i = 0; i < n; i++) {
-      const v = (src[i * 4] * 0.299 + src[i * 4 + 1] * 0.587 + src[i * 4 + 2] * 0.114) * 0.45 | 0, o = i * 4;
-      out[o] = out[o + 1] = out[o + 2] = v; out[o + 3] = 255;
+      const o = i * 4, r = src[o], g = src[o + 1], b = src[o + 2];
+      const lum = (r * 0.299 + g * 0.587 + b * 0.114) / 255;
+      out[o] = b * 0.25;
+      out[o + 1] = Math.min(255, g * 1.05);
+      out[o + 2] = Math.min(255, b + r * 0.35 + lum * 70);
+      out[o + 3] = 255;
     }
     pctx.putImageData(outImg, 0, 0);
-    pctx.fillStyle = "#fff";
-    for (const st of stars) {
-      pctx.globalAlpha = 0.35 + 0.65 * Math.abs(Math.sin(tt * st.sp + st.ph));
-      pctx.fillRect(st.x - st.r, st.y, st.r * 2 + 1, 1);
-      pctx.fillRect(st.x, st.y - st.r, 1, st.r * 2 + 1);
-    }
-    pctx.globalAlpha = 1;
+    pctx.strokeStyle = "rgba(200,160,255,0.20)";
+    pctx.lineWidth = 1;
+    hexField(16, (x, y) => { pctx.beginPath(); hexPath(x, y, 15); pctx.stroke(); });
     return;
+  } else if (m === 6) {
+    for (let i = 0; i < n; i++) {
+      const o = i * 4;
+      const r = src[o] / 255, g = src[o + 1] / 255, b = src[o + 2] / 255;
+      const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+      let h = 0;
+      if (d > 0.001) {
+        if (mx === r) h = 60 * (((g - b) / d) % 6);
+        else if (mx === g) h = 60 * ((b - r) / d + 2);
+        else h = 60 * ((r - g) / d + 4);
+      }
+      if (h < 0) h += 360;
+      const nsat = Math.min(1, (d / (mx + 1e-6)) * 2.4), nval = Math.min(1, mx * 1.12);
+      const nh = Math.floor(h / 30) * 30 + 15;
+      const cc = nval * nsat, xx = cc * (1 - Math.abs(((nh / 60) % 2) - 1)), mm = nval - cc;
+      let rr = 0, gg = 0, bb = 0;
+      if (nh < 60) { rr = cc; gg = xx; } else if (nh < 120) { rr = xx; gg = cc; }
+      else if (nh < 180) { gg = cc; bb = xx; } else if (nh < 240) { gg = xx; bb = cc; }
+      else if (nh < 300) { rr = xx; bb = cc; } else { rr = cc; bb = xx; }
+      out[o] = (rr + mm) * 255; out[o + 1] = (gg + mm) * 255; out[o + 2] = (bb + mm) * 255; out[o + 3] = 255;
+    }
+  } else if (m === 7) {
+    for (let i = 0; i < n; i++) {
+      lumA[i] = (src[i * 4] * 0.299 + src[i * 4 + 1] * 0.587 + src[i * 4 + 2] * 0.114) / 255;
+    }
+    if (phSeed) { phPrev.set(lumA); phTrail.fill(0); phSeed = false; }
+    for (let i = 0; i < n; i++) {
+      const diff = Math.abs(lumA[i] - phPrev[i]);
+      phTrail[i] = Math.max(diff * 2.2, phTrail[i] * 0.965);
+      const gg = Math.min(1, Math.min(1, lumA[i] * 1.35) * 0.55 + Math.min(1, phTrail[i])) * 255;
+      const o = i * 4;
+      out[o] = gg * 0.12; out[o + 1] = gg; out[o + 2] = gg * 0.12; out[o + 3] = 255;
+    }
+    phPrev.set(lumA);
   }
   pctx.putImageData(outImg, 0, 0);
 }
@@ -472,12 +558,207 @@ document.getElementById("liveBtn").onclick = async () => {
   } catch (e) { note("CAMERA FAILED — TAP AGAIN"); }
   b.disabled = false;
 };
+let lastTapT = 0, lastTapX = 0, lastTapY = 0, tapTimer = 0;
 stage.addEventListener("pointerdown", (e) => {
   if (e.target.closest(".tools,.legend,.hd,.gate")) return;
-  visionMode = (visionMode + 1) % VMODES.length;
-  note(VMODES[visionMode]);
-  resetVision();
+  const now = performance.now();
+  const dTap = now - lastTapT;
+  const dDist = Math.hypot(e.clientX - lastTapX, e.clientY - lastTapY);
+  if (dTap < 320 && dDist < 70) {
+    clearTimeout(tapTimer);
+    lastTapT = 0;
+    toggleHaunter(e.clientX, e.clientY);
+  } else {
+    lastTapT = now; lastTapX = e.clientX; lastTapY = e.clientY;
+    clearTimeout(tapTimer);
+    tapTimer = setTimeout(() => {
+      visionMode = (visionMode + 1) % VMODES.length;
+      note(VMODES[visionMode]);
+      resetVision();
+    }, 300);
+  }
 });
+/* ---------- Haunter: purple smoke orb, butterfly flight ---------- */
+let haunter = null;
+const smokeP = [];
+const ripples = [];
+const lastRip = [];
+for (let ri = 0; ri < 5; ri++) lastRip.push({ x: -9999, y: -9999 });
+let smokeSprite = null;
+let smokeDark = null;
+function makeSmokeSprite() {
+  smokeSprite = document.createElement("canvas");
+  smokeSprite.width = smokeSprite.height = 64;
+  const c = smokeSprite.getContext("2d");
+  const g = c.createRadialGradient(32, 32, 2, 32, 32, 30);
+  g.addColorStop(0, "rgba(190,130,255,0.55)");
+  g.addColorStop(0.5, "rgba(140,80,230,0.26)");
+  g.addColorStop(1, "rgba(120,60,220,0)");
+  c.fillStyle = g; c.fillRect(0, 0, 64, 64);
+  smokeDark = document.createElement("canvas");
+  smokeDark.width = smokeDark.height = 64;
+  const d = smokeDark.getContext("2d");
+  const g2 = d.createRadialGradient(32, 32, 2, 32, 32, 30);
+  g2.addColorStop(0, "rgba(96,44,170,0.6)");
+  g2.addColorStop(0.55, "rgba(62,24,120,0.3)");
+  g2.addColorStop(1, "rgba(50,18,100,0)");
+  d.fillStyle = g2; d.fillRect(0, 0, 64, 64);
+}
+function pickHaunterTarget() {
+  const h = haunter, m = h.R * 2.2;
+  h.tx = m + Math.random() * Math.max(1, CW - 2 * m);
+  h.ty = m + Math.random() * Math.max(1, CH * 0.72 - 2 * m);
+  h.hover = 0.6 + Math.random() * 1.8;
+}
+function toggleHaunter(cx, cy) {
+  if (haunter) { haunter = null; note("HAUNTER AWAY"); return; }
+  const r = cv.getBoundingClientRect(), sc = cv.width / Math.max(1, r.width);
+  haunter = {
+    x: (cx - r.left) * sc, y: (cy - r.top) * sc,
+    tx: 0, ty: 0, t: 0, p1: Math.random() * 6.28, p2: Math.random() * 6.28,
+    hover: 0, R: Math.min(CW, CH) * 0.085, puffs: []
+  };
+  for (let pi = 0; pi < 14; pi++) haunter.puffs.push({
+    a: Math.random() * 6.28, r: 0.3 + Math.random() * 0.9,
+    s: 0.55 + Math.random() * 0.85, w: 0.3 + Math.random() * 0.7
+  });
+  pickHaunterTarget();
+  note("HAUNTER!");
+}
+function updateHaunter(dt) {
+  const h = haunter; if (!h) return;
+  h.t += dt;
+  const dx = h.tx - h.x, dy = h.ty - h.y;
+  const dist = Math.hypot(dx, dy) || 1;
+  if (dist < h.R * 0.7) {
+    h.hover -= dt;
+    h.x += Math.cos(h.t * 2.2 + h.p1) * 34 * dt;
+    h.y += Math.sin(h.t * 3.1 + h.p2) * 26 * dt - 10 * dt;
+    if (h.hover <= 0) pickHaunterTarget();
+  } else {
+    const sp = Math.min(430, 150 + dist * 1.25);
+    const flut = Math.sin(h.t * 16 + h.p1) * 30;
+    const nx = dx / dist, ny = dy / dist;
+    h.x += (nx * sp - ny * flut) * dt;
+    h.y += (ny * sp + nx * flut) * dt;
+  }
+  for (let i = 0; i < 2; i++) {
+    if (smokeP.length < 110) smokeP.push({
+      x: h.x + (Math.random() - 0.5) * h.R * 1.4,
+      y: h.y + h.R * 0.4 + Math.random() * h.R * 0.5,
+      vx: (Math.random() - 0.5) * 24, vy: 12 + Math.random() * 26,
+      age: 0, life: 1.2 + Math.random() * 0.8, sz: h.R * (0.4 + Math.random() * 0.5),
+      dark: Math.random() < 0.45
+    });
+  }
+}
+function drawClaw(x, y, s) {
+  ctx.fillStyle = "#3d1470";
+  ctx.beginPath(); ctx.arc(x, y, s * 0.5, 0, 6.2832); ctx.fill();
+  for (let f = -1; f <= 1; f++) {
+    const a = -Math.PI / 2 + f * 0.5;
+    const bx = x + Math.cos(a) * s * 0.35, by = y + Math.sin(a) * s * 0.35;
+    const tx = x + Math.cos(a) * s * 1.05, ty = y + Math.sin(a) * s * 1.05;
+    const px = -Math.sin(a) * s * 0.16, py = Math.cos(a) * s * 0.16;
+    ctx.beginPath();
+    ctx.moveTo(tx, ty);
+    ctx.lineTo(bx + px, by + py); ctx.lineTo(bx - px, by - py);
+    ctx.closePath(); ctx.fill();
+  }
+}
+function drawHaunter() {
+  const h = haunter; if (!h) return;
+  const R = h.R * (1 + 0.04 * Math.sin(h.t * 4));
+  for (const pf of h.puffs) {
+    const pa = pf.a + h.t * pf.w * 0.35;
+    const px = h.x + Math.cos(pa) * R * pf.r;
+    const py = h.y + Math.sin(pa) * R * pf.r * 0.85;
+    const sz = R * pf.s * 1.6;
+    ctx.globalAlpha = 0.5;
+    ctx.drawImage(smokeDark, px - sz / 2, py - sz / 2, sz, sz);
+  }
+  for (const pf of h.puffs) {
+    const pa = -pf.a + h.t * pf.w * 0.5;
+    const px = h.x + Math.cos(pa) * R * pf.r * 0.8;
+    const py = h.y + Math.sin(pa) * R * pf.r * 0.7 - R * 0.1;
+    const sz = R * pf.s;
+    ctx.globalAlpha = 0.42;
+    ctx.drawImage(smokeSprite, px - sz / 2, py - sz / 2, sz, sz);
+  }
+  ctx.globalAlpha = 1;
+  const g = ctx.createRadialGradient(h.x, h.y, R * 0.05, h.x, h.y, R * 0.95);
+  g.addColorStop(0, "rgba(58,16,96,0.95)");
+  g.addColorStop(0.7, "rgba(48,12,84,0.72)");
+  g.addColorStop(1, "rgba(40,10,80,0)");
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.arc(h.x, h.y, R * 0.95, 0, 6.2832); ctx.fill();
+  ctx.fillStyle = "#6a2bb8";
+  for (let sn = 0; sn < 4; sn++) {
+    const a = -Math.PI / 2 + (sn - 1.5) * 0.5;
+    const bx = h.x + Math.cos(a) * R * 0.8, by = h.y + Math.sin(a) * R * 0.8;
+    const tx = h.x + Math.cos(a) * R * 1.5, ty = h.y + Math.sin(a) * R * 1.5;
+    const px = -Math.sin(a) * R * 0.2, py = Math.cos(a) * R * 0.2;
+    ctx.beginPath();
+    ctx.moveTo(tx, ty);
+    ctx.lineTo(bx + px, by + py); ctx.lineTo(bx - px, by - py);
+    ctx.closePath(); ctx.fill();
+  }
+  for (const sd of [-1, 1]) {
+    const ex = h.x + sd * R * 0.32, ey = h.y - R * 0.14;
+    const gl = ctx.createRadialGradient(ex, ey, 1, ex, ey, R * 0.44);
+    gl.addColorStop(0, "rgba(255,60,80,0.5)");
+    gl.addColorStop(1, "rgba(255,60,80,0)");
+    ctx.fillStyle = gl;
+    ctx.beginPath(); ctx.arc(ex, ey, R * 0.44, 0, 6.2832); ctx.fill();
+    const ig = ctx.createRadialGradient(ex - R * 0.03, ey - R * 0.04, 1, ex, ey, R * 0.20);
+    ig.addColorStop(0, "#ff8a9a");
+    ig.addColorStop(0.55, "#f2233f");
+    ig.addColorStop(1, "#a31226");
+    ctx.fillStyle = ig;
+    ctx.beginPath();
+    ctx.ellipse(ex, ey, R * 0.20, R * 0.24, sd * 0.3, 0, 6.2832);
+    ctx.fill();
+    ctx.fillStyle = "#14030a";
+    ctx.beginPath();
+    ctx.ellipse(ex + sd * R * 0.03, ey, R * 0.045, R * 0.13, 0, 0, 6.2832);
+    ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,0.9)";
+    ctx.beginPath(); ctx.arc(ex - R * 0.06, ey - R * 0.08, R * 0.035, 0, 6.2832); ctx.fill();
+  }
+  const gy = h.y + R * 0.34, gw = R * 0.55;
+  ctx.fillStyle = "rgba(10,2,20,0.85)";
+  ctx.beginPath();
+  ctx.ellipse(h.x, gy + R * 0.06, gw, R * 0.20, 0, 0, 6.2832);
+  ctx.fill();
+  ctx.fillStyle = "#f4efff";
+  const teethN = 5;
+  for (let i = 0; i < teethN; i++) {
+    const fx = h.x - gw + (2 * gw) * ((i + 0.5) / teethN);
+    const fy = gy + Math.sin((i + 0.5) / teethN * Math.PI) * R * 0.05;
+    const fs = R * (0.10 + 0.05 * Math.sin(i * 2.3 + 1));
+    ctx.beginPath();
+    ctx.moveTo(fx - fs * 0.45, fy);
+    ctx.lineTo(fx + fs * 0.45, fy);
+    ctx.lineTo(fx, fy + fs);
+    ctx.closePath(); ctx.fill();
+  }
+  const bob1 = Math.sin(h.t * 3.3) * R * 0.14, bob2 = Math.sin(h.t * 2.7 + 2) * R * 0.14;
+  drawClaw(h.x - R * 1.6, h.y + R * 0.15 + bob1, R * 0.44);
+  drawClaw(h.x + R * 1.6, h.y + R * 0.15 + bob2, R * 0.44);
+}
+function drawSmoke(dt) {
+  for (let i = smokeP.length - 1; i >= 0; i--) {
+    const p = smokeP[i];
+    p.age += dt;
+    if (p.age >= p.life) { smokeP.splice(i, 1); continue; }
+    p.x += p.vx * dt; p.y += p.vy * dt;
+    const k = p.age / p.life, sz = p.sz * (1 + k * 1.6);
+    ctx.globalAlpha = (1 - k) * 0.55;
+    ctx.drawImage(p.dark ? smokeDark : smokeSprite, p.x - sz / 2, p.y - sz / 2, sz, sz);
+  }
+  ctx.globalAlpha = 1;
+}
+makeSmokeSprite();
 
 /* ---------- beam ---------- */
 function drawBeam(x0, y0, dx, dy, len, bright) {
@@ -664,6 +945,9 @@ function loop(t) {
     }
   }
 
+  updateHaunter(dt);
+  drawSmoke(dt);
+  drawHaunter();
   hZoom.textContent = Math.round(zoom * 100) + "%";
   requestAnimationFrame(loop);
 }
