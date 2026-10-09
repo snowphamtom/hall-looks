@@ -119,6 +119,28 @@ function computeBasis() {
   _u = cross(_r, _f);
 }
 computeBasis();
+/* ray from the POV through the aim point; lands on the first room surface */
+function rayRoom(ox, oy, oz, dx, dy, dz) {
+  let best = Infinity;
+  const test = (t, ok) => { if (t > 0.01 && t < best && ok) best = t; };
+  if (Math.abs(dx) > 1e-6) for (const wx of [-RX, RX]) {
+    const t = (wx - ox) / dx;
+    const y = oy + dy * t, z = oz + dz * t;
+    test(t, y >= 0 && y <= RY && z >= -RZ && z <= RZ);
+  }
+  if (Math.abs(dy) > 1e-6) for (const wy of [0, RY]) {
+    const t = (wy - oy) / dy;
+    const x = ox + dx * t, z = oz + dz * t;
+    test(t, x >= -RX && x <= RX && z >= -RZ && z <= RZ);
+  }
+  if (Math.abs(dz) > 1e-6) for (const wz of [-RZ, RZ]) {
+    const t = (wz - oz) / dz;
+    const x = ox + dx * t, y = oy + dy * t;
+    test(t, x >= -RX && x <= RX && y >= 0 && y <= RY);
+  }
+  if (!isFinite(best)) return null;
+  return { x: ox + dx * best, y: oy + dy * best, z: oz + dz * best };
+}
 let VW = 0, VH = 0, FOC = 800;
 function proj(p) {
   const d = sub(p, cam);
@@ -346,7 +368,9 @@ function loop(t) {
   const NSEG = 26;
   for (let i = 0; i < NS; i++) {
     const d = dots[i];
-    const p = proj({ x: d.x, y: d.y, z: d.z });
+    const dir = norm(sub(d, cam));
+    const hit = rayRoom(d.x, d.y, d.z, dir.x, dir.y, dir.z);
+    const p = proj(hit || d);
     if (!p) continue;
     if (handSeen && !syncing) {
       const nx = d.sx * VW, ny = d.sy * VH;
