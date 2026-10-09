@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#04060b">
+<title>Ball Room · Hand Physics</title>
+<style>
+  :root {
+    --bg: #04060b;
+    --line: rgba(255,255,255,0.12);
+    --door: #22ff88;
+    --holo-c: #00f0ff;
+    --holo-m: #ff2bd6;
+    --muted: rgba(255,255,255,0.55);
+    --safe-t: env(safe-area-inset-top, 0px);
+    --safe-b: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: #fff;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  body { min-height: 100svh; display: flex; flex-direction: column;
+    padding-top: var(--safe-t); overscroll-behavior: none; }
+  body::after { content: ""; position: fixed; inset: 0; z-index: 60; pointer-events: none; opacity: .05;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="140" height="140"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2"/></filter><rect width="140" height="140" filter="url(%23n)" opacity="0.7"/></svg>'); }
+  header { padding: 12px 16px 10px; border-bottom: 1px solid var(--line);
+    background: rgba(5,7,10,0.92); position: relative; z-index: 1; }
+  header::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--door), var(--holo-c), transparent); }
+  h1 { font-size: 15px; letter-spacing: 0.06em; margin: 0; font-weight: 700;
+    text-shadow: 0 0 14px rgba(34,255,136,0.55); }
+  .sub { margin-top: 4px; font-size: 12px; color: var(--muted); }
+  .stage { position: relative; flex: 1; min-height: 420px; overflow: hidden; background: #020304; }
+  .stage canvas#room { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .hud { position: absolute; left: 12px; top: 10px; z-index: 5; font-size: 11px; line-height: 1.7;
+    letter-spacing: 0.06em; color: var(--muted); pointer-events: none;
+    text-shadow: 0 0 8px rgba(0,0,0,0.9); }
+  .hud b { color: #fff; }
+  .hud .gv { color: var(--holo-c); }
+  .pip { position: absolute; right: 10px; bottom: 10px; width: 132px; height: 96px; z-index: 6;
+    border: 1px solid rgba(0,240,255,0.5); border-radius: 8px; overflow: hidden;
+    background: #020304; box-shadow: 0 0 14px rgba(0,240,255,0.25); display: none; }
+  .pip.live { display: block; }
+  .pip { transition: opacity 0.7s ease; }
+  .pip.gone { opacity: 0; pointer-events: none; }
+  .pip video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+    transform: scaleX(-1); opacity: 0.55; }
+  .pip canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .pip .plab { position: absolute; left: 5px; top: 3px; font-size: 9px; letter-spacing: 0.12em;
+    color: #8af6ff; text-shadow: 0 0 6px rgba(0,240,255,0.8); }
+  .handgate { position: absolute; inset: 0; z-index: 8; display: none; flex-direction: column;
+    align-items: center; justify-content: center; gap: 12px; background: rgba(2,4,6,0.84); }
+  .handgate.show { display: flex; }
+  .bigbtn { min-height: 56px; padding: 0 28px; border-radius: 999px; font-size: 15px;
+    letter-spacing: 0.08em; color: #04140a; font-weight: 700; border: 0;
+    background: linear-gradient(90deg, var(--door), var(--holo-c));
+    box-shadow: 0 0 24px rgba(34,255,136,0.45); font-family: inherit; }
+  .bigbtn:active { transform: scale(0.97); }
+  .gstatus { font-size: 12px; color: var(--muted); letter-spacing: 0.04em; text-align: center;
+    padding: 0 24px; line-height: 1.5; }
+  .tools { display: flex; gap: 8px; padding: 10px 12px calc(10px + var(--safe-b)); overflow-x: auto;
+    position: relative; z-index: 1; }
+  .chip { flex: none; min-height: 44px; padding: 0 16px; border-radius: 999px;
+    border: 1px solid var(--line); background: rgba(255,255,255,0.04);
+    color: var(--muted); font-size: 13px; letter-spacing: 0.04em; font-family: inherit; }
+  .chip.on { color: #8af6ff; border-color: rgba(0,229,255,0.65);
+    text-shadow: 0 0 10px rgba(0,229,255,0.9);
+    box-shadow: 0 0 14px rgba(0,229,255,0.28), inset 0 0 10px rgba(0,229,255,0.12); }
+  .legend { padding: 2px 16px 0; font-size: 11px; line-height: 1.7; color: var(--muted);
+    position: relative; z-index: 1; }
+  .legend b { color: #fff; }
+</style>
+</head>
+<body>
+<header>
+  <h1>BALL ROOM · HAND PHYSICS</h1>
+  <div class="sub" id="sub">a ball · a room · your hand</div>
+</header>
+<div class="stage" id="stage">
+  <canvas id="room"></canvas>
+  <div class="hud" id="hud">SPEED <b id="hSpeed">0.0</b> · BOUNCE <b id="hBounce">0</b><br>GRAVITY <span class="gv" id="hGrav">—</span></div>
+  <div class="pip" id="pip"><video id="cam" playsinline muted></video><canvas id="pov"></canvas><div class="plab" id="plab">HAND</div></div>
+  <div class="handgate show" id="handgate">
+    <button class="bigbtn" id="handAllow" type="button">ALLOW CAMERA</button>
+    <div class="gstatus" id="handStatus">Grab the ball. Throw it.<br>Your palm is gravity.</div>
+  </div>
+</div>
+<div class="legend"><b>PINCH ball</b> grab + throw · <b>PINCH air</b> gravity well · <b>TAP</b> pulse kick · <b>PALM</b> open floats, fist slams · <b>CAM</b> peek at the camera</div>
+<div class="tools">
+  <button class="chip" id="handBtn" type="button">HAND</button>
+  <button class="chip" id="camBtn" type="button">CAM</button>
+  <button class="chip" id="resetBtn" type="button">RESET BALL</button>
+</div>
+
+<script type="module">
+import { FilesetResolver, HandLandmarker } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
+
+/* ---------- room + ball physics ---------- */
+const RX = 1, RY = 2, RZ = 1, BR = 0.13, REST = 0.82;
+const ball = { p: { x: 0.3, y: 1.4, z: 0.1 }, v: { x: 1.6, y: 0, z: 0.9 } };
+let bounces = 0, gravity = 3;
+const trail = [];
+const ripples = [];
+function resetBall() {
+  ball.p = { x: (Math.random() - 0.5) * 1.2, y: 1.5, z: (Math.random() - 0.5) * 1.2 };
+  const a = Math.random() * Math.PI * 2;
+  ball.v = { x: Math.cos(a) * 2, y: 0.5, z: Math.sin(a) * 2 };
+  trail.length = 0;
+}
+document.getElementById("resetBtn").onclick = resetBall;
+
+/* ---------- camera projection ---------- */
+const cam = { x: 0, y: 1.5, z: 3.8 }, tgt = { x: 0, y: 0.85, z: 0 };
+const _f = norm(sub(tgt, cam)), _r = norm(cross(_f, { x: 0, y: 1, z: 0 })), _u = cross(_r, _f);
+function sub(a, b) { return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z }; }
+function cross(a, b) { return { x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x }; }
+function norm(a) { const l = Math.hypot(a.x, a.y, a.z) || 1; return { x: a.x / l, y: a.y / l, z: a.z / l }; }
+function dot(a, b) { return a.x * b.x + a.y * b.y + a.z * b.z; }
+let VW = 0, VH = 0, FOC = 800;
+function proj(p) {
+  const d = sub(p, cam);
+  const cx = dot(d, _r), cy = dot(d, _u), cz = dot(d, _f);
+  if (cz < 0.15) return null;
+  return { x: VW / 2 + (cx / cz) * FOC, y: VH * 0.54 - (cy / cz) * FOC, z: cz };
+}
+
+/* ---------- canvas ---------- */
+const stage = document.getElementById("stage");
+const cv = document.getElementById("room");
+const ctx = cv.getContext("2d");
+function sizeRoom() {
+  const r = stage.getBoundingClientRect();
+  const d = Math.min(window.devicePixelRatio || 1, 2);
+  cv.width = Math.max(1, Math.round(r.width * d));
+  cv.height = Math.max(1, Math.round(r.height * d));
+  VW = cv.width; VH = cv.height; FOC = VH * 1.05;
+}
+sizeRoom();
+window.addEventListener("resize", sizeRoom);
+
+/* ---------- hand ---------- */
+const FC = ["#00f0ff", "#22ff88", "#ffdd33", "#ff2bd6", "#b388ff"];
+const TIPS = [4, 8, 12, 16, 20];
+const pip = document.getElementById("pip");
+const video = document.getElementById("cam");
+const pov = document.getElementById("pov");
+const pctx = pov.getContext("2d");
+const plab = document.getElementById("plab");
+const gate = document.getElementById("handgate");
+const gstat = document.getElementById("handStatus");
+const handBtn = document.getElementById("handBtn");
+const camBtn = document.getElementById("camBtn");
+camBtn.onclick = () => {
+  const hidden = pip.classList.toggle("gone");
+  camBtn.classList.toggle("on", !hidden);
+  if (!hidden) sizePip();
+};
+const hSpeed = document.getElementById("hSpeed");
+const hBounce = document.getElementById("hBounce");
+const hGrav = document.getElementById("hGrav");
+let landmarker = null, ready = false, handOn = false;
+let syncing = false, syncFrozen = null, syncT0 = 0, syncHold = 0;
+let gDown = false, gT0 = 0, gMoved = 0, gPX = 0, gPY = 0, gDrag = false, grabbed = false, attract = false;
+let handNX = 0.5, handNY = 0.5, handOpen = 0.7, handSeen = false;
+let throwV = { x: 0, y: 0, z: 0 };
+const say = t => { gstat.innerHTML = t; };
+function sizePip() {
+  const r = pip.getBoundingClientRect();
+  const d = Math.min(window.devicePixelRatio || 1, 2);
+  pov.width = Math.max(1, Math.round(r.width * d));
+  pov.height = Math.max(1, Math.round(r.height * d));
+}
+handBtn.onclick = () => {
+  if (!ready) { sizePip(); gate.classList.add("show"); return; }
+  handOn = !handOn;
+  handBtn.textContent = handOn ? "HAND·LIVE" : "HAND";
+  handBtn.classList.toggle("on", handOn);
+  pip.classList.toggle("live", handOn);
+  if (handOn) sizePip();
+};
+document.getElementById("handAllow").onclick = async () => {
+  if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    say("Camera needs a secure (https) page.<br>Open this page in Safari."); return;
+  }
+  say("Opening camera…");
+  try {
+    const s = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } }, audio: false });
+    video.srcObject = s;
+    await video.play();
+  } catch (e) { say("Camera blocked.<br>Settings → Safari → Camera → Allow,<br>then tap again."); return; }
+  say("Loading hand model…");
+  try {
+    const vision = await FilesetResolver.forVisionTasks(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
+    landmarker = await HandLandmarker.createFromOptions(vision, {
+      baseOptions: {
+        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+        delegate: "GPU" },
+      runningMode: "VIDEO", numHands: 1 });
+  } catch (e) { say("Model failed to load.<br>Check connection and retry."); return; }
+  ready = true; handOn = true;
+  gate.classList.remove("show");
+  pip.classList.add("live");
+  pip.classList.remove("gone");
+  camBtn.classList.add("on");
+  sizePip();
+  handBtn.textContent = "HAND·LIVE";
+  handBtn.classList.add("on");
+  syncing = true;
+  plab.textContent = "HOLD STILL";
+};
+
+/* hand → room plane (z = ball depth at grab) */
+function handRoom() {
+  return { x: (handNX - 0.5) * 2 * RX, y: (0.5 - handNY) * 1.8 + 0.15, z: grabZ };
+}
+let grabZ = 0;
+
+/* ---------- main loop ---------- */
+let lastT = 0;
+function loop(t) {
+  const dt = Math.min(0.033, Math.max(0.001, (t - lastT) / 1000 || 0.016));
+  lastT = t;
+  const W = pov.width, H = pov.height;
+
+  /* hand sense */
+  let lm = null;
+  if (ready && handOn) {
+    try {
+      const r = landmarker.detectForVideo(video, performance.now());
+      if (r.landmarks && r.landmarks.length) lm = r.landmarks[0];
+    } catch (e) {}
+  }
+  pctx.clearRect(0, 0, W, H);
+  handSeen = !!lm;
+  if (lm) {
+    if (syncing) {
+      if (!syncFrozen) { syncFrozen = TIPS.map(id => ({ x: 1 - lm[id].x, y: lm[id].y })); syncT0 = t; syncHold = 0; }
+      else {
+        let ok = true;
+        TIPS.forEach((id, i) => {
+          if (Math.hypot((1 - lm[id].x) - syncFrozen[i].x, lm[id].y - syncFrozen[i].y) > 0.05) ok = false;
+        });
+        if (ok) syncHold = t - syncT0; else { syncT0 = t; syncHold = 0; }
+        if (syncHold >= 1200) {
+          syncing = false; plab.textContent = "HAND";
+          pip.classList.add("gone");
+          camBtn.classList.remove("on");
+        }
+      }
+    } else {
+      const nx = 1 - lm[8].x, ny = lm[8].y;
+      handNX += (nx - handNX) * 0.4;
+      handNY += (ny - handNY) * 0.4;
+      const hsc = Math.hypot(lm[9].x - lm[0].x, lm[9].y - lm[0].y) || 1;
+      const pinchD = Math.hypot(lm[4].x - lm[8].x, lm[4].y - lm[8].y) / hsc;
+      const pinched = pinchD < 0.30;
+      let open = 0;
+      TIPS.forEach(id => { open += Math.hypot(lm[id].x - lm[9].x, lm[id].y - lm[9].y); });
+      open /= 5 * hsc;
+      handOpen += (open - handOpen) * 0.15;
+      gravity = 6 - Math.max(0, Math.min(1, (handOpen - 0.42) / 0.5)) * 5.5;
+
+      const bp = proj(ball.p);
+      const nearBall = bp && Math.hypot(nx - bp.x / VW, ny - bp.y / VH) < 0.20;
+      if (pinched && !gDown) {
+        gDown = true; gT0 = t; gMoved = 0; gPX = nx; gPY = ny; gDrag = false;
+        grabbed = !!nearBall; attract = !nearBall;
+        if (grabbed) { grabZ = Math.max(-RZ + BR, Math.min(RZ - BR, ball.p.z)); throwV = { x: 0, y: 0, z: 0 }; }
+        plab.textContent = grabbed ? "GRAB" : "PULL";
+      }
+      if (pinched && gDown) {
+        gMoved += Math.hypot(nx - gPX, ny - gPY);
+        if (gMoved > 0.045) gDrag = true;
+        gPX = nx; gPY = ny;
+      }
+      if (!pinched && gDown) {
+        if (!gDrag && t - gT0 < 400) {
+          const sp = Math.hypot(ball.v.x, ball.v.y, ball.v.z) || 1;
+          const kick = Math.min(9, sp * 1.5 + 1.2);
+          ball.v.x = ball.v.x / sp * kick; ball.v.z = ball.v.z / sp * kick;
+          ball.v.y = Math.abs(ball.v.y) * 0.5 + 1.4;
+          if (bp) ripples.push({ x: bp.x, y: bp.y, r: 8, a: 0.9 });
+        }
+        if (grabbed) { ball.v = { ...throwV }; }
+        gDown = false; gDrag = false; grabbed = false; attract = false;
+        plab.textContent = "HAND";
+      }
+    }
+    TIPS.forEach((id, i) => {
+      const x = (1 - lm[id].x) * W, y = lm[id].y * H;
+      pctx.strokeStyle = FC[i]; pctx.lineWidth = 2;
+      pctx.beginPath(); pctx.arc(x, y, 6, 0, Math.PI * 2); pctx.stroke();
+      pctx.fillStyle = "#fff";
+      pctx.beginPath(); pctx.arc(x, y, 2, 0, Math.PI * 2); pctx.fill();
+    });
+    if (gDown) {
+      const ax = (1 - lm[4].x) * W, ay = lm[4].y * H;
+      const bx = (1 - lm[8].x) * W, by = lm[8].y * H;
+      pctx.strokeStyle = grabbed ? "#22ff88" : "#ffdd33";
+      pctx.lineWidth = 2.5;
+      pctx.beginPath(); pctx.moveTo(ax, ay); pctx.lineTo(bx, by); pctx.stroke();
+    }
+    if (syncing && syncFrozen) {
+      pctx.fillStyle = "rgba(255,255,255,0.15)";
+      pctx.fillRect(8, H - 14, W - 16, 5);
+      pctx.fillStyle = "#22ff88";
+      pctx.fillRect(8, H - 14, (W - 16) * Math.min(1, syncHold / 1200), 5);
+    }
+  } else if (syncing) { syncFrozen = null; }
+
+  /* physics */
+  if (!(gDown && grabbed)) {
+    ball.v.y -= gravity * dt;
+    const drag = 1 - 0.12 * dt;
+    ball.v.x *= drag; ball.v.y *= drag; ball.v.z *= drag;
+    if (gDown && attract && handSeen && !syncing) {
+      const hp = handRoom();
+      ball.v.x += (hp.x - ball.p.x) * 10 * dt;
+      ball.v.y += (hp.y - ball.p.y) * 10 * dt;
+      ball.v.z += (hp.z - ball.p.z) * 10 * dt;
+    }
+    const sp = Math.hypot(ball.v.x, ball.v.y, ball.v.z);
+    if (sp > 9) { ball.v.x *= 9 / sp; ball.v.y *= 9 / sp; ball.v.z *= 9 / sp; }
+    ball.p.x += ball.v.x * dt; ball.p.y += ball.v.y * dt; ball.p.z += ball.v.z * dt;
+    const hit = (c, mn, mx) => {
+      if (ball.p[c] < mn + BR) { ball.p[c] = mn + BR; ball.v[c] = Math.abs(ball.v[c]) * REST; return 1; }
+      if (ball.p[c] > mx - BR) { ball.p[c] = mx - BR; ball.v[c] = -Math.abs(ball.v[c]) * REST; return 1; }
+      return 0;
+    };
+    let bounced = 0;
+    bounced += hit("x", -RX, RX); bounced += hit("z", -RZ, RZ);
+    const floorHit = ball.p.y < BR;
+    bounced += hit("y", 0, RY);
+    if (bounced) {
+      bounces += bounced;
+      if (floorHit && Math.abs(ball.v.y) > 1.2) {
+        const fp = proj({ x: ball.p.x, y: 0.02, z: ball.p.z });
+        if (fp) ripples.push({ x: fp.x, y: fp.y, r: 6, a: 0.7 });
+      }
+    }
+  } else {
+    /* grabbed: kinematic follow */
+    const hp = handRoom();
+    const ox = ball.p.x, oy = ball.p.y, oz = ball.p.z;
+    ball.p.x += (Math.max(-RX + BR, Math.min(RX - BR, hp.x)) - ball.p.x) * 0.55;
+    ball.p.y += (Math.max(BR, Math.min(RY - BR, hp.y)) - ball.p.y) * 0.55;
+    ball.p.z += (hp.z - ball.p.z) * 0.55;
+    const iv = { x: (ball.p.x - ox) / dt, y: (ball.p.y - oy) / dt, z: (ball.p.z - oz) / dt };
+    const cl = Math.hypot(iv.x, iv.y, iv.z);
+    const mx = cl > 9 ? 9 / cl : 1;
+    throwV.x = throwV.x * 0.6 + iv.x * mx * 0.4;
+    throwV.y = throwV.y * 0.6 + iv.y * mx * 0.4;
+    throwV.z = throwV.z * 0.6 + iv.z * mx * 0.4;
+  }
+  if (Math.hypot(ball.v.x, ball.v.y, ball.v.z) > 0.4 || trail.length === 0) {
+    trail.push({ ...ball.p });
+    if (trail.length > 26) trail.shift();
+  }
+
+  /* ---------- render ---------- */
+  ctx.clearRect(0, 0, VW, VH);
+  const bg = ctx.createRadialGradient(VW / 2, VH * 0.45, 10, VW / 2, VH * 0.5, VW * 0.7);
+  bg.addColorStop(0, "rgba(34,255,136,0.05)");
+  bg.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, VW, VH);
+
+  /* floor grid */
+  ctx.lineWidth = 1;
+  for (let i = -4; i <= 4; i++) {
+    const a = proj({ x: i / 4 * RX, y: 0, z: -RZ }), b = proj({ x: i / 4 * RX, y: 0, z: RZ });
+    const c = proj({ x: -RX, y: 0, z: i / 4 * RZ }), d = proj({ x: RX, y: 0, z: i / 4 * RZ });
+    if (a && b) { ctx.strokeStyle = "rgba(34,255,136,0.20)"; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); }
+    if (c && d) { ctx.strokeStyle = "rgba(0,240,255,0.14)"; ctx.beginPath(); ctx.moveTo(c.x, c.y); ctx.lineTo(d.x, d.y); ctx.stroke(); }
+  }
+  /* room edges */
+  const C = [];
+  for (const x of [-RX, RX]) for (const y of [0, RY]) for (const z of [-RZ, RZ]) C.push(proj({ x, y, z }));
+  const E = [[0,1],[0,2],[0,4],[1,3],[1,5],[2,3],[2,6],[3,7],[4,5],[4,6],[5,7],[6,7]];
+  ctx.strokeStyle = "rgba(34,255,136,0.45)";
+  ctx.lineWidth = 1.5;
+  E.forEach(([i, j]) => {
+    if (C[i] && C[j]) { ctx.beginPath(); ctx.moveTo(C[i].x, C[i].y); ctx.lineTo(C[j].x, C[j].y); ctx.stroke(); }
+  });
+
+  /* trail */
+  for (let i = 1; i < trail.length; i++) {
+    const a = proj(trail[i - 1]), b = proj(trail[i]);
+    if (!a || !b) continue;
+    ctx.strokeStyle = "#00f0ff";
+    ctx.globalAlpha = (i / trail.length) * 0.4;
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+
+  /* ripples */
+  for (let i = ripples.length - 1; i >= 0; i--) {
+    const r = ripples[i];
+    ctx.strokeStyle = "#22ff88";
+    ctx.globalAlpha = r.a;
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(r.x, r.y, r.r, 0, Math.PI * 2); ctx.stroke();
+    r.r += 3.4; r.a *= 0.9;
+    if (r.a < 0.03) ripples.splice(i, 1);
+  }
+  ctx.globalAlpha = 1;
+
+  /* floor shadow */
+  const sh = proj({ x: ball.p.x, y: 0.01, z: ball.p.z });
+  const bp = proj(ball.p);
+  if (sh && bp) {
+    const hgt = Math.max(0, Math.min(1, ball.p.y / RY));
+    ctx.fillStyle = "rgba(0,0,0,0.55)";
+    ctx.globalAlpha = 0.5 * (1 - hgt * 0.7);
+    ctx.beginPath();
+    ctx.ellipse(sh.x, sh.y, 26 * (1 - hgt * 0.5), 10 * (1 - hgt * 0.5), 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    /* ball */
+    const pr = Math.max(6, 900 / bp.z * BR);
+    const g = ctx.createRadialGradient(bp.x - pr * 0.3, bp.y - pr * 0.3, 1, bp.x, bp.y, pr * 2.4);
+    const col = grabbed ? "#22ff88" : "#00f0ff";
+    g.addColorStop(0, "#ffffff");
+    g.addColorStop(0.25, col);
+    g.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(bp.x, bp.y, pr * 2.4, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#fff";
+    ctx.beginPath(); ctx.arc(bp.x, bp.y, pr * 0.55, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = col;
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(bp.x, bp.y, pr, 0, Math.PI * 2); ctx.stroke();
+  }
+
+  /* hud */
+  const spd = Math.hypot(ball.v.x, ball.v.y, ball.v.z);
+  hSpeed.textContent = spd.toFixed(1);
+  hBounce.textContent = bounces;
+  hGrav.textContent = gravity > 4.5 ? "HEAVY" : gravity < 2 ? "FLOATY" : "MID";
+
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
