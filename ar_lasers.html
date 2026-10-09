@@ -48,9 +48,19 @@
   .bigbtn:disabled { opacity: 0.55; }
   .gstatus { font-size: 12px; color: var(--muted); letter-spacing: 0.04em; text-align: center;
     padding: 0 24px; line-height: 1.6; }
-  .legend { padding: 8px 16px calc(10px + var(--safe-b)); font-size: 11px; line-height: 1.7;
+  .legend { padding: 4px 16px calc(10px + var(--safe-b)); font-size: 11px; line-height: 1.7;
     color: var(--muted); position: relative; z-index: 2; background: rgba(0,0,0,0.85); }
   .legend b { color: #fff; }
+  .tools { display: flex; gap: 8px; padding: 10px 12px 4px; align-items: center; overflow-x: auto;
+    position: relative; z-index: 2; background: rgba(0,0,0,0.85); }
+  .chip { flex: none; min-height: 44px; padding: 0 16px; border-radius: 999px;
+    border: 1px solid var(--line); background: rgba(255,255,255,0.04);
+    color: var(--muted); font-size: 13px; letter-spacing: 0.04em; font-family: inherit; }
+  .chip:active { transform: scale(0.97); }
+  .chip:disabled { opacity: 0.5; }
+  .blend { display: flex; align-items: center; gap: 8px; font-size: 11px; letter-spacing: 0.08em;
+    color: var(--muted); white-space: nowrap; }
+  .blend input { width: 110px; accent-color: #22ff88; }
 </style>
 </head>
 <body>
@@ -67,7 +77,13 @@
     <div class="gstatus" id="handStatus">Point the rear camera at your other hand.<br>Each fingertip fires a thread into your world.<br><br><span style="opacity:.65">Open this page in Safari —<br>the in-app preview can't use the camera.</span></div>
   </div>
 </div>
-<div class="legend"><b>FINGERS</b> aim the threads · <b>PINCH</b> zoom out + flash · <b>SPREAD</b> zoom in · <b>PALM</b> brightness · <b>WALLPAPER</b> follows your last-moved finger</div>
+<div class="tools">
+  <button class="chip" id="vidBtn" type="button">VIDEO</button>
+  <button class="chip" id="liveBtn" type="button">LIVE</button>
+  <label class="blend">BLEND <input type="range" id="opRange" min="10" max="100" value="72"></label>
+  <input type="file" id="vidPick" accept="video/*" style="display:none">
+</div>
+<div class="legend"><b>FINGERS</b> aim the threads · <b>PINCH</b> zoom out + flash · <b>SPREAD</b> zoom in · <b>PALM</b> brightness · <b>WALLPAPER</b> follows your last-moved finger · <b>VIDEO</b> overlap a recording</div>
 
 <script>
 window.__arAlive = false;
@@ -209,7 +225,9 @@ sizeView();
 window.addEventListener("resize", sizeView);
 
 /* frame (camera) -> screen, with cover-fit + digital zoom */
-let zoom = 1, zoomT = 1;
+let zoom = 1, zoomT = 1, footAlpha = 0.72;
+let noteTxt = "", noteUntil = 0;
+function note(t, ms) { noteTxt = t; noteUntil = performance.now() + (ms || 2200); }
 function frameToScreen(nx, ny) {
   const vw = video.videoWidth, vh = video.videoHeight;
   if (!vw || !vh) return null;
@@ -233,27 +251,25 @@ for (let i = 0; i < NS; i++) tips.push({ x: 0.5, y: 0.5, dx: 0, dy: -1, n: 0 });
 const lastMove = [0, 0, 0, 0, 0], moveAcc = [0, 0, 0, 0, 0];
 let activeNode = 1;
 
-document.getElementById("handAllow").onclick = async () => {
-  const abtn = document.getElementById("handAllow");
-  abtn.disabled = true;
-  const fail = (t) => { say(t); abtn.disabled = false; };
-  const withTimeout = (p, ms, what) => Promise.race([
-    p, new Promise((_, rej) => setTimeout(() => rej(new Error(what + " timed out")), ms))
-  ]);
-  if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    fail("Camera needs a secure (https) page.<br>Open this page in Safari."); return;
-  }
-  say("Opening rear camera…");
+const withTimeout = (p, ms, what) => Promise.race([
+  p, new Promise((_, rej) => setTimeout(() => rej(new Error(what + " timed out")), ms))
+]);
+async function acquireCamera() {
   const tryCam = (mode) => navigator.mediaDevices.getUserMedia({
     video: { facingMode: mode, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false });
-  try {
-    let s;
-    try { s = await withTimeout(tryCam("environment"), 20000, "Camera"); }
-    catch (e) { s = await withTimeout(tryCam("user"), 20000, "Camera"); }
-    video.srcObject = s;
-    await withTimeout(video.play(), 10000, "Video");
-  } catch (e) { fail("Camera didn't respond.<br>Close other tabs or apps using the camera,<br>then tap again."); return; }
-  say("Loading hand model…");
+  let s;
+  try { s = await withTimeout(tryCam("environment"), 20000, "Camera"); }
+  catch (e) { s = await withTimeout(tryCam("user"), 20000, "Camera"); }
+  video.srcObject = s;
+  await withTimeout(video.play(), 10000, "Video");
+}
+function stopCamera() {
+  const sc = video.srcObject;
+  if (sc) sc.getTracks().forEach(tr => { try { tr.stop(); } catch (e) {} });
+  video.srcObject = null;
+}
+async function ensureModel() {
+  if (landmarker) return true;
   try {
     const vision = await withTimeout(FilesetResolver.forVisionTasks(
       "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"), 45000, "Model");
@@ -262,11 +278,51 @@ document.getElementById("handAllow").onclick = async () => {
         modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
         delegate: "GPU" },
       runningMode: "VIDEO", numHands: 1 }), 45000, "Model");
-  } catch (e) { fail("Hand model failed to load.<br>Check your connection and tap again."); return; }
+    return true;
+  } catch (e) { return false; }
+}
+document.getElementById("handAllow").onclick = async () => {
+  const abtn = document.getElementById("handAllow");
+  abtn.disabled = true;
+  const fail = (t) => { say(t); abtn.disabled = false; };
+  if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    fail("Camera needs a secure (https) page.<br>Open this page in Safari."); return;
+  }
+  say("Opening rear camera…");
+  try { await acquireCamera(); }
+  catch (e) { fail("Camera didn't respond.<br>Close other tabs or apps using the camera,<br>then tap again."); return; }
+  say("Loading hand model…");
+  if (!await ensureModel()) { fail("Hand model failed to load.<br>Check your connection and tap again."); return; }
   ready = true;
   gate.classList.remove("show");
   syncing = true;
   syncHold = 0;
+};
+document.getElementById("opRange").oninput = e => { footAlpha = e.target.value / 100; };
+document.getElementById("vidBtn").onclick = () => document.getElementById("vidPick").click();
+document.getElementById("vidPick").onchange = async () => {
+  const f = document.getElementById("vidPick").files[0];
+  if (!f) return;
+  note("LOADING…");
+  if (!await ensureModel()) { note("MODEL FAILED — CHECK CONNECTION"); return; }
+  stopCamera();
+  video.src = URL.createObjectURL(f);
+  video.loop = true;
+  try { await video.play(); } catch (e) {}
+  ready = true;
+  if (gate.classList.contains("show")) { gate.classList.remove("show"); syncing = true; syncHold = 0; }
+  note("PLAYING RECORDING");
+};
+document.getElementById("liveBtn").onclick = async () => {
+  const b = document.getElementById("liveBtn");
+  b.disabled = true;
+  try {
+    stopCamera();
+    video.removeAttribute("src"); video.src = ""; video.loop = false;
+    await acquireCamera();
+    note("LIVE CAMERA");
+  } catch (e) { note("CAMERA FAILED — TAP AGAIN"); }
+  b.disabled = false;
 };
 
 /* ---------- beam ---------- */
@@ -369,7 +425,7 @@ function loop(t) {
     if (fFade >= 1) { fxA.drawImage(fCanB, 0, 0); fCur = fNxt; fNxt = -1; }
   }
   const vw = video.videoWidth, vh = video.videoHeight;
-  ctx.globalAlpha = 0.72;
+  ctx.globalAlpha = footAlpha;
   if (vw && vh) {
     const base = Math.max(CW / vw, CH / vh);
     const dw = vw * base * zoom, dh = vh * base * zoom;
@@ -401,6 +457,13 @@ function loop(t) {
     ctx.fillText("HAND LOST — SHOW YOUR HAND", CW / 2, CH * 0.38);
   }
   ctx.textAlign = "left";
+  if (performance.now() < noteUntil) {
+    ctx.textAlign = "center";
+    ctx.fillStyle = "rgba(255,255,255,0.9)";
+    ctx.font = "600 " + Math.max(22, CW * 0.035) + "px ui-monospace, monospace";
+    ctx.fillText(noteTxt, CW / 2, CH * 0.12);
+    ctx.textAlign = "left";
+  }
 
   /* beams over the footage */
   if (handSeen && !syncing) {
