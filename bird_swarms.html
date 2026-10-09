@@ -176,7 +176,7 @@ const camBtn = document.getElementById("camBtn");
 const hFlock = document.getElementById("hFlock");
 const hPov = document.getElementById("hPov");
 let landmarker = null, ready = false, handOn = false;
-let syncing = false, syncFrozen = null, syncT0 = 0, syncHold = 0;
+let syncing = false, syncHold = 0;
 let handOpen = 0.7, handCX = 0.5, handCY = 0.5;
 let zoomT = 1, prevPd = 0;
 let handSeen = false;
@@ -232,7 +232,7 @@ document.getElementById("handAllow").onclick = async () => {
   handBtn.textContent = "HAND·LIVE";
   handBtn.classList.add("on");
   syncing = true;
-  plab.textContent = "HOLD STILL";
+  plab.textContent = "SYNCING";
 };
 
 /* ---------- main loop ---------- */
@@ -262,18 +262,11 @@ function loop(t) {
     handOpen += (open - handOpen) * 0.15;
 
     if (syncing) {
-      if (!syncFrozen) { syncFrozen = TIPS.map(id => ({ x: 1 - lm[id].x, y: lm[id].y })); syncT0 = t; syncHold = 0; }
-      else {
-        let ok = true;
-        TIPS.forEach((id, i) => {
-          if (Math.hypot((1 - lm[id].x) - syncFrozen[i].x, lm[id].y - syncFrozen[i].y) > 0.05) ok = false;
-        });
-        if (ok) syncHold = t - syncT0; else { syncT0 = t; syncHold = 0; }
-        if (syncHold >= 1200) {
-          syncing = false; plab.textContent = "HAND";
-          pip.classList.add("gone");
-          camBtn.classList.remove("on");
-        }
+      syncHold = Math.min(1200, syncHold + dt * 1000);
+      if (syncHold >= 1200) {
+        syncing = false; plab.textContent = "HAND";
+        pip.classList.add("gone");
+        camBtn.classList.remove("on");
       }
     } else {
       /* fingertips aim the lasers, direct and tight */
@@ -316,13 +309,13 @@ function loop(t) {
       pctx.font = "600 8px ui-monospace, monospace";
       pctx.fillText(SNAMES[i][0], x + 8, y + 3);
     });
-    if (syncing && syncFrozen) {
+    if (syncing) {
       pctx.fillStyle = "rgba(255,255,255,0.15)";
       pctx.fillRect(8, H - 14, W - 16, 5);
       pctx.fillStyle = "#22ff88";
       pctx.fillRect(8, H - 14, (W - 16) * Math.min(1, syncHold / 1200), 5);
     }
-  } else if (syncing) { syncFrozen = null; }
+
 
   /* idle drift when no hand */
   if (!handSeen || syncing) {
@@ -365,6 +358,27 @@ function loop(t) {
   E.forEach(([i, j]) => {
     if (C[i] && C[j]) { ctx.beginPath(); ctx.moveTo(C[i].x, C[i].y); ctx.lineTo(C[j].x, C[j].y); ctx.stroke(); }
   });
+
+  /* status, big and unmissable */
+  ctx.textAlign = "center";
+  const fs = Math.max(30, VW * 0.05);
+  ctx.font = "600 " + fs + "px ui-monospace, monospace";
+  if (syncing) {
+    ctx.fillStyle = "rgba(255,255,255,0.9)";
+    ctx.fillText(handSeen ? "SYNCING…" : "SHOW YOUR HAND", VW / 2, VH * 0.38);
+    if (handSeen) {
+      const bw = VW * 0.5, bx = VW / 2 - bw / 2, by = VH * 0.38 + fs * 0.7;
+      ctx.fillStyle = "rgba(255,255,255,0.18)";
+      ctx.fillRect(bx, by, bw, 6);
+      ctx.fillStyle = "#22ff88";
+      ctx.fillRect(bx, by, bw * Math.min(1, syncHold / 1200), 6);
+    }
+  } else if (!handSeen) {
+    ctx.fillStyle = "rgba(255,255,255,0.35)";
+    ctx.font = "600 " + Math.max(22, VW * 0.035) + "px ui-monospace, monospace";
+    ctx.fillText("HAND LOST — SHOW YOUR HAND", VW / 2, VH * 0.38);
+  }
+  ctx.textAlign = "left";
 
   /* threads: thin white POV wires, fading into the distance */
   const flashK = t - flashT < 450 ? 1 + (1 - (t - flashT) / 450) * 1.6 : 1;
