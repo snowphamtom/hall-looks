@@ -83,7 +83,7 @@
   <label class="blend">BLEND <input type="range" id="opRange" min="10" max="100" value="72"></label>
   <input type="file" id="vidPick" accept="video/*" style="display:none">
 </div>
-<div class="legend"><b>TAP</b> new lens · <b>DOUBLE-TAP</b> Haunter orb · <b>FINGERS</b> aim the threads · <b>PINCH</b> zoom out + flash · <b>SPREAD</b> zoom in · <b>PALM</b> brightness · <b>WALLPAPER</b> follows your last-moved finger · <b>VIDEO</b> overlap a recording · <b>SWIPE</b> &#9664; &#9654; hand works too</div>
+<div class="legend"><b>TAP</b> new lens · <b>DOUBLE-TAP</b> Haunter · <b>PRESS HAUNTER</b> ignite · <b>FINGERS</b> aim the threads · <b>PINCH</b> zoom out + flash · <b>SPREAD</b> zoom in · <b>PALM</b> brightness · <b>WALLPAPER</b> follows your last-moved finger · <b>VIDEO</b> overlap a recording · <b>SWIPE</b> &#9664; &#9654; hand works too</div>
 
 <script>
 window.__arAlive = false;
@@ -571,10 +571,10 @@ stage.addEventListener("pointerdown", (e) => {
   } else {
     lastTapT = now; lastTapX = e.clientX; lastTapY = e.clientY;
     clearTimeout(tapTimer);
+    const qx = e.clientX, qy = e.clientY;
     tapTimer = setTimeout(() => {
-      visionMode = (visionMode + 1) % VMODES.length;
-      note(VMODES[visionMode]);
-      resetVision();
+      if (orbHit(qx, qy)) igniteHaunter();
+      else { visionMode = (visionMode + 1) % VMODES.length; note(VMODES[visionMode]); resetVision(); }
     }, 300);
   }
 });
@@ -604,6 +604,18 @@ function makeSmokeSprite() {
   g2.addColorStop(1, "rgba(50,18,100,0)");
   d.fillStyle = g2; d.fillRect(0, 0, 64, 64);
 }
+function orbHit(cx, cy) {
+  if (!haunter) return false;
+  const r = cv.getBoundingClientRect(), sc = cv.width / Math.max(1, r.width);
+  const px = (cx - r.left) * sc, py = (cy - r.top) * sc;
+  return Math.hypot(px - haunter.x, py - haunter.y) < haunter.R * 1.6;
+}
+function igniteHaunter() {
+  const h = haunter; if (!h) return;
+  h.ignite = 1; h.flash = 1;
+  note("IGNITED!");
+}
+const flameP = [];
 function pickHaunterTarget() {
   const h = haunter, m = h.R * 2.2;
   h.tx = m + Math.random() * Math.max(1, CW - 2 * m);
@@ -628,6 +640,19 @@ function toggleHaunter(cx, cy) {
 function updateHaunter(dt) {
   const h = haunter; if (!h) return;
   h.t += dt;
+  h.ignite = Math.max(0, (h.ignite || 0) - dt / 2.4);
+  h.flash = Math.max(0, (h.flash || 0) - dt / 0.5);
+  if (h.ignite > 0) {
+    const nF = 3 + ((Math.random() * 3) | 0);
+    for (let i = 0; i < nF; i++) {
+      if (flameP.length < 120) flameP.push({
+        x: h.x + (Math.random() - 0.5) * h.R * 1.3,
+        y: h.y + (Math.random() - 0.5) * h.R * 1.3,
+        vx: (Math.random() - 0.5) * 70, vy: -70 - Math.random() * 130,
+        age: 0, life: 0.5 + Math.random() * 0.5, sz: h.R * (0.2 + Math.random() * 0.28)
+      });
+    }
+  }
   const dx = h.tx - h.x, dy = h.ty - h.y;
   const dist = Math.hypot(dx, dy) || 1;
   if (dist < h.R * 0.7) {
@@ -692,6 +717,14 @@ function drawHaunter() {
   g.addColorStop(1, "rgba(40,10,80,0)");
   ctx.fillStyle = g;
   ctx.beginPath(); ctx.arc(h.x, h.y, R * 0.95, 0, 6.2832); ctx.fill();
+  if (h.ignite > 0) {
+    const hg = ctx.createRadialGradient(h.x, h.y, 1, h.x, h.y, R);
+    hg.addColorStop(0, "rgba(255,255,255," + (0.75 * h.ignite).toFixed(3) + ")");
+    hg.addColorStop(0.5, "rgba(200,120,255," + (0.45 * h.ignite).toFixed(3) + ")");
+    hg.addColorStop(1, "rgba(160,80,255,0)");
+    ctx.fillStyle = hg;
+    ctx.beginPath(); ctx.arc(h.x, h.y, R, 0, 6.2832); ctx.fill();
+  }
   ctx.fillStyle = "#6a2bb8";
   for (let sn = 0; sn < 4; sn++) {
     const a = -Math.PI / 2 + (sn - 1.5) * 0.5;
@@ -742,9 +775,42 @@ function drawHaunter() {
     ctx.lineTo(fx, fy + fs);
     ctx.closePath(); ctx.fill();
   }
+  if (h.ignite > 0.4) {
+    ctx.strokeStyle = "#1a0530"; ctx.lineWidth = Math.max(2, R * 0.06); ctx.lineCap = "round";
+    for (const sd of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(h.x + sd * R * 0.52, h.y - R * 0.46);
+      ctx.lineTo(h.x + sd * R * 0.12, h.y - R * 0.28);
+      ctx.stroke();
+    }
+  }
+  if (h.flash > 0) {
+    ctx.strokeStyle = "rgba(200,140,255," + (h.flash * 0.9).toFixed(3) + ")";
+    ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.arc(h.x, h.y, h.R * (1.2 + (1 - h.flash) * 3.2), 0, 6.2832); ctx.stroke();
+  }
   const bob1 = Math.sin(h.t * 3.3) * R * 0.14, bob2 = Math.sin(h.t * 2.7 + 2) * R * 0.14;
   drawClaw(h.x - R * 1.6, h.y + R * 0.15 + bob1, R * 0.44);
   drawClaw(h.x + R * 1.6, h.y + R * 0.15 + bob2, R * 0.44);
+}
+function drawFlames(dt) {
+  if (!flameP.length) return;
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  for (let i = flameP.length - 1; i >= 0; i--) {
+    const p = flameP[i];
+    p.age += dt;
+    if (p.age >= p.life) { flameP.splice(i, 1); continue; }
+    p.x += p.vx * dt; p.y += p.vy * dt;
+    const heat = 1 - p.age / p.life;
+    ctx.globalAlpha = heat * 0.85;
+    ctx.fillStyle = heat > 0.6 ? "#ffffff" : heat > 0.3 ? "#c77dff" : "#7d2fe0";
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, Math.max(0.5, p.sz * (1 - (1 - heat) * 0.7)), 0, 6.2832);
+    ctx.fill();
+  }
+  ctx.restore();
+  ctx.globalAlpha = 1;
 }
 function drawSmoke(dt) {
   for (let i = smokeP.length - 1; i >= 0; i--) {
@@ -948,6 +1014,7 @@ function loop(t) {
   updateHaunter(dt);
   drawSmoke(dt);
   drawHaunter();
+  drawFlames(dt);
   hZoom.textContent = Math.round(zoom * 100) + "%";
   requestAnimationFrame(loop);
 }
