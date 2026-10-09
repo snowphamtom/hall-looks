@@ -79,7 +79,7 @@
 </header>
 <div class="stage" id="stage">
   <canvas id="room"></canvas>
-  <div class="hud" id="hud">SPEED <b id="hSpeed">0.0</b> · BOUNCE <b id="hBounce">0</b><br>GRAVITY <span class="gv" id="hGrav">—</span></div>
+  <div class="hud" id="hud">SPEED <b id="hSpeed">0.0</b> · BOUNCE <b id="hBounce">0</b><br>GRAVITY <span class="gv" id="hGrav">—</span> · POV <span class="gv" id="hPov">100%</span></div>
   <div class="pip" id="pip"><video id="cam" playsinline muted></video><canvas id="pov"></canvas><div class="plab" id="plab">HAND</div></div>
   <div class="handgate show" id="handgate">
     <button class="bigbtn" id="handAllow" type="button">ALLOW CAMERA</button>
@@ -111,8 +111,17 @@ function resetBall() {
 document.getElementById("resetBtn").onclick = resetBall;
 
 /* ---------- camera projection ---------- */
-const cam = { x: 0, y: 1.5, z: 3.8 }, tgt = { x: 0, y: 0.85, z: 0 };
-const _f = norm(sub(tgt, cam)), _r = norm(cross(_f, { x: 0, y: 1, z: 0 })), _u = cross(_r, _f);
+const camBase = { x: 0, y: 1.5, z: 3.8 }, tgt = { x: 0, y: 0.85, z: 0 };
+let cam = { ...camBase };
+let _f = { x: 0, y: 0, z: 1 }, _r = { x: 1, y: 0, z: 0 }, _u = { x: 0, y: 1, z: 0 };
+let camX = 0, camY = 0, camZoom = 1;
+function computeBasis() {
+  cam = { x: camBase.x + camX, y: camBase.y + camY, z: camBase.z / camZoom };
+  _f = norm(sub(tgt, cam));
+  _r = norm(cross(_f, { x: 0, y: 1, z: 0 }));
+  _u = cross(_r, _f);
+}
+computeBasis();
 function sub(a, b) { return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z }; }
 function cross(a, b) { return { x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x }; }
 function norm(a) { const l = Math.hypot(a.x, a.y, a.z) || 1; return { x: a.x / l, y: a.y / l, z: a.z / l }; }
@@ -159,6 +168,7 @@ camBtn.onclick = () => {
 const hSpeed = document.getElementById("hSpeed");
 const hBounce = document.getElementById("hBounce");
 const hGrav = document.getElementById("hGrav");
+const hPov = document.getElementById("hPov");
 let landmarker = null, ready = false, handOn = false;
 let syncing = false, syncFrozen = null, syncT0 = 0, syncHold = 0;
 let gDown = false, gT0 = 0, gMoved = 0, gPX = 0, gPY = 0, gDrag = false, grabbed = false, attract = false;
@@ -217,6 +227,7 @@ function handRoom() {
   return { x: (handNX - 0.5) * 2 * RX, y: (0.5 - handNY) * 1.8 + 0.15, z: grabZ };
 }
 let grabZ = 0;
+let handSize = 0, baseSize = 0, handCX = 0.5, handCY = 0.5;
 
 /* ---------- main loop ---------- */
 let lastT = 0;
@@ -236,6 +247,14 @@ function loop(t) {
   pctx.clearRect(0, 0, W, H);
   handSeen = !!lm;
   if (lm) {
+    const _ix = 1 - lm[8].x, _iy = lm[8].y;
+    handNX += (_ix - handNX) * 0.4;
+    handNY += (_iy - handNY) * 0.4;
+    const _hsc = Math.hypot(lm[9].x - lm[0].x, lm[9].y - lm[0].y) || 1;
+    handCX += ((1 - lm[9].x) - handCX) * 0.25;
+    handCY += (lm[9].y - handCY) * 0.25;
+    const _hsz = Math.hypot(lm[0].x - lm[12].x, lm[0].y - lm[12].y);
+    handSize = handSize ? handSize + (_hsz - handSize) * 0.2 : _hsz;
     if (syncing) {
       if (!syncFrozen) { syncFrozen = TIPS.map(id => ({ x: 1 - lm[id].x, y: lm[id].y })); syncT0 = t; syncHold = 0; }
       else {
@@ -248,13 +267,11 @@ function loop(t) {
           syncing = false; plab.textContent = "HAND";
           pip.classList.add("gone");
           camBtn.classList.remove("on");
+          if (handSize > 0.01) baseSize = handSize;
         }
       }
     } else {
-      const nx = 1 - lm[8].x, ny = lm[8].y;
-      handNX += (nx - handNX) * 0.4;
-      handNY += (ny - handNY) * 0.4;
-      const hsc = Math.hypot(lm[9].x - lm[0].x, lm[9].y - lm[0].y) || 1;
+      const nx = _ix, ny = _iy, hsc = _hsc;
       const pinchD = Math.hypot(lm[4].x - lm[8].x, lm[4].y - lm[8].y) / hsc;
       const pinched = pinchD < 0.30;
       let open = 0;
@@ -310,6 +327,18 @@ function loop(t) {
       pctx.fillRect(8, H - 14, (W - 16) * Math.min(1, syncHold / 1200), 5);
     }
   } else if (syncing) { syncFrozen = null; }
+
+  /* POV follows the hand: dolly with hand size, sway with hand position */
+  if (handSeen && !syncing && baseSize > 0.01) {
+    const tz = Math.max(0.55, Math.min(1.9, handSize / baseSize));
+    camZoom += (tz - camZoom) * 0.06;
+    camX += ((0.5 - handCX) * 1.6 - camX) * 0.08;
+    camY += ((0.5 - handCY) * 1.0 - camY) * 0.08;
+  } else {
+    camZoom += (1 - camZoom) * 0.03;
+    camX *= 0.97; camY *= 0.97;
+  }
+  computeBasis();
 
   /* physics */
   if (!(gDown && grabbed)) {
@@ -441,6 +470,7 @@ function loop(t) {
   hSpeed.textContent = spd.toFixed(1);
   hBounce.textContent = bounces;
   hGrav.textContent = gravity > 4.5 ? "HEAVY" : gravity < 2 ? "FLOATY" : "MID";
+  hPov.textContent = Math.round(camZoom * 100) + "%";
 
   requestAnimationFrame(loop);
 }
