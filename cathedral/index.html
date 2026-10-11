@@ -114,6 +114,14 @@
   #forgeCard .fc-c { color:#e9e3cf; font-size:.82rem; font-family:'Courier New',monospace; margin:5px 0 9px; }
   #forgeCard .fc-row { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:6px; }
   #forgeCard .pbtn { min-height:38px; padding:7px 10px; font-size:10.5px; }
+
+  /* ===== v7: wired notes + note pin ===== */
+  #notePin { position:fixed; z-index:8; display:none; transform:translate(-50%,-135%); pointer-events:none;
+    background:rgba(6,7,11,.92); border:1px solid #ffd977; color:#f2ecdc; padding:7px 10px;
+    font-family:'Courier New',monospace; font-size:11px; line-height:1.5; text-align:center; white-space:nowrap; }
+  #notePin b { color:#ffd977; }
+  .wnote { color:#bdb395; font-size:.78rem; line-height:1.45; }
+  body.nonotes .wnote { display:none; }
 </style>
 <script type="importmap">
 { "imports": {
@@ -193,6 +201,20 @@ setTimeout(function () {
     <button class="pbtn" id="rotBtn">ROTATE 90°</button>
     <button class="pbtn" id="dupBtn">DUPLICATE</button>
     <button class="pbtn warn" id="delBtn">REMOVE</button></div>
+  <div class="prow"><span class="plab">OPERATIONS</span><span class="note">Every figure operation, measured from the figure itself.</span></div>
+  <div class="prow"><span class="plab">EXTEND</span>
+    <input type="range" id="extN" min="2" max="12" step="1" value="4"><span class="sval" id="extVal">4</span>
+    <button class="pbtn" id="extBtn">EXTEND →</button></div>
+  <div class="prow"><span class="wnote" id="extNote"></span></div>
+  <div class="prow"><span class="plab">MULTIPLY</span>
+    <input type="range" id="mulC" min="1" max="6" step="1" value="3"><input type="range" id="mulR" min="1" max="6" step="1" value="2"><span class="sval" id="mulVal">3 × 2</span>
+    <button class="pbtn" id="mulBtn">MULTIPLY ▦</button></div>
+  <div class="prow"><span class="wnote" id="mulNote"></span></div>
+  <div class="prow"><span class="plab">MIRROR</span>
+    <button class="pbtn" id="mirXBtn">ACROSS NAVE AXIS</button>
+    <button class="pbtn" id="mirZBtn">ACROSS CROSSING AXIS</button></div>
+  <div class="prow"><span class="plab">RATIO</span><span class="wnote" id="ratioNote"></span></div>
+
 </div>
 
 <div class="panel" id="panel-blueprint">
@@ -224,7 +246,21 @@ setTimeout(function () {
   <div class="prow"><span class="plab">ANATOMY</span>
     <button class="pbtn" id="anatBtn">ANATOMY — NUMBERED TOUR</button>
     <span class="note">Gold numbers from the anatomy plate, pinned to the living building. Tap one.</span></div>
-  <div class="prow"><span class="plab">CAMERA</span>
+  <div class="prow"><span class="plab">GYRO CENTER</span>
+    <button class="pbtn" id="gyroBtn">ENABLE GYRO</button><span class="sval" id="gyroState">OFF</span></div>
+  <div class="prow"><span class="wnote">The gold hub floats at the measured center of the frame, wired to its corners and feet. Drag the hub to turn the whole cathedral; tilt leans it. A building tap settles it level — no measurement is ever taken on a tilt.</span></div>
+  <div class="prow"><span class="plab">WIRED NOTES</span>
+    <button class="pbtn on" id="notesBtn">NOTES ON</button></div>
+  <div class="prow"><span class="plab">FRAME RATIO</span>
+    <button class="pbtn" data-fratio="1">1 : 1</button>
+    <button class="pbtn" data-fratio="1.25">5 : 4</button>
+    <button class="pbtn" data-fratio="1.333333">4 : 3</button>
+    <button class="pbtn" data-fratio="1.5">3 : 2</button>
+    <button class="pbtn on" data-fratio="1.6180339887">φ</button>
+    <button class="pbtn" data-fratio="2">2 : 1</button>
+    <button class="pbtn" id="frApply">APPLY TO FRAME</button></div>
+  <div class="prow"><span class="wnote" id="frNote">Ratio φ armed — APPLY rescales every figure and every coordinate about the crossing (0, 0), then the ledger re-measures.</span></div>
+<div class="prow"><span class="plab">CAMERA</span>
     <button class="pbtn" id="orbitBtn">AUTO-ORBIT</button>
     <button class="pbtn on" id="hapBtn">HAPTICS ON</button>
     <button class="pbtn" id="resetBtn">RESET VIEW</button></div>
@@ -264,6 +300,7 @@ setTimeout(function () {
   </div>
 </div>
 <div id="hotbar"><button class="slot" data-hot="pillar"><span class="g">PL</span><span class="n">PILLAR</span></button><button class="slot" data-hot="arch"><span class="g">AR</span><span class="n">ARCH</span></button><button class="slot" data-hot="wall"><span class="g">WA</span><span class="n">WALL</span></button><button class="slot" data-hot="buttress"><span class="g">BU</span><span class="n">BUTTR</span></button><button class="slot" data-hot="lancet"><span class="g">LA</span><span class="n">LANCET</span></button><button class="slot" data-hot="rose"><span class="g">RO</span><span class="n">ROSE</span></button><button class="slot" data-hot="portal"><span class="g">PO</span><span class="n">PORTAL</span></button><button class="slot" data-hot="pew"><span class="g">PW</span><span class="n">PEW</span></button><button class="slot" data-hot="floor"><span class="g">FL</span><span class="n">FLOOR</span></button></div>
+<div id="notePin"></div>
 <div id="anatomy"></div>
 <div class="dim" id="dimL"></div>
 <div class="dim" id="dimW"></div>
@@ -810,7 +847,7 @@ function animate() {
     if (fpsEMA < 42 && pixelCap > 1.0) { pixelCap = Math.max(1.0, pixelCap - 0.25); renderer.setPixelRatio(pixelCap); }
     if (openTab === 'measure') recount();
   }
-  controls.update();
+  controls.update(); frameStep();
   renderer.render(scene, camera);
 }
 window.__cathBooted = true;
@@ -1166,6 +1203,244 @@ function skeletonStart(kind) {
 document.querySelectorAll('[data-skel]').forEach(b => b.addEventListener('click', () => skeletonStart(b.dataset.skel)));
 applyRenderMode();
 setState('THE WIRE SKELETON — pick a SKELETON START in PARTS, or change this one · MATERIALIZE fleshes it');
+
+
+/* ============ V7 — GYRO CENTER · FIGURE OPERATIONS · WIRED NOTES ============ */
+const PHI = 1.618033988749895;
+/* measured size of any figure, from its rendered bounds — nothing catalogued, nothing guessed */
+function measure(it) {
+  const b = new THREE.Box3().setFromObject(it.group);
+  const s = new THREE.Vector3(); b.getSize(s);
+  return { w: s.x, h: s.y, d: s.z, box: b };
+}
+function ratioStr(w, h, d) {
+  const m = Math.min(w, h, d) || 1;
+  return (w / m).toFixed(2) + ' : ' + (h / m).toFixed(2) + ' : ' + (d / m).toFixed(2);
+}
+
+/* ---- the gyroscopic center, wired to the whole frame (the world group) ---- */
+const hub = new THREE.Group();
+const hubCore = new THREE.Mesh(new THREE.OctahedronGeometry(1),
+  new THREE.MeshStandardMaterial({ color: 0x8a6d1f, emissive: 0x442f00, metalness: 0.9, roughness: 0.3 }));
+hub.add(hubCore);
+const ringMat = new THREE.MeshBasicMaterial({ color: 0xffd977 });
+const ring1 = new THREE.Mesh(new THREE.TorusGeometry(1.7, 0.045, 8, 72), ringMat);
+const ring2 = new THREE.Mesh(new THREE.TorusGeometry(2.3, 0.045, 8, 72), ringMat);
+const ring3 = new THREE.Mesh(new THREE.TorusGeometry(2.9, 0.045, 8, 72), ringMat);
+ring2.rotation.x = Math.PI / 3; ring3.rotation.x = -Math.PI / 3;
+hub.add(ring1, ring2, ring3);
+scene.add(hub);
+const wireGeo = new THREE.BufferGeometry();
+wireGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(9 * 2 * 3), 3));
+const wires = new THREE.LineSegments(wireGeo, new THREE.LineBasicMaterial({ color: 0xffd977, transparent: true, opacity: 0.45 }));
+scene.add(wires);
+let hubC = { x: 0, y: 16, z: 0 }, hubScale = 3, lastCount = -1, lastScaleSig = '';
+function hubMeasure() {
+  if (!lastExtents || !items.length) return;
+  const sig = items.length + '|' + items.reduce((a, i) => a + i.group.scale.y, 0).toFixed(2);
+  hubC.x = (lastExtents.minX + lastExtents.maxX) / 2;
+  hubC.z = (lastExtents.minZ + lastExtents.maxZ) / 2;
+  hubScale = Math.max(1.6, Math.max(lastExtents.maxX - lastExtents.minX, lastExtents.maxZ - lastExtents.minZ) / 42);
+  if (sig !== lastScaleSig) {
+    lastScaleSig = sig;
+    let maxY = 0;
+    items.forEach(i => { const b = new THREE.Box3().setFromObject(i.group); if (b.max.y > maxY) maxY = b.max.y; });
+    hubC.y = Math.max(4, maxY / 2);
+  }
+  hub.position.set(hubC.x, hubC.y, hubC.z);
+  hub.scale.setScalar(hubScale);
+  const p = wireGeo.attributes.position.array;
+  const c = [[lastExtents.minX, lastExtents.minZ], [lastExtents.maxX, lastExtents.minZ], [lastExtents.maxX, lastExtents.maxZ], [lastExtents.minX, lastExtents.maxZ]];
+  let k = 0;
+  const put = (x, y, z) => { p[k++] = x; p[k++] = y; p[k++] = z; };
+  c.forEach(([x, z]) => { put(hubC.x, hubC.y, hubC.z); put(x, hubC.y, z); });          /* hub to the four corners */
+  c.forEach(([x, z]) => { put(hubC.x, hubC.y, hubC.z); put(x, 0, z); });                /* hub to the four feet */
+  put(hubC.x, hubC.y, hubC.z); put(hubC.x, 0, hubC.z);                                  /* the plumb line */
+  wireGeo.attributes.position.needsUpdate = true;
+}
+setInterval(hubMeasure, 900);
+
+/* frame motion: targets eased every tick. Gyro and hub-drag aim it; building settles it level. */
+let fTX = 0, fTZ = 0, fRY = 0, gyroFollow = false;
+function frameStep() {
+  if (!window.__v7Ready) return;
+  world.rotation.x += (fTX - world.rotation.x) * 0.08;
+  world.rotation.z += (fTZ - world.rotation.z) * 0.08;
+  world.rotation.y += (fRY - world.rotation.y) * 0.08;
+  ring1.rotation.y += 0.004;
+  ring2.rotation.y -= 0.004 * PHI;
+  ring3.rotation.y += 0.004 * PHI * PHI;
+  hubCore.rotation.y -= 0.002;
+}
+function settleFrame(why) {
+  fTX = 0; fTZ = 0; fRY = 0;
+  if (gyroFollow) { gyroFollow = false; document.getElementById('gyroState').textContent = 'PAUSED — frame level for building (' + why + ')'; }
+}
+setInterval(() => { if (bpMode && (fTX || fTZ || fRY)) { fTX = 0; fTZ = 0; fRY = 0; } }, 500);
+
+/* gyro — tilts the CENTER, the whole frame answers */
+const gyroBtn = document.getElementById('gyroBtn'), gyroState = document.getElementById('gyroState');
+let gyroOn = false;
+function onGyro(e) {
+  if (!gyroOn || !gyroFollow) return;
+  if (e.beta == null) return;
+  fTX = THREE.MathUtils.clamp((e.beta - 45) * 0.006, -0.20, 0.20);
+  fTZ = THREE.MathUtils.clamp((e.gamma || 0) * 0.006, -0.20, 0.20);
+}
+gyroBtn.addEventListener('click', async () => {
+  if (gyroOn) { gyroOn = false; gyroFollow = false; window.removeEventListener('deviceorientation', onGyro); settleFrame('gyro off'); gyroState.textContent = 'OFF'; gyroBtn.classList.remove('on'); return; }
+  try {
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+      const r = await DeviceOrientationEvent.requestPermission();
+      if (r !== 'granted') { gyroState.textContent = 'DENIED — frame stays level'; return; }
+    }
+  } catch (err) { gyroState.textContent = 'NO SENSOR — frame stays level'; return; }
+  gyroOn = true; gyroFollow = true;
+  window.addEventListener('deviceorientation', onGyro);
+  gyroState.textContent = 'LIVE — tilt the phone; the hub leans, the whole frame answers';
+  gyroBtn.classList.add('on'); haptic();
+});
+
+/* drag the hub itself: yaw the frame, pitch the frame */
+let hubDrag = null;
+canvas.addEventListener('pointerdown', e => {
+  ray.setFromCamera(ptr(e), camera);
+  const hit = ray.intersectObject(hub, true);
+  const ih = ray.intersectObjects(items.map(i => i.group), true);
+  const itemDist = ih.length ? ih[0].distance : Infinity;
+  if (hit.length && hit[0].distance <= itemDist + 0.5) {
+    hubDrag = { x: e.clientX, y: e.clientY };
+    controls.enabled = false;
+    setState('GYRO CENTER IN HAND — drag to turn the whole frame');
+    e.stopPropagation();
+  } else if (pickItem(e) || placing) settleFrame('building');
+}, true);
+canvas.addEventListener('pointermove', e => {
+  if (!hubDrag) return;
+  fRY += (e.clientX - hubDrag.x) * 0.005;
+  fTX = THREE.MathUtils.clamp(fTX + (e.clientY - hubDrag.y) * 0.003, -0.5, 0.5);
+  hubDrag = { x: e.clientX, y: e.clientY };
+  e.stopPropagation();
+}, true);
+window.addEventListener('pointerup', () => { if (hubDrag) { hubDrag = null; controls.enabled = true; setState('frame held at yaw ' + Math.round(THREE.MathUtils.radToDeg(world.rotation.y)) + '° — any build tap settles it level'); } });
+
+/* ---- figure operations, every number measured ---- */
+function cloneAt(it, x, z, rotY) {
+  const s = it.group.scale;
+  const c = addItem(it.type, x, z, rotY, [s.x, s.y, s.z], it.mat);
+  c.group.position.y = it.group.position.y;
+  return c;
+}
+function dirX(it) { const t = it.group.rotation.y; return { x: Math.cos(t), z: -Math.sin(t) }; }
+function dirZ(it) { const t = it.group.rotation.y; return { x: Math.sin(t), z: Math.cos(t) }; }
+function stepAlong(it, dir) { const m = measure(it); return Math.abs(dir.x) * m.w + Math.abs(dir.z) * m.d; }
+const extN = document.getElementById('extN'), extVal = document.getElementById('extVal'), extNote = document.getElementById('extNote');
+const mulC = document.getElementById('mulC'), mulR = document.getElementById('mulR'), mulVal = document.getElementById('mulVal'), mulNote = document.getElementById('mulNote');
+function opsNotes() {
+  if (!selected) {
+    extNote.textContent = 'Select a figure — its measured step appears here. Nothing is assumed.';
+    mulNote.textContent = 'Select a figure — quantity and spacing are computed from its rendered bounds.';
+    document.getElementById('ratioNote').textContent = 'No figure selected.';
+    return;
+  }
+  const m = measure(selected), dx = dirX(selected);
+  const step = stepAlong(selected, dx);
+  extVal.textContent = extN.value;
+  extNote.textContent = 'Run of ' + extN.value + ' · measured step ' + step.toFixed(2) + ' m · total run ' + (step * extN.value).toFixed(2) + ' m along the figure\u2019s facing.';
+  mulVal.textContent = mulC.value + ' × ' + mulR.value;
+  mulNote.textContent = 'Quantity ' + (mulC.value * mulR.value) + ' total (' + (mulC.value * mulR.value - 1) + ' added) · measured cells ' + m.w.toFixed(2) + ' × ' + m.d.toFixed(2) + ' m.';
+  document.getElementById('ratioNote').textContent =
+    PARTS[selected.type].name + ' measured ' + m.w.toFixed(2) + ' W × ' + m.h.toFixed(2) + ' H × ' + m.d.toFixed(2) + ' D m · ratio ' + ratioStr(m.w, m.h, m.d) +
+    ' · scale ' + selected.group.scale.x.toFixed(2) + '/' + selected.group.scale.y.toFixed(2) + '/' + selected.group.scale.z.toFixed(2) +
+    ' · at X ' + selected.group.position.x.toFixed(1) + ' · Z ' + selected.group.position.z.toFixed(1) + ' · rot ' + Math.round(THREE.MathUtils.radToDeg(selected.group.rotation.y)) + '°';
+}
+[extN, mulC, mulR].forEach(el => el.addEventListener('input', opsNotes));
+document.getElementById('extBtn').addEventListener('click', () => {
+  if (!selected) { setState('EXTEND — select a figure first'); return; }
+  if (placedGuard()) return;
+  const it = selected, dx = dirX(it), step = stepAlong(it, dx), n = parseInt(extN.value, 10);
+  for (let k = 1; k < n; k++) cloneAt(it, snap(it.group.position.x + dx.x * step * k), snap(it.group.position.z + dx.z * step * k), it.group.rotation.y);
+  recount(); setState('EXTENDED — run of ' + n + ' at a measured ' + step.toFixed(2) + ' m step'); haptic();
+});
+document.getElementById('mulBtn').addEventListener('click', () => {
+  if (!selected) { setState('MULTIPLY — select a figure first'); return; }
+  if (placedGuard()) return;
+  const it = selected, dx = dirX(it), dz = dirZ(it), m = measure(it);
+  const C = parseInt(mulC.value, 10), R = parseInt(mulR.value, 10);
+  for (let i = 0; i < C; i++) for (let j = 0; j < R; j++) {
+    if (!i && !j) continue;
+    cloneAt(it, snap(it.group.position.x + dx.x * m.w * i + dz.x * m.d * j), snap(it.group.position.z + dx.z * m.w * i + dz.z * m.d * j), it.group.rotation.y);
+  }
+  recount(); setState('MULTIPLIED — ' + (C * R) + ' figures on measured ' + m.w.toFixed(2) + ' × ' + m.d.toFixed(2) + ' m cells'); haptic();
+});
+function placedGuard() {
+  if (items.length >= 400) { setState('FORGE BUDGET FULL — 400 / 400 objects'); return true; }
+  return false;
+}
+document.getElementById('mirXBtn').addEventListener('click', () => {
+  if (!selected) { setState('MIRROR — select a figure first'); return; }
+  const it = selected, p = it.group.position;
+  const c = cloneAt(it, -p.x, p.z, -it.group.rotation.y);
+  select(c); setState('MIRRORED ACROSS THE NAVE AXIS — partner at X ' + (-p.x).toFixed(1) + ' (was ' + p.x.toFixed(1) + ')'); haptic();
+});
+document.getElementById('mirZBtn').addEventListener('click', () => {
+  if (!selected) { setState('MIRROR — select a figure first'); return; }
+  const it = selected, p = it.group.position;
+  const c = cloneAt(it, p.x, -p.z, Math.PI - it.group.rotation.y);
+  select(c); setState('MIRRORED ACROSS THE CROSSING AXIS — partner at Z ' + (-p.z).toFixed(1) + ' (was ' + p.z.toFixed(1) + ')'); haptic();
+});
+
+/* ---- the scaling ratio, applied to the whole frame about the crossing ---- */
+let frameRatio = PHI;
+document.querySelectorAll('[data-fratio]').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('[data-fratio]').forEach(x => x.classList.toggle('on', x === b));
+  frameRatio = parseFloat(b.dataset.fratio);
+  document.getElementById('frNote').textContent = 'Ratio ' + b.textContent + ' armed — APPLY rescales every figure and every coordinate about the crossing (0, 0), then the ledger re-measures.';
+}));
+document.getElementById('frApply').addEventListener('click', () => {
+  if (!items.length) return;
+  const before = lastExtents ? (lastExtents.maxZ - lastExtents.minZ) : 0;
+  items.forEach(it => {
+    const g = it.group;
+    g.position.x *= frameRatio; g.position.z *= frameRatio; g.position.y *= frameRatio;
+    g.scale.multiplyScalar(frameRatio);
+  });
+  recount();
+  const after = lastExtents ? (lastExtents.maxZ - lastExtents.minZ) : 0;
+  document.getElementById('frNote').textContent = 'Applied × ' + frameRatio.toFixed(4) + ' — frame length measured ' + before.toFixed(2) + ' m → ' + after.toFixed(2) + ' m. Every figure rescaled; nothing estimated.';
+  setState('FRAME RESCALED × ' + frameRatio.toFixed(4) + ' — re-measured in the ledger'); haptic();
+});
+
+/* ---- wired notes: a live note pinned to the selected figure ---- */
+const notePin = document.getElementById('notePin');
+let notesOn = true, lastSelSig = '';
+document.getElementById('notesBtn').addEventListener('click', () => {
+  notesOn = !notesOn;
+  document.getElementById('notesBtn').classList.toggle('on', notesOn);
+  document.body.classList.toggle('nonotes', !notesOn);
+  notePin.style.display = 'none';
+});
+function notePinLoop() {
+  requestAnimationFrame(notePinLoop);
+  if (!notesOn || !selected) { notePin.style.display = 'none'; return; }
+  const m = measure(selected), p = selected.group.position;
+  const sig = selected.id + '|' + p.x.toFixed(1) + '|' + p.z.toFixed(1) + '|' + selected.group.scale.x.toFixed(2) + '|' + Math.round(THREE.MathUtils.radToDeg(selected.group.rotation.y));
+  if (sig !== lastSelSig) {
+    lastSelSig = sig;
+    notePin.innerHTML = '<b>' + PARTS[selected.type].name.toUpperCase() + '</b> · ' + m.w.toFixed(2) + ' × ' + m.h.toFixed(2) + ' × ' + m.d.toFixed(2) + ' m<br>ratio ' + ratioStr(m.w, m.h, m.d) + ' · X ' + p.x.toFixed(1) + ' · Z ' + p.z.toFixed(1);
+    opsNotes();
+  }
+  const v = new THREE.Vector3();
+  selected.group.getWorldPosition(v); v.y += m.h + 2.2;
+  v.project(camera);
+  if (v.z > 1) { notePin.style.display = 'none'; return; }
+  notePin.style.display = 'block';
+  notePin.style.left = ((v.x * 0.5 + 0.5) * innerWidth) + 'px';
+  notePin.style.top = ((-v.y * 0.5 + 0.5) * innerHeight) + 'px';
+}
+window.__v7Ready = true;
+notePinLoop();
+opsNotes();
 
 </script>
 </body>
