@@ -9,9 +9,14 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: #060608; color: #f6f1e3; font-family: Georgia, 'Times New Roman', serif; line-height: 1.7; }
   body { text-shadow: 0 1px 4px rgba(0,0,0,0.95), 0 0 18px rgba(0,0,0,0.6); }
-  body::before { content: ""; position: fixed; inset: 0; z-index: -1; background: url('img/fiddler_bg.jpg') center center / contain no-repeat; opacity: 0.5; filter: hue-rotate(var(--hue, 0deg)); transition: filter 0.25s linear; transform: translateZ(0); }
+  body::before { content: ""; position: fixed; inset: 0; z-index: -1; background: url('img/fiddler_vortex_bg.jpg') center center / contain no-repeat; opacity: 0.5; filter: hue-rotate(var(--hue, 0deg)); transition: filter 0.25s linear, opacity 1.2s ease; transform: translateZ(0); }
   .piece img, .hero img { border-color: #4a3f2a; }
 
+
+  body::after { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; background: url('img/fiddler_vortex_bg.jpg') center bottom / cover no-repeat; opacity: 0; filter: hue-rotate(var(--hue, 0deg)); transition: opacity 1.2s ease; transform: translateZ(0); }
+  body.story-on::after { opacity: 0.55; }
+  body.story-on::before { opacity: 0.22; }
+  @media (prefers-reduced-motion: reduce) { body::before, body::after { transition: none; } }
   #rail { position: fixed; top: 0; left: 0; right: 0; height: 26px; z-index: 40; pointer-events: none; }
   #rail::before { content: ""; position: absolute; left: 4%; right: 4%; top: 12px; height: 2px; background: linear-gradient(90deg, #4a3f2a, #8a7a4d, #4a3f2a); opacity: 0.8; }
   #rail .st { position: absolute; top: 8px; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; border: 1px solid #8a7a4d; background: #0a0a0e; }
@@ -118,7 +123,7 @@
   <p>His work has been built for the browser, the headset, and the gallery wall — always with the same method: define the lock, generate within it, keep only what survives.</p>
 </section>
 
-<section class="text">
+<section class="text" id="storySec">
   <h2>The Story — a dialogue</h2>
   <p class="scene">Dreamers: the Conductor, the Traveler. Scene: a platform of combed light.</p>
   <p><span class="spk">Conductor:</span> Ticket.</p>
@@ -246,6 +251,15 @@
       btn.textContent = '✦ NO SENSOR — SCROLL ONLY';
     }
   });
+
+  /* ---- story transition: the lower half rises ---- */
+  var storySec = document.getElementById('storySec');
+  if (storySec && 'IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) { document.body.classList.toggle('story-on', en.isIntersecting); });
+    }, { threshold: 0.12 });
+    io.observe(storySec);
+  }
 
   /* ---- lightbox ---- */
   var imgs = Array.prototype.slice.call(document.querySelectorAll('.hero img, .piece img'));
