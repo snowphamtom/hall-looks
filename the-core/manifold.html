@@ -768,4 +768,77 @@ document.getElementById('gyroBtn').addEventListener('click', async () => {
 })();
 
 </script>
+<script>
+
+/* ===== EVERY CLAIM, WIRED TO THE CORE =====
+   Each measure card becomes a demonstration: tap it and the Core itself shows
+   the claim, driven entirely through the public controls. The deck then folds
+   away so the change is what you see. */
+(function () {
+  var deck = document.getElementById('deck');
+  var tray = document.getElementById('tray');
+  var stateEl = document.getElementById('state');
+  var cv = document.getElementById('cv');
+  if (!deck) return;
+  function q(sel) { return document.querySelector(sel); }
+  function click(sel) { var el = q(sel); if (el) el.click(); }
+  function ensureOn(id) { var el = document.getElementById(id); if (el && !el.classList.contains('on')) el.click(); }
+  function ensureOff(id) { var el = document.getElementById(id); if (el && el.classList.contains('on')) el.click(); }
+  function say(t) { if (stateEl) stateEl.textContent = t; }
+  function foldAway() {
+    setTimeout(function () {
+      deck.classList.remove('open');
+      if (tray) tray.classList.add('hidden');
+    }, 500);
+  }
+  function tapCenter() {
+    if (!cv) return;
+    var x = window.innerWidth / 2, y = window.innerHeight / 2;
+    [ 'pointerdown', 'pointerup' ].forEach(function (t) {
+      cv.dispatchEvent(new PointerEvent(t, { pointerId: 555, isPrimary: true, bubbles: true, cancelable: true, clientX: x, clientY: y, pointerType: 'touch' }));
+    });
+  }
+  var demos = [
+    [/DEFAULT STATE/, function () { click('#resetBtn'); ensureOn('spinBtn'); say('SHOWING: THE MEASURED UNIVERSE — view reset to the default state, speed 529:148.'); }],
+    [/DOOR CENSUS/, function () {
+      say('SHOWING: THE DOOR CENSUS — cycling the three piles: Clean 360, Wider 3,584, Floor 3,196.');
+      var seq = ['clean', 'wider', 'floor', 'all'], i = 0;
+      (function step() { click('[data-cls="' + seq[i] + '"]'); i++; if (i < seq.length) setTimeout(step, 1150); })();
+    }],
+    [/DISTANCE CENSUS/, function () { click('[data-ecolor="dist"]'); click('[data-estyle="arc"]'); say('SHOWING: DISTANCE — edges now colored by pair distance and drawn as arcs. D4 carries the most doors: 2,548.'); }],
+    [/TWO SINKS/, function () { click('#tourBtn'); say('SHOWING: THE TWO SINKS — touring 31 (162 doors), then 63 (141), then the 155 tie. Watch the readouts.'); }],
+    [/TOLLBOOTH/, function () { click('[data-layout="strata"]'); click('[data-label="all"]'); say('SHOWING: THE TOLLBOOTH — the strata view separates the masks by popcount. In the weight-2 stratum, masks 3, 5, 9 each carry exactly 134.'); }],
+    [/KIRCHHOFF/, function () { click('#tourBtn'); say('SHOWING: KIRCHHOFF — at every stop of the tour, hallways in equal sink doors out. Node 31: 324 = 162 + 162.'); }],
+    [/SPECTRUM W/, function () { ensureOn('ribbonBtn'); say('SHOWING: SPECTRUM W — the ribbon under the Core draws all 48 eigenvalues, 299.358 down to −129.871.'); }],
+    [/SPECTRUM T/, function () { ensureOn('pulsesBtn'); var sp = document.getElementById('speed'); if (sp) { sp.value = 170; sp.dispatchEvent(new Event('input', { bubbles: true })); } say('SHOWING: SPECTRUM T — the transition operator at work: flow pulses, quickened. T is the river, W the banks.'); }],
+    [/FLOW CENSUS/, function () { ensureOn('pulsesBtn'); ensureOn('spinBtn'); say('SHOWING: THE FLOW CENSUS — 12,528 transitions, every one accounted: the pulses ride the 7,140 that became doors.'); }],
+    [/H₁₄|H14/, function () { click('[data-label="binary"]'); say('SHOWING: H₁₄ — every node now wears its 7-bit name. Each column weighs exactly 8 of 14.'); }],
+    [/LYNCHPIN/, function () { click('[data-skin="wire"]'); ensureOn('cageBtn'); click('#coreBtn'); say('SHOWING: THE LYNCHPIN GEOMETRY — the wireframe skin, the cage, and the turning core: one angle, 53.130102°, organizes them all.'); }],
+    [/QUADS & MIDPOINTS/, function () { click('[data-layout="ring"]'); say('SHOWING: QUADS & MIDPOINTS — the ring lays the pairs around a circle; the doors fold into 1,785 quads, their sums on 83 midpoints.'); }],
+    [/PLATES/, function () { click('[data-scheme="blueprint"]'); say('SHOWING: THE PLATES — the Core redrawn as a blueprint plate. The outside eye graded 54 of 56 claims exact.'); }],
+    [/FRACTAL/, function () { click('[data-mesh="dense"]'); click('[data-skin="wire"]'); say('SHOWING: FRACTAL STRUCTURE — the dense mesh and wireframe skin: box-counting gave the mirror D = 1.756.'); }],
+    [/LIGHT, MEASURED/, function () { click('[data-scheme="iridescent"]'); say('SHOWING: THE FOOLS’ LIGHT — the iridescent scheme: one constant source, shadows north, the Table’s shimmer strongest at 0.43%.'); }],
+    [/VAULT REGISTER/, function () { click('[data-layout="strata"]'); say('SHOWING: THE VAULT REGISTER — strata, as the register files them: 1,017 admitted, 522 reflected, 5 held, 1 refused.'); }],
+    [/FROZEN DRIVE/, function () { click('[data-mesh="sparse"]'); ensureOff('starsBtn'); say('SHOWING: THE FROZEN DRIVE — the field thinned to its map: 3,696 items, 38.5% of the bytes an echo.'); }],
+    [/REACTIONS/, function () { click('#showBtn'); say('SHOWING: REACTIONS — the showcase cycles the Core through its schemes and shapes. Tap the Core to stop it.'); }],
+    [/PUPIL CHAIN/, function () { ensureOn('pupilBtn'); say('SHOWING: THE PUPIL CHAIN — you are now looking through the hole every angle arrived by: Ø 2–8 mm, inverted, bent, scattered.'); }],
+    [/CAPSTONE/, function () { click('#resetBtn'); ensureOn('spinBtn'); tapCenter(); say('THE CAPSTONE — measure what is left over after an interaction; admit only what fits inside that leftover; otherwise refuse and record the refusal.'); }]
+  ];
+  deck.querySelectorAll('.mcard').forEach(function (card) {
+    var t = card.querySelector('.mtitle');
+    if (!t) return;
+    var title = t.textContent;
+    var demo = null;
+    demos.forEach(function (d) { if (d[0].test(title)) demo = d[1]; });
+    if (!demo) return;
+    card.style.cursor = 'pointer';
+    var hint = document.createElement('div');
+    hint.textContent = '▶ SHOW IT ON THE CORE';
+    hint.style.cssText = 'margin-top:8px;font-family:Courier New,monospace;font-size:10px;letter-spacing:.18em;color:#ffd977;';
+    card.appendChild(hint);
+    card.addEventListener('click', function () { demo(); foldAway(); });
+  });
+})();
+
+</script>
 </body></html>
