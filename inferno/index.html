@@ -8,7 +8,7 @@
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: #060608; color: #e8e4da; font-family: Georgia, 'Times New Roman', serif; line-height: 1.7; }
-  body::before { content: ""; position: fixed; inset: 0; z-index: -1; background: url('img/fiddler_bg.jpg') center center / contain no-repeat; opacity: 0.5; }
+  body::before { content: ""; position: fixed; inset: 0; z-index: -1; background: url('img/fiddler_bg.jpg') center center / contain no-repeat; opacity: 0.5; filter: hue-rotate(var(--hue, 0deg)); transition: filter 0.25s linear; transform: translateZ(0); }
   .piece img, .hero img { border-color: #4a3f2a; }
   .scene { font-style: italic; color: #9a937f; margin-bottom: 22px; }
   .spk { color: #d8c690; letter-spacing: 0.14em; font-size: 0.82rem; text-transform: uppercase; }
@@ -144,5 +144,29 @@
   <a href="https://github.com/snowphamtom/inferno">github.com/snowphamtom/inferno</a>
 </footer>
 
+<script>
+(function () {
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var root = document.documentElement, target = 0, current = 0, ticking = false;
+  function measure() {
+    var max = root.scrollHeight - window.innerHeight;
+    var y = window.scrollY || window.pageYOffset || 0;
+    target = max > 0 ? (y / max) * 360 : 0;
+  }
+  function frame() {
+    current += (target - current) * 0.12;
+    if (Math.abs(target - current) < 0.05) current = target;
+    root.style.setProperty('--hue', current.toFixed(1) + 'deg');
+    if (current !== target) requestAnimationFrame(frame); else ticking = false;
+  }
+  function onScroll() {
+    measure();
+    if (!ticking) { ticking = true; requestAnimationFrame(frame); }
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', onScroll, { passive: true });
+  measure();
+})();
+</script>
 </body>
 </html>
