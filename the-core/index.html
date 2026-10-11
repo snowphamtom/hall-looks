@@ -63,10 +63,10 @@
 </head>
 <body>
 
-<header>
+<header id="top">
   <h1>THE CORE</h1>
   <p class="sub">AN EXHIBIT OF THE 7,140-DOOR SYSTEM &middot; TAYLOR HELLER</p>
-  <p style="margin-top:14px; font-style:italic; color:#b8b198; font-size:0.95rem;">How to read this room: begin with the living manifold, then the measurements, the gems, the plates graded in the open, and the receipts. The last line is the law the whole system obeys.</p>
+  <p style="margin-top:14px; font-style:italic; color:#b8b198; font-size:0.95rem;">How to read this room: begin with the living manifold, then the measurements, the gems, the plates graded in the open, the refusals, and the receipts; the map hangs last. The final line is the law the whole system obeys.</p>
   <div class="stats">
     <span><b>48</b> MASKS</span>
     <span><b>1,128</b> PAIRS</span>
@@ -77,7 +77,7 @@
   </div>
 </header>
 
-<div class="frameWrap">
+<div class="frameWrap" id="frame">
   <iframe src="manifold.html" title="The Spatial Manifold — the 7,140-door system, interactive" loading="eager"></iframe>
 </div>
 <div style="text-align:center; margin: 14px auto 2px;"><button id="enterBtn" type="button" style="background:rgba(10,10,14,0.6); color:#ffd977; border:1px solid #6b5d3f; padding:12px 24px; letter-spacing:0.22em; font-size:0.82rem; cursor:pointer; border-radius:999px; font-family:Georgia,serif;">ENTER THE MANIFOLD &mdash; FULL SCREEN</button></div>
@@ -86,9 +86,36 @@
 <div style="text-align:center; margin: 30px auto 4px; max-width: 900px; padding: 0 16px;">
   <p style="letter-spacing:0.3em; font-size:0.8rem; color:#d8d2ba; margin-bottom:12px;">THE MENU &mdash; EVERY FIGURE, ITS MATH, ITS PROOF</p>
   <a href="https://github.com/snowphamtom/hall-looks/blob/main/the-core/MATH_AND_PROOFS.md" target="_blank" rel="noopener" style="display:inline-block; color:#ffd977; border:1px solid #6b5d3f; padding:12px 24px; letter-spacing:0.2em; font-size:0.82rem; text-decoration:none; border-radius:999px; background:rgba(10,10,14,0.6); margin: 0 6px 8px;">READ THE MENU</a>
+  <button id="tourBtn" type="button" style="display:inline-block; color:#ffd977; border:1px solid #6b5d3f; padding:12px 24px; letter-spacing:0.2em; font-size:0.82rem; cursor:pointer; border-radius:999px; background:rgba(10,10,14,0.6); margin: 0 6px 8px; font-family:Georgia,serif;">&#9654; TOUR THE EXHIBIT</button>
   <a href="MATH_AND_PROOFS.md" style="display:inline-block; color:#ddd6bf; border:1px solid #2e2716; padding:12px 24px; letter-spacing:0.2em; font-size:0.82rem; text-decoration:none; border-radius:999px; background:rgba(10,10,14,0.6); margin: 0 6px 8px;">DOWNLOAD (.MD)</a>
 </div>
-<section>
+<!-- ===== THE DOOR ===== -->
+<section id="secDoor">
+  <h2>THE DOOR &mdash; TRY THE PREDICATE</h2>
+  <p class="lede">Four numbers. The system itself answers &mdash; this checker is the filed predicate, and on load it re-enumerates the entire system in your browser.</p>
+  <div style="max-width:640px; margin:0 auto; border:1px solid #2e2716; background:rgba(12,12,16,0.72); padding:24px;">
+    <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:center; align-items:end;">
+      <label style="font-family:'Courier New',monospace; font-size:0.8rem; color:#c9c2a6;">a<br><input id="inA" type="number" value="3" style="width:70px; background:#0a0a0e; border:1px solid #4a3f2a; color:#f5efdb; padding:9px; font-family:'Courier New',monospace; font-size:1rem; text-align:center;"></label>
+      <label style="font-family:'Courier New',monospace; font-size:0.8rem; color:#c9c2a6;">b<br><input id="inB" type="number" value="13" style="width:70px; background:#0a0a0e; border:1px solid #4a3f2a; color:#f5efdb; padding:9px; font-family:'Courier New',monospace; font-size:1rem; text-align:center;"></label>
+      <label style="font-family:'Courier New',monospace; font-size:0.8rem; color:#c9c2a6;">c (via)<br><input id="inC" type="number" value="11" style="width:70px; background:#0a0a0e; border:1px solid #4a3f2a; color:#f5efdb; padding:9px; font-family:'Courier New',monospace; font-size:1rem; text-align:center;"></label>
+      <label style="font-family:'Courier New',monospace; font-size:0.8rem; color:#c9c2a6;">d (into)<br><input id="inD" type="number" value="5" style="width:70px; background:#0a0a0e; border:1px solid #4a3f2a; color:#f5efdb; padding:9px; font-family:'Courier New',monospace; font-size:1rem; text-align:center;"></label>
+      <button id="doorBtn" type="button" style="background:rgba(10,10,14,0.6); color:#ffd977; border:1px solid #6b5d3f; padding:11px 20px; letter-spacing:0.18em; font-size:0.8rem; cursor:pointer; border-radius:999px; font-family:Georgia,serif;">CHECK</button>
+    </div>
+    <p style="text-align:center; margin-top:14px; font-family:'Courier New',monospace; font-size:0.8rem; color:#8f8875;">a + b &minus; c = d &middot; the operation every door performs</p>
+    <div id="doorVerdict" style="text-align:center; font-size:1.5rem; letter-spacing:0.28em; margin-top:16px; color:#f5efdb;">&mdash;</div>
+    <p id="doorDetail" style="text-align:center; color:#d8d2ba; font-size:0.95rem; margin-top:6px;"></p>
+    <p id="pairInfo" style="text-align:center; color:#c9c2a6; font-family:'Courier New',monospace; font-size:0.85rem; margin-top:10px;"></p>
+    <div style="display:flex; gap:10px; justify-content:center; margin-top:16px; flex-wrap:wrap;">
+      <button id="demoDoor" type="button" style="background:none; color:#ddd6bf; border:1px solid #2e2716; padding:8px 16px; letter-spacing:0.14em; font-size:0.75rem; cursor:pointer; border-radius:999px; font-family:Georgia,serif;">A TRUE DOOR</button>
+      <button id="demoNever" type="button" style="background:none; color:#ddd6bf; border:1px solid #2e2716; padding:8px 16px; letter-spacing:0.14em; font-size:0.75rem; cursor:pointer; border-radius:999px; font-family:Georgia,serif;">A NEVER PAIR</button>
+      <button id="demoLoose" type="button" style="background:none; color:#ddd6bf; border:1px solid #2e2716; padding:8px 16px; letter-spacing:0.14em; font-size:0.75rem; cursor:pointer; border-radius:999px; font-family:Georgia,serif;">THE LOOSE QUADRUPLE (3,3,3,3)</button>
+    </div>
+    <p id="censusLine" style="text-align:center; color:#ffd977; font-family:'Courier New',monospace; font-size:0.82rem; margin-top:18px;">IN-BROWSER CENSUS: RUNNING&hellip;</p>
+  </div>
+</section>
+
+
+<section id="secMeasure">
   <h2>EXHIBIT 01 &middot; THE MEASUREMENTS</h2>
   <p class="lede">Every number below was recomputed from the system&rsquo;s 48 integers. Nothing is quoted.</p>
   <div class="cards">
@@ -105,7 +132,7 @@
   </div>
 </section>
 
-<section>
+<section id="secGems">
   <h2>EXHIBIT 02 &middot; SEVENTEEN GEMS</h2>
   <p class="lede">Derived from the system, then verified. Each one survived its own check.</p>
   <ol class="gems">
@@ -129,7 +156,7 @@
   </ol>
 </section>
 
-<section>
+<section id="secPlates">
   <h2>EXHIBIT 03 &middot; THE PLATES, GRADED</h2>
   <div class="wide">
     <p>Ten plates rendering this system were produced independently and later checked, claim by claim, against recomputation. <b>54 of 56 checkable claims are exact &mdash; 96.4%.</b> The exhibit prints its corrections:</p>
@@ -139,8 +166,26 @@
   </div>
 </section>
 
-<section>
-  <h2>EXHIBIT 04 &middot; THE RECEIPTS</h2>
+<!-- ===== EXHIBIT 04 · THE REFUSALS ===== -->
+<section id="secRefusals">
+  <h2>EXHIBIT 04 &middot; THE REFUSALS</h2>
+  <p class="lede">What the system would not admit, and what we would not claim. A ledger that hides its refusals is not a ledger.</p>
+  <div class="cards">
+    <div class="card"><h3>The Refused Reflection</h3>
+      <svg viewBox="0 0 300 64" style="width:100%; margin:6px 0 10px;" role="img" aria-label="Reflection keeps 3780, refuses 3360">
+        <rect x="0" y="8" width="159" height="16" fill="#a8894a"/><rect x="159" y="8" width="141" height="16" fill="#3a3423"/>
+        <text x="0" y="46" fill="#f5efdb" font-size="11" font-family="Courier New">KEPT 3,780</text>
+        <text x="300" y="46" fill="#c9c2a6" font-size="11" font-family="Courier New" text-anchor="end">REFUSED 3,360</text>
+      </svg>
+      <p>Reflection through the window&rsquo;s center (m &rarr; 100 &minus; m) preserves only 52.9% of the doors. It looks like a symmetry and is not one. Recorded as refused &mdash; Gem 15.</p></div>
+    <div class="card"><h3>The Refused Rhyme</h3><p class="big">14,280 = 14,280</p><p>Twice the same number, by two unrelated mechanisms &mdash; H&#8321;&#8324;&rsquo;s signed-triple alias count, and a transition total. A rhyme is not a reason. No identity claimed &mdash; Gem 16.</p></div>
+    <div class="card"><h3>The True Thing&rsquo;s Edge</h3><p class="big">H&#8321;&#8324; IS PAIR-PERFECT &mdash; NOT TRIPLE-PERFECT</p><p>Its decoder repairs every signed single and pair uniquely, then aliases on 14,280 signed triples, each one completing a door. The stronger v4 construction posts 0 at that gate. Even verified things have edges; the exhibit marks this one.</p></div>
+    <div class="card"><h3>The Mislabeled Portraits</h3><p>The heatmap wears W&rsquo;s title over T&rsquo;s pixels; the spectrum bars decode to no operator at all. Both hang in Exhibit 03 with their corrections printed beside them &mdash; refused as evidence for what they claim, kept as evidence of the grading.</p></div>
+  </div>
+</section>
+
+<section id="secReceipts">
+  <h2>EXHIBIT 05 &middot; THE RECEIPTS</h2>
   <p class="lede">Eight applications. First-named inventor: Taylor Wolfe Heller &middot; Monsters Ink LLC.</p>
   <ul class="receipts">
     <li><span class="no">63/988,462</span><span>filed Feb 23, 2026</span></li>
@@ -158,22 +203,217 @@
   <a href="https://muse.ai/s/a-window-that-acts-like-a-door-xaxc6wlxzxjhxyvg" target="_blank" rel="noopener">TRY A DOOR &mdash; ONLY REAL DOORS OPEN</a>
 </div>
 
+<div style="text-align:center; margin: 54px auto 4px; max-width: 940px; padding: 0 16px;">
+  <p style="letter-spacing:0.3em; font-size:0.8rem; color:#d8d2ba; margin-bottom:6px;">THE EVIDENCE &mdash; DON&rsquo;T TRUST THE SEALS, RUN THEM</p>
+  <p style="font-style:italic; color:#b8b198; font-size:0.93rem; margin-bottom:14px;">The data, the generator, and the suites that produced every figure on this page.</p>
+  <a href="core_compact.json" style="display:inline-block; color:#ddd6bf; border:1px solid #2e2716; padding:10px 20px; letter-spacing:0.16em; font-size:0.78rem; text-decoration:none; border-radius:999px; background:rgba(10,10,14,0.6); margin:0 4px 8px;">THE DATA &middot; core_compact.json</a>
+  <a href="doors_generate.py" style="display:inline-block; color:#ddd6bf; border:1px solid #2e2716; padding:10px 20px; letter-spacing:0.16em; font-size:0.78rem; text-decoration:none; border-radius:999px; background:rgba(10,10,14,0.6); margin:0 4px 8px;">THE GENERATOR &middot; doors_generate.py</a>
+  <a href="core_engine.py" style="display:inline-block; color:#ddd6bf; border:1px solid #2e2716; padding:10px 20px; letter-spacing:0.16em; font-size:0.78rem; text-decoration:none; border-radius:999px; background:rgba(10,10,14,0.6); margin:0 4px 8px;">ENGINE 34/34</a>
+  <a href="h14_verify.py" style="display:inline-block; color:#ddd6bf; border:1px solid #2e2716; padding:10px 20px; letter-spacing:0.16em; font-size:0.78rem; text-decoration:none; border-radius:999px; background:rgba(10,10,14,0.6); margin:0 4px 8px;">H&#8321;&#8324; 8/8</a>
+  <a href="never_pairs_verify.py" style="display:inline-block; color:#ddd6bf; border:1px solid #2e2716; padding:10px 20px; letter-spacing:0.16em; font-size:0.78rem; text-decoration:none; border-radius:999px; background:rgba(10,10,14,0.6); margin:0 4px 8px;">NEVER PAIRS 7/7</a>
+  <a href="gems2_verify.py" style="display:inline-block; color:#ddd6bf; border:1px solid #2e2716; padding:10px 20px; letter-spacing:0.16em; font-size:0.78rem; text-decoration:none; border-radius:999px; background:rgba(10,10,14,0.6); margin:0 4px 8px;">GEMS 6/6</a>
+</div>
+
+<section id="secMap">
+  <h2>EXHIBIT 06 &middot; THE MAP</h2>
+  <p class="lede">The same system drawn flat &mdash; all 1,128 pair-lines drawn and measured, the 184 never pairs dashed. A measurement drawing, not a simulation.</p>
+</section>
+<div class="frameWrap">
+  <iframe src="map.html" title="The Spatial Measurement Graph — the 7,140-door system drawn flat" loading="lazy" style="height:80vh;"></iframe>
+</div>
+
 <div style="max-width:1000px; margin: 56px auto 0; padding: 16px 20px; border-top:1px solid #2e2716; border-bottom:1px solid #2e2716; text-align:center; font-family:'Courier New',monospace; font-size:0.88rem; color:#ffd977;">
   RECOMPUTED AND SEALED &middot; OCT 11, 2026 &middot; CORE ENGINE 34/34 &middot; CORE FULL 37/37 &middot; H&#8321;&#8324; 8/8 &middot; NEVER PAIRS 7/7 &middot; GEMS 6/6 &middot; STARTING LINE ALL PASS
 </div>
-<p class="canon">&ldquo;Measure what is left over after an interaction; admit only what fits inside that leftover; otherwise refuse and record the refusal.&rdquo;</p>
+<p class="canon" id="canon">&ldquo;Measure what is left over after an interaction; admit only what fits inside that leftover; otherwise refuse and record the refusal.&rdquo;</p>
 
 <footer>
   THE CORE &middot; TAYLOR HELLER &middot; MONSTERS INK LLC &middot; MMXXVI<br><span style="font-family:'Courier New',monospace; font-size:0.78rem;">LIVE EXHIBIT: SNOWPHAMTOM.GITHUB.IO/HALL-LOOKS/THE-CORE/</span>
 </footer>
 
 
+<div id="tourCap" style="display:none; position:fixed; left:50%; transform:translateX(-50%); bottom:18px; z-index:70; max-width:min(92vw, 640px); background:rgba(6,6,10,0.92); border:1px solid #6b5d3f; padding:14px 22px; text-align:center; cursor:pointer;">
+  <div id="tourCapTitle" style="color:#ffd977; letter-spacing:0.26em; font-size:0.8rem;"></div>
+  <div id="tourCapLine" style="color:#f2ecdc; font-style:italic; margin-top:5px; font-size:0.98rem;"></div>
+  <div style="color:#8f8875; font-family:'Courier New',monospace; font-size:0.7rem; margin-top:6px;">TAP TO STOP &middot; ESC TO STOP</div>
+</div>
 <script>
 document.getElementById('enterBtn').addEventListener('click', function () {
   var f = document.querySelector('.frameWrap iframe');
   if (f && f.requestFullscreen) { f.requestFullscreen().catch(function () { window.location.href = 'manifold.html'; }); }
   else { window.location.href = 'manifold.html'; }
 });
+</script>
+<script>
+/* THE DOOR — the filed predicate, ported line for line from doors_generate.py + never_pairs_verify.py */
+var MASKS = [];
+for (var m = 3; m <= 97; m += 2) MASKS.push(m);
+var MSET = {};
+MASKS.forEach(function (v) { MSET[v] = true; });
+function pc(n) { var c = 0; while (n) { c += n & 1; n >>= 1; } return c; }
+function splits(a, b) {
+  var o = a & b, x = a ^ b, out = [], u = x;
+  while (true) { out.push([o | u, o | (x ^ u)]); if (u === 0) break; u = (u - 1) & x; }
+  return out;
+}
+function verdict(a, b, c, d) {
+  if (c === a || c === b || d === a || d === b) return 'SELF';
+  if (c === 1 || d === 1) return 'IS_1';
+  if (!MSET[c] || !MSET[d]) return 'HIGH';
+  if (c === d) return 'EQ';
+  return 'OK';
+}
+function pairInfo(a, b) {
+  var sp = splits(a, b), ok = 0, clean = 0;
+  var classes = { CLEAN: 0, WIDER: 0, FLOOR: 0 };
+  sp.forEach(function (cd) {
+    if (verdict(a, b, cd[0], cd[1]) === 'OK') {
+      ok++;
+      if (cd[0] === (a & b)) classes.CLEAN++;
+      else if ((a & b) === 1) classes.FLOOR++;
+      else classes.WIDER++;
+    }
+  });
+  var neverClass = null;
+  if (ok === 0) {
+    if (pc(a ^ b) === 1) neverClass = 'SELF_ONLY';
+    else {
+      var vs = {};
+      sp.forEach(function (cd) { var v = verdict(a, b, cd[0], cd[1]); if (v !== 'SELF') vs[v] = true; });
+      if (vs.HIGH && !vs.IS_1) neverClass = 'TOP_ONLY';
+      else if (vs.IS_1 && !vs.HIGH) neverClass = 'BOTTOM_ONLY';
+      else neverClass = 'MIXED';
+    }
+  }
+  return { distance: pc(a ^ b), doors: ok, classes: classes, neverClass: neverClass };
+}
+function checkDoor(a, b, c, d) {
+  if (!MSET[a] || !MSET[b]) return { ok: false, reason: 'NOT_A_PAIR', detail: 'a and b must both be masks of the system (odd, 3 to 97).' };
+  if (a === b) return { ok: false, reason: 'NOT_A_PAIR', detail: 'a and b must be two different masks.' };
+  var sp = splits(a, b), exact = false, twin = false;
+  sp.forEach(function (cd) {
+    if (cd[0] === c && cd[1] === d && verdict(a, b, c, d) === 'OK') exact = true;
+    if (cd[0] === d && cd[1] === c && verdict(a, b, d, c) === 'OK') twin = true;
+  });
+  if (exact || twin) {
+    var cls = (c === (a & b)) ? 'CLEAN' : ((a & b) === 1 ? 'FLOOR' : 'WIDER');
+    return { ok: true, reason: 'ADMITTED', cls: cls, twin: !exact && twin,
+             detail: (exact ? 'A true door of the system.' : 'A true door — entered as its involution twin (c and d exchanged).') + ' Class: ' + cls + '.' };
+  }
+  var isSplit = sp.some(function (cd) { return (cd[0] === c && cd[1] === d) || (cd[0] === d && cd[1] === c); });
+  if (!isSplit) {
+    if ((c ^ d) !== (a ^ b)) return { ok: false, reason: 'XOR_FAILS', detail: 'Not a redistribution of this pair: the difference pattern does not survive (a^b != c^d).' };
+    if (c + d !== a + b) return { ok: false, reason: 'VALUE_FAILS', detail: 'Not a redistribution of this pair: value identity fails (c + d != a + b).' };
+    return { ok: false, reason: 'NOT_A_SPLIT', detail: 'Not a redistribution of this pair around its shared part.' };
+  }
+  var v = verdict(a, b, c, d);
+  if (v === 'SELF') return { ok: false, reason: 'SELF', detail: 'A self-split: a door must land on two new masks, not on a or b.' };
+  if (v === 'IS_1') return { ok: false, reason: 'BOTTOM', detail: 'Exits through the bottom of the window: c or d equals 1.' };
+  if (v === 'HIGH') return { ok: false, reason: 'TOP', detail: 'Exits the window: c or d is not one of the 48 masks (the top edge takes it at 99 and beyond).' };
+  if (v === 'EQ') return { ok: false, reason: 'EQ', detail: 'c equals d: the hallway collapses to a point.' };
+  return { ok: false, reason: 'UNKNOWN', detail: 'Refused.' };
+}
+function census() {
+  var doors = 0, doorPairs = 0, never = 0, selfOnly = 0, top = 0, bottom = 0;
+  var piles = { CLEAN: 0, WIDER: 0, FLOOR: 0 };
+  var bins = { 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 };
+  for (var i = 0; i < 48; i++) for (var j = i + 1; j < 48; j++) {
+    var a = MASKS[i], b = MASKS[j], info = pairInfo(a, b);
+    if (info.doors > 0) {
+      doorPairs++; doors += info.doors;
+      piles.CLEAN += info.classes.CLEAN; piles.WIDER += info.classes.WIDER; piles.FLOOR += info.classes.FLOOR;
+      bins[info.distance] += info.doors;
+    } else {
+      never++;
+      if (info.neverClass === 'SELF_ONLY') selfOnly++;
+      else if (info.neverClass === 'TOP_ONLY') top++;
+      else if (info.neverClass === 'BOTTOM_ONLY') bottom++;
+    }
+  }
+  return { doors: doors, doorPairs: doorPairs, never: never, selfOnly: selfOnly, top: top, bottom: bottom, piles: piles, bins: bins };
+}
+
+/* ===== THE DOOR — UI wiring (predicate above) ===== */
+function fmtN(n) { return n.toLocaleString('en-US'); }
+function pairLine(a, b) {
+  if (!MSET[a] || !MSET[b] || a === b) return '';
+  var info = pairInfo(a, b);
+  var base = 'PAIR ' + a + ' \u2605 ' + b + ' \u00b7 DISTANCE ' + info.distance;
+  if (info.doors > 0) return base + ' \u00b7 CARRIES ' + fmtN(info.doors) + ' DOORS (CLEAN ' + info.classes.CLEAN + ' \u00b7 WIDER ' + info.classes.WIDER + ' \u00b7 FLOOR ' + info.classes.FLOOR + ')';
+  var why = { SELF_ONLY: 'ONLY SELF-SPLITS EXIST', TOP_ONLY: 'EVERY SPLIT EXITS THROUGH THE TOP', BOTTOM_ONLY: 'EVERY SPLIT EXITS THROUGH THE BOTTOM (= 1)', MIXED: 'SPLITS FAIL BOTH EDGES' };
+  return base + ' \u00b7 A NEVER PAIR \u2014 ' + (why[info.neverClass] || '');
+}
+function runCheck() {
+  var a = parseInt(document.getElementById('inA').value, 10);
+  var b = parseInt(document.getElementById('inB').value, 10);
+  var c = parseInt(document.getElementById('inC').value, 10);
+  var d = parseInt(document.getElementById('inD').value, 10);
+  var vEl = document.getElementById('doorVerdict'), dEl = document.getElementById('doorDetail'), pEl = document.getElementById('pairInfo');
+  if ([a, b, c, d].some(function (v) { return isNaN(v); })) { vEl.textContent = 'REFUSED'; vEl.style.color = '#ff9d7a'; dEl.textContent = 'Four numbers are required.'; pEl.textContent = ''; return; }
+  var r = checkDoor(a, b, c, d);
+  if (r.ok) { vEl.textContent = 'ADMITTED'; vEl.style.color = '#ffd977'; }
+  else { vEl.textContent = 'REFUSED \u2014 ' + r.reason.replace(/_/g, ' '); vEl.style.color = '#ff9d7a'; }
+  dEl.textContent = r.detail + '  (' + a + ' + ' + b + ' \u2212 ' + c + ' = ' + d + ')';
+  pEl.textContent = pairLine(a, b);
+}
+document.getElementById('doorBtn').addEventListener('click', runCheck);
+function setInputs(a, b, c, d) {
+  document.getElementById('inA').value = a; document.getElementById('inB').value = b;
+  document.getElementById('inC').value = c; document.getElementById('inD').value = d; runCheck();
+}
+document.getElementById('demoDoor').addEventListener('click', function () { setInputs(3, 13, 11, 5); });
+document.getElementById('demoNever').addEventListener('click', function () { setInputs(3, 7, 3, 7); });
+document.getElementById('demoLoose').addEventListener('click', function () { setInputs(3, 3, 3, 3); });
+setTimeout(function () {
+  var C = census(), el = document.getElementById('censusLine');
+  var okAll = C.doors === 7140 && C.doorPairs === 944 && C.never === 184 && C.selfOnly === 124 && C.top === 45 && C.bottom === 15 &&
+    C.piles.CLEAN === 360 && C.piles.WIDER === 3584 && C.piles.FLOOR === 3196;
+  el.textContent = okAll
+    ? 'IN-BROWSER CENSUS: 7,140 DOORS \u00b7 944 DOOR PAIRS \u00b7 184 NEVER (124 + 45 + 15) \u00b7 PILES 360 / 3,584 / 3,196 \u2014 MATCHES THE EXHIBIT'
+    : 'IN-BROWSER CENSUS: MISMATCH \u2014 ' + JSON.stringify(C);
+}, 80);
+runCheck();
+
+/* ===== TOUR MODE ===== */
+var tourSteps = [
+  ['top', 'THE CORE', '48 masks. 1,128 pairs. One system, exhibited whole.'],
+  ['frame', 'THE MANIFOLD', 'The system alive. It defaults to the measured universe \u2014 speed 529:148.'],
+  ['secDoor', 'THE DOOR', 'The filed predicate, running in your browser. It refuses with reasons.'],
+  ['secMeasure', 'EXHIBIT 01 \u00b7 THE MEASUREMENTS', 'Every number recomputed from the 48 integers.'],
+  ['secGems', 'EXHIBIT 02 \u00b7 SEVENTEEN GEMS', 'Derived, then verified. Two of the seventeen are refusals.'],
+  ['secPlates', 'EXHIBIT 03 \u00b7 THE PLATES, GRADED', '54 of 56 exact. The two errors are printed, not hidden.'],
+  ['secRefusals', 'EXHIBIT 04 \u00b7 THE REFUSALS', 'What the system would not admit, and what we would not claim.'],
+  ['secReceipts', 'EXHIBIT 05 \u00b7 THE RECEIPTS', 'Eight filings. Grants 0, office actions 0 \u2014 printed.'],
+  ['secMap', 'EXHIBIT 06 \u00b7 THE MAP', 'The same system drawn flat \u2014 all 1,128 pair-lines, measured.'],
+  ['canon', 'THE LAW', 'Measure what is left over after an interaction; admit only what fits inside that leftover; otherwise refuse and record the refusal.']
+];
+var tourIdx = -1, tourTimer = null, touring = false;
+var capEl = document.getElementById('tourCap'), capT = document.getElementById('tourCapTitle'), capL = document.getElementById('tourCapLine');
+function tourGo(i) {
+  tourIdx = i;
+  var st = tourSteps[i], el = document.getElementById(st[0]);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  capT.textContent = (i + 1) + ' / ' + tourSteps.length + ' \u00b7 ' + st[1];
+  capL.textContent = st[2];
+  clearTimeout(tourTimer);
+  tourTimer = setTimeout(function () { if (tourIdx + 1 < tourSteps.length) tourGo(tourIdx + 1); else endTour(); }, 9000);
+}
+function startTour() {
+  if (touring) { endTour(); return; }
+  touring = true; capEl.style.display = 'block';
+  document.getElementById('tourBtn').textContent = 'STOP THE TOUR';
+  tourGo(0);
+}
+function endTour() {
+  touring = false; clearTimeout(tourTimer);
+  capEl.style.display = 'none';
+  document.getElementById('tourBtn').textContent = '\u25b6 TOUR THE EXHIBIT';
+}
+document.getElementById('tourBtn').addEventListener('click', startTour);
+capEl.addEventListener('click', endTour);
+document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && touring) endTour(); });
+window.addEventListener('wheel', function () { if (touring) endTour(); }, { passive: true });
+
 </script>
 </body>
 </html>
