@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The Core — An Exhibit of the 7,140-Door System</title>
 <meta name="description" content="48 masks. 1,128 pairs. 7,140 doors. Zero collisions. Every number on this page was recomputed from the system's 48 integers.">
+<meta property="og:title" content="The Core — An Exhibit of the 7,140-Door System">
+<meta property="og:description" content="48 masks · 1,128 pairs · 7,140 doors · 0 collisions. Every number recomputed from the system's 48 integers.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://snowphamtom.github.io/hall-looks/the-core/">
+<meta property="og:image" content="https://snowphamtom.github.io/hall-looks/the-core/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: #060608; color: #f2ecdc; font-family: Georgia, 'Times New Roman', serif; line-height: 1.65; text-shadow: 0 1px 3px rgba(0,0,0,0.9); }
@@ -40,6 +46,19 @@
   .canon { text-align: center; max-width: 880px; margin: 70px auto 10px; padding: 0 24px; font-size: clamp(1.15rem, 3.4vw, 1.6rem); font-style: italic; color: #f5efdb; line-height: 1.55; }
   footer { text-align: center; padding: 44px 24px 70px; color: #b3ac93; font-size: 0.85rem; letter-spacing: 0.14em; }
   footer .suites { font-family: 'Courier New', monospace; color: #8f8875; margin-top: 10px; letter-spacing: 0.05em; }
+
+  @media print {
+    body { background: #fff; color: #111; text-shadow: none; }
+    .frameWrap, .hint, .tryit, #enterBtn { display: none !important; }
+    header h1, section h2, .card h3, .stats, .stats span b, .card .big, .gems li b, .receipts .no, .canon { color: #111 !important; }
+    header .sub, section .lede, .wide, .card p, .card li, .gems li, .receipts, footer { color: #333 !important; }
+    .card { border-color: #bbb; background: #fff; break-inside: avoid; }
+    .stats { border-color: #bbb; }
+    .receipts li { border-color: #ddd; }
+    section { padding-top: 26px; }
+    .canon { margin-top: 40px; }
+    footer { padding-bottom: 20px; }
+  }
 </style>
 </head>
 <body>
@@ -47,6 +66,7 @@
 <header>
   <h1>THE CORE</h1>
   <p class="sub">AN EXHIBIT OF THE 7,140-DOOR SYSTEM &middot; TAYLOR HELLER</p>
+  <p style="margin-top:14px; font-style:italic; color:#b8b198; font-size:0.95rem;">How to read this room: begin with the living manifold, then the measurements, the gems, the plates graded in the open, and the receipts. The last line is the law the whole system obeys.</p>
   <div class="stats">
     <span><b>48</b> MASKS</span>
     <span><b>1,128</b> PAIRS</span>
@@ -60,14 +80,15 @@
 <div class="frameWrap">
   <iframe src="manifold.html" title="The Spatial Manifold — the 7,140-door system, interactive" loading="eager"></iframe>
 </div>
+<div style="text-align:center; margin: 14px auto 2px;"><button id="enterBtn" type="button" style="background:rgba(10,10,14,0.6); color:#ffd977; border:1px solid #6b5d3f; padding:12px 24px; letter-spacing:0.22em; font-size:0.82rem; cursor:pointer; border-radius:999px; font-family:Georgia,serif;">ENTER THE MANIFOLD &mdash; FULL SCREEN</button></div>
 <p class="hint">THE MANIFOLD, ALIVE &mdash; DRAG TO ORBIT &middot; TAP A NODE FOR ITS MEASUREMENTS &middot; ITS DEFAULT STATE IS THE MEASURED UNIVERSE: SPEED RATIO 529:148, CONSTANT-WIDTH SHAPE &middot; BEST IN A FULL BROWSER</p>
 
 <section>
-  <h2>THE MEASUREMENTS</h2>
+  <h2>EXHIBIT 01 &middot; THE MEASUREMENTS</h2>
   <p class="lede">Every number below was recomputed from the system&rsquo;s 48 integers. Nothing is quoted.</p>
   <div class="cards">
-    <div class="card"><h3>Door Census</h3><p class="big">360 CLEAN &middot; 3,584 WIDER &middot; 3,196 FLOOR</p><p>7,140 doors in three piles, summing exactly. Clean doors are forced: c = a &amp; b, all 360 of them.</p></div>
-    <div class="card"><h3>Distance Census</h3><p class="big">D2 488 &middot; D3 1,696 &middot; D4 2,548 &middot; D5 1,864 &middot; D6 544</p><p>Mean door distance 4.0392. There are no distance-1 doors &mdash; the gap at the bottom is the system&rsquo;s mass gap.</p></div>
+    <div class="card"><h3>Door Census</h3><p class="big">360 CLEAN &middot; 3,584 WIDER &middot; 3,196 FLOOR</p><svg viewBox="0 0 300 74" style="width:100%; margin-top:12px;" role="img" aria-label="Door census bar chart"><text x="0" y="16" fill="#c9c2a6" font-size="10.5" font-family="Courier New">CLEAN</text><rect x="52" y="4" width="17" height="14" fill="#a8894a"/><text x="73" y="16" fill="#f5efdb" font-size="11" font-family="Courier New">360</text><text x="0" y="40" fill="#c9c2a6" font-size="10.5" font-family="Courier New">WIDER</text><rect x="52" y="28" width="168" height="14" fill="#ffd977"/><text x="224" y="40" fill="#f5efdb" font-size="11" font-family="Courier New">3,584</text><text x="0" y="64" fill="#c9c2a6" font-size="10.5" font-family="Courier New">FLOOR</text><rect x="52" y="52" width="150" height="14" fill="#a8894a"/><text x="206" y="64" fill="#f5efdb" font-size="11" font-family="Courier New">3,196</text></svg><p>7,140 doors in three piles, summing exactly. Clean doors are forced: c = a &amp; b, all 360 of them.</p></div>
+    <div class="card"><h3>Distance Census</h3><p class="big">D2 488 &middot; D3 1,696 &middot; D4 2,548 &middot; D5 1,864 &middot; D6 544</p><svg viewBox="0 0 300 96" style="width:100%; margin-top:12px;" role="img" aria-label="Distance census bar chart"><rect x="10" y="62" width="42" height="12" fill="#a8894a"/><text x="31" y="56" fill="#f5efdb" font-size="11" font-family="Courier New" text-anchor="middle">488</text><text x="31" y="90" fill="#c9c2a6" font-size="11" font-family="Courier New" text-anchor="middle">D2</text><rect x="68" y="33" width="42" height="41" fill="#a8894a"/><text x="89" y="27" fill="#f5efdb" font-size="11" font-family="Courier New" text-anchor="middle">1,696</text><text x="89" y="90" fill="#c9c2a6" font-size="11" font-family="Courier New" text-anchor="middle">D3</text><rect x="126" y="12" width="42" height="62" fill="#ffd977"/><text x="147" y="6" fill="#f5efdb" font-size="11" font-family="Courier New" text-anchor="middle">2,548</text><text x="147" y="90" fill="#c9c2a6" font-size="11" font-family="Courier New" text-anchor="middle">D4</text><rect x="184" y="29" width="42" height="45" fill="#a8894a"/><text x="205" y="23" fill="#f5efdb" font-size="11" font-family="Courier New" text-anchor="middle">1,864</text><text x="205" y="90" fill="#c9c2a6" font-size="11" font-family="Courier New" text-anchor="middle">D5</text><rect x="242" y="61" width="42" height="13" fill="#a8894a"/><text x="263" y="55" fill="#f5efdb" font-size="11" font-family="Courier New" text-anchor="middle">544</text><text x="263" y="90" fill="#c9c2a6" font-size="11" font-family="Courier New" text-anchor="middle">D6</text><line x1="4" y1="74" x2="296" y2="74" stroke="#4a3f2a"/></svg><p>Mean door distance 4.0392. There are no distance-1 doors &mdash; the gap at the bottom is the system&rsquo;s mass gap.</p></div>
     <div class="card"><h3>Operator W &mdash; Pair Adjacency</h3><p class="big">&lambda;max 299.358 &middot; &lambda;min &minus;129.871 &middot; &Sigma;&lambda;&sup2; 191,808</p><p>27 distinct eigenvalues: 15 simple, 3 double, 9 triple. Invertible &mdash; barely: smallest |&lambda;| &asymp; 0.059.</p></div>
     <div class="card"><h3>Operator T &mdash; Transition</h3><p class="big">&lambda;max 598.650 &middot; &lambda;min &minus;86.262 &middot; &Sigma;&lambda;&sup2; 685,584</p><p>Total appearances 28,560 = 4 &times; 7,140. A different operator from W; the exhibit never confuses them.</p></div>
     <div class="card"><h3>The Exact Ratio</h3><p class="big">685,584 : 191,808 = 529 : 148</p><p>The Frobenius energies of the two operators reduce by 1,296 to an exact ratio. It is wired into the manifold above as its default speed: the frame turns at 148/529 of the spin.</p></div>
@@ -80,7 +101,7 @@
 </section>
 
 <section>
-  <h2>SEVENTEEN GEMS</h2>
+  <h2>EXHIBIT 02 &middot; SEVENTEEN GEMS</h2>
   <p class="lede">Derived from the system, then verified. Each one survived its own check.</p>
   <ol class="gems">
     <li><b>01</b> &mdash; H&#8321;&#8324; is constant-weight: every column weighs exactly 8 of 14.</li>
@@ -104,7 +125,7 @@
 </section>
 
 <section>
-  <h2>THE PLATES, GRADED</h2>
+  <h2>EXHIBIT 03 &middot; THE PLATES, GRADED</h2>
   <div class="wide">
     <p>Ten plates rendering this system were produced independently and later checked, claim by claim, against recomputation. <b>54 of 56 checkable claims are exact &mdash; 96.4%.</b> The exhibit prints its corrections:</p>
     <p>Two claims are <span class="false"><b>false as printed</b></span>, both on one plate: &ldquo;3,384 Wider&rdquo; &mdash; the verified count is <b>3,584</b>, and the plate&rsquo;s own bins sum to 6,940, not 7,140 &mdash; and &ldquo;46 Odd Masks&rdquo; &mdash; there are <b>48</b>.</p>
@@ -114,7 +135,7 @@
 </section>
 
 <section>
-  <h2>THE RECEIPTS</h2>
+  <h2>EXHIBIT 04 &middot; THE RECEIPTS</h2>
   <p class="lede">Eight applications. First-named inventor: Taylor Wolfe Heller &middot; Monsters Ink LLC.</p>
   <ul class="receipts">
     <li><span class="no">63/988,462</span><span>filed Feb 23, 2026</span></li>
@@ -132,12 +153,22 @@
   <a href="https://muse.ai/s/a-window-that-acts-like-a-door-xaxc6wlxzxjhxyvg" target="_blank" rel="noopener">TRY A DOOR &mdash; ONLY REAL DOORS OPEN</a>
 </div>
 
+<div style="max-width:1000px; margin: 56px auto 0; padding: 16px 20px; border-top:1px solid #2e2716; border-bottom:1px solid #2e2716; text-align:center; font-family:'Courier New',monospace; font-size:0.88rem; color:#ffd977;">
+  RECOMPUTED AND SEALED &middot; OCT 11, 2026 &middot; CORE ENGINE 34/34 &middot; CORE FULL 37/37 &middot; H&#8321;&#8324; 8/8 &middot; NEVER PAIRS 7/7 &middot; GEMS 6/6 &middot; STARTING LINE ALL PASS
+</div>
 <p class="canon">&ldquo;Measure what is left over after an interaction; admit only what fits inside that leftover; otherwise refuse and record the refusal.&rdquo;</p>
 
 <footer>
-  THE CORE &middot; TAYLOR HELLER &middot; MONSTERS INK LLC &middot; MMXXVI
-  <div class="suites">VERIFICATION SUITES AT EXHIBIT: CORE ENGINE 34/34 &middot; CORE FULL 37/37 &middot; H&#8321;&#8324; 8/8 &middot; NEVER PAIRS 7/7 &middot; GEMS 6/6 &middot; STARTING LINE ALL PASS</div>
+  THE CORE &middot; TAYLOR HELLER &middot; MONSTERS INK LLC &middot; MMXXVI<br><span style="font-family:'Courier New',monospace; font-size:0.78rem;">LIVE EXHIBIT: SNOWPHAMTOM.GITHUB.IO/HALL-LOOKS/THE-CORE/</span>
 </footer>
 
+
+<script>
+document.getElementById('enterBtn').addEventListener('click', function () {
+  var f = document.querySelector('.frameWrap iframe');
+  if (f && f.requestFullscreen) { f.requestFullscreen().catch(function () { window.location.href = 'manifold.html'; }); }
+  else { window.location.href = 'manifold.html'; }
+});
+</script>
 </body>
 </html>
