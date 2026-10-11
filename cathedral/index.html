@@ -96,6 +96,24 @@
     .sheet .srow { font-size: .88rem; }
   }
   @media (max-height: 430px) { .panel { max-height: 72dvh; } }
+
+  /* ===== v5: hotbar + forge ===== */
+  #hotbar { position:fixed; left:50%; transform:translateX(-50%); bottom:calc(58px + env(safe-area-inset-bottom)); z-index:9;
+            display:flex; gap:6px; padding:6px; background:rgba(6,7,11,.94); border:1px solid #2e2716; border-radius:10px; max-width:96vw; overflow-x:auto; scrollbar-width:none; }
+  #hotbar::-webkit-scrollbar { display:none; }
+  .slot { flex:none; width:52px; padding:6px 0 4px; background:rgba(20,20,26,.9); border:1.5px solid #3a3420; border-radius:6px;
+          color:#ddd6bf; font-family:'Courier New',monospace; cursor:pointer; text-align:center; }
+  .slot .g { display:block; font-size:15px; color:#ffd977; letter-spacing:.06em; }
+  .slot .n { display:block; font-size:7.5px; letter-spacing:.08em; margin-top:2px; color:#a89f83; }
+  .slot.on { border-color:#ffd977; background:rgba(60,50,20,.9); }
+  .panel { bottom: calc(58px + 62px + env(safe-area-inset-bottom)); }
+  #readout { bottom: calc(58px + 62px + 14px + env(safe-area-inset-bottom)); }
+  #forgeCard { position:fixed; right:10px; top:calc(64px + env(safe-area-inset-top)); z-index:10; display:none; width:228px;
+               background:rgba(8,9,14,.94); border:1px solid #6b5d3f; padding:12px 13px; }
+  #forgeCard .fc-t { color:#ffd977; letter-spacing:.16em; font-size:.78rem; font-family:'Courier New',monospace; }
+  #forgeCard .fc-c { color:#e9e3cf; font-size:.82rem; font-family:'Courier New',monospace; margin:5px 0 9px; }
+  #forgeCard .fc-row { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:6px; }
+  #forgeCard .pbtn { min-height:38px; padding:7px 10px; font-size:10.5px; }
 </style>
 <script type="importmap">
 { "imports": {
@@ -191,7 +209,8 @@ setTimeout(function () {
     <button class="pbtn on" data-theme="noir">NOIR + GOLD</button>
     <button class="pbtn" data-theme="navy">BLUEPRINT NAVY</button>
     <button class="pbtn" data-theme="parchment">PARCHMENT SHEET</button>
-    <button class="pbtn" data-theme="filigree">FILIGREE ON BLACK</button></div>
+    <button class="pbtn" data-theme="filigree">FILIGREE ON BLACK</button>
+    <button class="pbtn" data-theme="blocks">BLOCKS</button></div>
   <div class="prow"><span class="plab">ANATOMY</span>
     <button class="pbtn" id="anatBtn">ANATOMY — NUMBERED TOUR</button>
     <span class="note">Gold numbers from the anatomy plate, pinned to the living building. Tap one.</span></div>
@@ -201,10 +220,40 @@ setTimeout(function () {
     <button class="pbtn" id="resetBtn">RESET VIEW</button></div>
 </div>
 
+<div class="panel" id="panel-forge">
+  <div class="prow"><span class="plab">FORGE MODE</span><span class="note">Tap a part to grab it — it lifts into your hand, Halo-style. Float it to its place, tap the ground to set it down. The grid underneath is Minecraft's.</span></div>
+  <div class="prow"><span class="plab">GRID SNAP</span>
+    <button class="pbtn" data-gsnap="0">OFF</button>
+    <button class="pbtn" data-gsnap="1">1 M</button>
+    <button class="pbtn on" data-gsnap="2">2 M</button>
+    <button class="pbtn" data-gsnap="4">4 M</button></div>
+  <div class="prow"><span class="plab">ROTATE SNAP</span>
+    <button class="pbtn on" data-rsnap="15">15°</button>
+    <button class="pbtn" data-rsnap="45">45°</button>
+    <button class="pbtn" data-rsnap="90">90°</button></div>
+  <div class="prow"><span class="plab">BUDGET</span><span class="note" id="budgetLine">—</span></div>
+</div>
+
 <div class="panel" id="panel-measure">
   <div class="sheet" id="sheet"></div>
 </div>
 
+<div id="forgeCard">
+  <div class="fc-t" id="fcName">—</div>
+  <div class="fc-c" id="fcCoords">—</div>
+  <div class="fc-row">
+    <button class="pbtn" id="fcRotL">⟲ ROT</button>
+    <button class="pbtn" id="fcRotR">ROT ⟳</button>
+    <button class="pbtn" id="fcSclD">SCALE −</button>
+    <button class="pbtn" id="fcSclU">SCALE +</button>
+  </div>
+  <div class="fc-row">
+    <button class="pbtn" id="fcDup">DUPLICATE</button>
+    <button class="pbtn warn" id="fcDel">DELETE</button>
+    <button class="pbtn" id="fcDrop">SET DOWN</button>
+  </div>
+</div>
+<div id="hotbar"><button class="slot" data-hot="pillar"><span class="g">PL</span><span class="n">PILLAR</span></button><button class="slot" data-hot="arch"><span class="g">AR</span><span class="n">ARCH</span></button><button class="slot" data-hot="wall"><span class="g">WA</span><span class="n">WALL</span></button><button class="slot" data-hot="buttress"><span class="g">BU</span><span class="n">BUTTR</span></button><button class="slot" data-hot="lancet"><span class="g">LA</span><span class="n">LANCET</span></button><button class="slot" data-hot="rose"><span class="g">RO</span><span class="n">ROSE</span></button><button class="slot" data-hot="portal"><span class="g">PO</span><span class="n">PORTAL</span></button><button class="slot" data-hot="pew"><span class="g">PW</span><span class="n">PEW</span></button><button class="slot" data-hot="floor"><span class="g">FL</span><span class="n">FLOOR</span></button></div>
 <div id="anatomy"></div>
 <div class="dim" id="dimL"></div>
 <div class="dim" id="dimW"></div>
@@ -216,6 +265,7 @@ setTimeout(function () {
   <button class="tabbtn" data-tab="blueprint">BLUEPRINT</button>
   <button class="tabbtn" data-tab="view">VIEW</button>
   <button class="tabbtn" data-tab="measure">MEASURE</button>
+  <button class="tabbtn" data-tab="forge">⚒ FORGE</button>
   <div id="state">Notre Dame, loaded to canon — drag to orbit · tap a part</div>
 </div>
 
@@ -227,8 +277,8 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 /* ============ THE CANON — Notre Dame, published dimensions (standard references) ============ */
 const CANON = { LEN: 128, WID: 43, NAVE_W: 12, VAULT_H: 32.5, TOWER_H: 69, SPIRE_H: 96, ROSE_D: 9.6, BAY: 8 };
-const SNAP = 2;
-const snap = v => Math.round(v / SNAP) * SNAP;
+let gridSnap = 2;
+const snap = v => gridSnap ? Math.round(v / gridSnap) * gridSnap : v;
 
 /* ============ RENDERER / SCENE ============ */
 const canvas = document.getElementById('cv');
@@ -960,6 +1010,111 @@ setInterval(() => {
     if (box.dataset.s !== selected.group.scale.toArray().join(',')) { box.dataset.s = selected.group.scale.toArray().join(','); box.innerHTML = '<div style="font-family:\'Courier New\',monospace;font-size:10px;letter-spacing:.18em;color:#8f8875;margin-bottom:4px">DETAIL SHEET — FRONT ELEVATION</div>' + detailSVG(selected); }
   }
 }, 350);
+
+
+/* ============ V5 — MINECRAFT HOTBAR × HALO FORGE ============ */
+/* --- Minecraft: the hotbar. Arm a part, tap the ground, it stands. --- */
+let placing = null;
+document.querySelectorAll('[data-hot]').forEach(b => b.addEventListener('click', () => {
+  if (placing === b.dataset.hot) { placing = null; b.classList.remove('on'); setState('hotbar cleared'); return; }
+  placing = b.dataset.hot;
+  document.querySelectorAll('[data-hot]').forEach(x => x.classList.toggle('on', x === b));
+  setState('PLACING ' + PARTS[placing].name.toUpperCase() + ' — tap the ground to set it · tap the slot again to stop');
+  haptic();
+}));
+canvas.addEventListener('pointerdown', e => {
+  if (!placing || bpMode) return;
+  if (pickItem(e)) return; /* tapped a part — selection wins */
+  const gp = groundPoint(e); if (!gp) return;
+  if (items.length >= 400) { setState('FORGE BUDGET FULL — 400 / 400 objects. Delete something first.'); haptic(); return; }
+  const it = addItem(placing, snap(gp.x), snap(gp.z));
+  select(it);
+  setState(PARTS[placing].name + ' set at X ' + snap(gp.x) + ' · Z ' + snap(gp.z) + ' — keep tapping to build');
+});
+
+/* --- Halo Forge: grab, lift, float, set down — with a property card --- */
+let grabbed = null, grabBaseY = 0, rotSnapDeg = 15;
+const fc = document.getElementById('forgeCard');
+function fcUpdate() {
+  if (!grabbed) return;
+  const p = grabbed.group.position;
+  document.getElementById('fcName').textContent = '⚒ ' + PARTS[grabbed.type].name.toUpperCase();
+  document.getElementById('fcCoords').textContent =
+    'X ' + p.x.toFixed(1) + ' · Z ' + p.z.toFixed(1) + ' · ROT ' + Math.round(THREE.MathUtils.radToDeg(grabbed.group.rotation.y) % 360) + '° · SCALE ' + grabbed.group.scale.x.toFixed(2);
+}
+function grab(it) {
+  grabbed = it; grabBaseY = it.group.position.y;
+  it.group.position.y = grabBaseY + 1.2;
+  select(it); fc.style.display = 'block'; fcUpdate(); haptic();
+  setState('FORGE — ' + PARTS[it.type].name + ' in hand · move to float it · tap ground to set down');
+}
+function drop() {
+  if (!grabbed) return;
+  grabbed.group.position.y = grabBaseY;
+  grabbed = null; fc.style.display = 'none'; recount(); haptic();
+  setState('set down — measured and recorded');
+}
+canvas.addEventListener('pointerdown', e => {
+  if (openTab !== 'forge') return;
+  if (grabbed) {
+    if (!pickItem(e)) { drop(); e.stopPropagation(); }
+    return;
+  }
+  const it = pickItem(e);
+  if (it) { grab(it); e.stopPropagation(); }
+}, true);
+canvas.addEventListener('pointermove', e => {
+  if (!grabbed || openTab !== 'forge') return;
+  const gp = groundPoint(e); if (!gp) return;
+  grabbed.group.position.x = snap(gp.x); grabbed.group.position.z = snap(gp.z);
+  fcUpdate(); if (selBox) selBox.update();
+  e.stopPropagation();
+}, true);
+setInterval(() => { if (openTab !== 'forge' && grabbed) drop(); }, 400);
+document.querySelectorAll('[data-gsnap]').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('[data-gsnap]').forEach(x => x.classList.toggle('on', x === b));
+  gridSnap = parseFloat(b.dataset.gsnap);
+  setState('GRID SNAP — ' + (gridSnap ? gridSnap + ' m' : 'OFF (free placement)'));
+}));
+document.querySelectorAll('[data-rsnap]').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('[data-rsnap]').forEach(x => x.classList.toggle('on', x === b));
+  rotSnapDeg = parseInt(b.dataset.rsnap, 10);
+}));
+document.getElementById('fcRotL').addEventListener('click', () => { if (grabbed) { grabbed.group.rotation.y -= THREE.MathUtils.degToRad(rotSnapDeg); fcUpdate(); haptic(); } });
+document.getElementById('fcRotR').addEventListener('click', () => { if (grabbed) { grabbed.group.rotation.y += THREE.MathUtils.degToRad(rotSnapDeg); fcUpdate(); haptic(); } });
+document.getElementById('fcSclD').addEventListener('click', () => { if (grabbed) { const v = Math.max(0.25, grabbed.group.scale.x - 0.1); grabbed.group.scale.setScalar(v); fcUpdate(); haptic(); } });
+document.getElementById('fcSclU').addEventListener('click', () => { if (grabbed) { const v = Math.min(3, grabbed.group.scale.x + 0.1); grabbed.group.scale.setScalar(v); fcUpdate(); haptic(); } });
+document.getElementById('fcDup').addEventListener('click', () => { if (grabbed) { grabbed.group.position.y = grabBaseY; grabbed = null; fc.style.display = 'none'; } document.getElementById('dupBtn').click(); if (selected) grab(selected); });
+document.getElementById('fcDel').addEventListener('click', () => { const g = grabbed; grabbed = null; fc.style.display = 'none'; if (g) { removeItem(g); haptic(); } });
+document.getElementById('fcDrop').addEventListener('click', drop);
+
+/* --- the Forge budget, always counting --- */
+function updBudget() {
+  let vol = 0;
+  items.forEach(it => { const d = PARTS[it.type], s = it.group.scale; vol += d.vol * s.x * s.y * s.z; });
+  const el = document.getElementById('budgetLine');
+  if (el) el.textContent = 'OBJECTS ' + items.length + ' / 400 · STONE ' + Math.round(vol).toLocaleString('en-US') + ' / 16,000 m³' + (items.length >= 400 ? ' — BUDGET FULL' : '');
+}
+setInterval(updBudget, 900);
+
+/* --- BLOCKS scheme: Minecraft stone, procedurally coursed --- */
+(function () {
+  const cv = document.createElement('canvas'); cv.width = cv.height = 128;
+  const cx = cv.getContext('2d');
+  cx.fillStyle = '#a49d8d'; cx.fillRect(0, 0, 128, 128);
+  cx.strokeStyle = 'rgba(40,36,28,0.55)'; cx.lineWidth = 3;
+  for (let y = 0; y <= 128; y += 32) { cx.beginPath(); cx.moveTo(0, y); cx.lineTo(128, y); cx.stroke(); }
+  for (let r = 0; r < 4; r++) for (let x = (r % 2) * 32; x <= 128; x += 64) { cx.beginPath(); cx.moveTo(x, r * 32); cx.lineTo(x, r * 32 + 32); cx.stroke(); }
+  cx.fillStyle = 'rgba(255,255,255,0.06)';
+  for (let i = 0; i < 260; i++) cx.fillRect(Math.random() * 128, Math.random() * 128, 2, 2);
+  const tex = new THREE.CanvasTexture(cv);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(2, 2);
+  const btn = document.querySelector('[data-theme="blocks"]');
+  if (btn) btn.addEventListener('click', () => { MATS.stone.map = tex; MATS.stone.needsUpdate = true; setState('BLOCKS — coursed stone, Minecraft measure'); });
+  document.querySelectorAll('[data-theme]').forEach(b => {
+    if (b.dataset.theme !== 'blocks') b.addEventListener('click', () => { if (MATS.stone.map) { MATS.stone.map = null; MATS.stone.needsUpdate = true; } });
+  });
+})();
 
 </script>
 </body>
