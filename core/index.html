@@ -628,4 +628,144 @@ document.getElementById('gyroBtn').addEventListener('click', async () => {
   setInterval(function () { if (measureBtn) measureBtn.classList.toggle('on', deck.classList.contains('open')); }, 600);
 })();
 </script>
+<script>
+
+/* ===== HAND TRACKING — pinch to grab the Core, fingertip wired to the nodes =====
+   Loads MediaPipe Hands from CDN only when enabled. Drives the existing pointer
+   handlers on #cv with synthetic events, so orbit, zoom, selection and haptics
+   are the manifold's own. Camera is blocked inside some app webviews; the state
+   line says so honestly and points to Safari. */
+(function () {
+  var CDN = 'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1675469240/';
+  var CU = 'https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675466862/camera_utils.js';
+  var cv = document.getElementById('cv');
+  var stateEl = document.getElementById('state');
+  var gyroBtn = document.getElementById('gyroBtn');
+  if (!cv || !gyroBtn) return;
+
+  var style = document.createElement('style');
+  style.textContent =
+    '#handVid{position:fixed;right:10px;bottom:64px;width:112px;aspect-ratio:4/3;object-fit:cover;' +
+    'transform:scaleX(-1);border:1px solid #2a3554;border-radius:8px;z-index:9;display:none;background:#000}' +
+    '#handCursor{position:fixed;width:26px;height:26px;border:2px solid #ffd977;border-radius:50%;' +
+    'pointer-events:none;z-index:10;transform:translate(-50%,-50%);display:none;transition:width .1s,height .1s,background .1s}' +
+    '#handCursor.grab{background:rgba(255,217,119,.28);width:34px;height:34px}' +
+    '#handsBtn{flex:none}';
+  document.head.appendChild(style);
+
+  var video = document.createElement('video');
+  video.id = 'handVid'; video.setAttribute('playsinline', ''); video.muted = true;
+  document.body.appendChild(video);
+  var cursor = document.createElement('div');
+  cursor.id = 'handCursor'; document.body.appendChild(cursor);
+
+  var btn = document.createElement('button');
+  btn.id = 'handsBtn'; btn.className = 'gold'; btn.textContent = 'ENABLE HANDS';
+  gyroBtn.parentNode.insertBefore(btn, gyroBtn.nextSibling);
+
+  function setState(t) { if (stateEl) stateEl.textContent = t; }
+  function tick() {
+    var hb = document.getElementById('hapBtn');
+    if (hb && !hb.classList.contains('on')) return;
+    var l = document.getElementById('hapLabel');
+    if (l) { try { l.click(); } catch (e) {} }
+    if (navigator.vibrate) { try { navigator.vibrate(10); } catch (e) {} }
+  }
+  function loadScript(src) {
+    return new Promise(function (res, rej) {
+      var sc = document.createElement('script'); sc.src = src; sc.onload = res; sc.onerror = rej;
+      document.head.appendChild(sc);
+    });
+  }
+  /* preload the libraries so the enable tap stays inside the gesture window */
+  var libsReady = Promise.all([loadScript(CU), loadScript(CDN + 'hands.js')]).catch(function () { return null; });
+
+  var hands = null, camera = null, live = false, busy = false;
+  var grabbing = false, lastX = 0, lastY = 0, lastScale = 0;
+  var dwellX = -1, dwellY = -1, dwellT = 0, dwellArmed = true;
+  var PID = 7777;
+
+  function pe(type, x, y) {
+    cv.dispatchEvent(new PointerEvent(type, {
+      pointerId: PID, isPrimary: true, bubbles: true, cancelable: true,
+      clientX: x, clientY: y, buttons: type === 'pointerup' ? 0 : 1, pointerType: 'touch'
+    }));
+  }
+  function dist(a, b) { var dx = a.x - b.x, dy = a.y - b.y; return Math.sqrt(dx * dx + dy * dy); }
+
+  function onResults(res) {
+    var lm = res.multiHandLandmarks && res.multiHandLandmarks[0];
+    if (!lm) {
+      cursor.style.display = 'none';
+      if (grabbing) { pe('pointerup', lastX, lastY); grabbing = false; cursor.classList.remove('grab'); }
+      return;
+    }
+    var tip = lm[8], thumb = lm[4];
+    var scale = Math.max(dist(lm[0], lm[9]), 0.05);
+    var pinch = dist(thumb, tip) / scale;
+    var sx = (1 - tip.x) * window.innerWidth;
+    var sy = tip.y * window.innerHeight;
+    cursor.style.display = 'block';
+    cursor.style.left = sx + 'px'; cursor.style.top = sy + 'px';
+    var isPinch = pinch < 0.45;
+    if (isPinch && !grabbing) {
+      grabbing = true; cursor.classList.add('grab'); tick();
+      pe('pointerdown', sx, sy); lastX = sx; lastY = sy; lastScale = scale;
+    } else if (isPinch && grabbing) {
+      pe('pointermove', sx, sy); lastX = sx; lastY = sy;
+      var dS = scale - lastScale;
+      if (Math.abs(dS) > 0.006) {
+        cv.dispatchEvent(new WheelEvent('wheel', { deltaY: -dS * 5200, clientX: sx, clientY: sy, bubbles: true, cancelable: true }));
+        lastScale = scale;
+      }
+    } else if (!isPinch && grabbing) {
+      pe('pointerup', sx, sy); grabbing = false; cursor.classList.remove('grab');
+    }
+    if (!grabbing) {
+      /* dwell on a point to select the node beneath the fingertip */
+      var moved = Math.abs(sx - dwellX) + Math.abs(sy - dwellY);
+      if (moved > 26) { dwellX = sx; dwellY = sy; dwellT = performance.now(); dwellArmed = true; }
+      else if (dwellArmed && performance.now() - dwellT > 650) {
+        pe('pointerdown', sx, sy); pe('pointerup', sx, sy);
+        dwellArmed = false;
+      }
+    }
+  }
+
+  function start() {
+    if (busy || live) return; busy = true;
+    btn.textContent = 'HANDS STARTING…';
+    setState('HANDS: LOADING THE HAND MODEL…');
+    libsReady.then(function () {
+      if (typeof Hands === 'undefined' || typeof Camera === 'undefined') throw new Error('libs');
+      hands = new Hands({ locateFile: function (f) { return CDN + f; } });
+      hands.setOptions({ maxNumHands: 1, modelComplexity: 0, minDetectionConfidence: 0.6, minTrackingConfidence: 0.5 });
+      hands.onResults(onResults);
+      camera = new Camera(video, {
+        onFrame: function () { return hands.send({ image: video }); },
+        width: 640, height: 480
+      });
+      return camera.start();
+    }).then(function () {
+      live = true; busy = false;
+      video.style.display = 'block';
+      btn.textContent = 'HANDS LIVE — TAP TO STOP';
+      setState('HANDS LIVE — PINCH TO GRAB THE CORE · PUSH / PULL TO ZOOM · HOLD A FINGERTIP ON A NODE TO SELECT IT');
+    }).catch(function (err) {
+      busy = false; btn.textContent = 'ENABLE HANDS';
+      setState('HANDS UNAVAILABLE HERE — THE CAMERA NEEDS A FULL BROWSER. OPEN THIS PAGE IN SAFARI AND TAP ENABLE HANDS.');
+    });
+  }
+  function stop() {
+    if (grabbing) { pe('pointerup', lastX, lastY); grabbing = false; }
+    if (camera) { try { camera.stop(); } catch (e) {} camera = null; }
+    if (hands) { try { hands.close(); } catch (e) {} hands = null; }
+    live = false; video.style.display = 'none'; cursor.style.display = 'none';
+    btn.textContent = 'ENABLE HANDS';
+    setState('HANDS OFF — drag to orbit · pinch to zoom · tap a node · tap ★ to ring the system');
+  }
+  btn.addEventListener('click', function () { if (live) stop(); else start(); });
+})();
+
+</script>
 </body></html>
