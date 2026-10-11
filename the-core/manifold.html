@@ -35,7 +35,30 @@
  .corner{position:fixed;width:26px;height:26px;z-index:4;pointer-events:none;border:0 solid #c9a227;opacity:.65}
  #boot div{font-size:13px;letter-spacing:.14em;color:#7fb2ff}
  #boot .g{color:#f3e9c8;font-size:19px}
-</style></head><body>
+</style>
+<style id="v7">
+  .hud, #spark, .cap, .tick, #trayBtn, #deckBtn { display: none !important; }
+  .corner { bottom: 62px !important; }
+  .bar { top: auto; bottom: 0; left: 0; right: 0; flex-direction: row; align-items: center;
+         gap: 8px; padding: 8px 10px; background: rgba(5,8,18,.94); border-top: 1px solid #2a3554;
+         z-index: 9; overflow-x: auto; scrollbar-width: none; }
+  .bar::-webkit-scrollbar { display: none; }
+  #tabs { display: flex; gap: 6px; flex: none; }
+  .tabbtn { flex: none; background: none; border: 1px solid #2a3554; color: #c9d2e8; padding: 8px 12px;
+            border-radius: 999px; font-family: 'Courier New', monospace; font-size: 11px;
+            letter-spacing: .14em; cursor: pointer; }
+  .tabbtn.on { border-color: #c9a227; color: #ffd977; }
+  .bar #gyroBtn { flex: none; }
+  #state { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+           font-size: 11px; text-align: right; }
+  #tray { bottom: 53px; max-height: 44vh; z-index: 8; }
+  #tray .trow { display: none; }
+  #tray .trow.active { display: flex; }
+  #deck { top: auto; bottom: 53px; left: auto; right: 10px; width: min(430px, 94vw);
+          max-height: 66vh; background: rgba(5,8,18,.96); border: 1px solid #2a3554; padding: 10px; z-index: 8; }
+  #readout { bottom: 64px; }
+</style>
+</head><body>
 <canvas id="cv"></canvas>
 <div id="crt"></div><div id="vig"></div>
 <div class="corner" style="top:8px;left:8px;border-top-width:2px;border-left-width:2px"></div>
@@ -47,6 +70,7 @@
 <div class="cap">You are looking at a flat shadow of the 7,140-door system.</div>
 <div class="tick" id="tick"></div>
 <div class="bar">
+ <div id="tabs" role="tablist"><button class="tabbtn" data-tab="layout">LAYOUT</button><button class="tabbtn" data-tab="scheme">SCHEME</button><button class="tabbtn" data-tab="edges">EDGES</button><button class="tabbtn" data-tab="nodes">NODES</button><button class="tabbtn" data-tab="field">FIELD</button><button class="tabbtn" data-tab="pupil">PUPIL</button><button class="tabbtn" data-tab="gloss">GLOSS</button><button class="tabbtn" data-tab="motion">MOTION</button><button class="tabbtn" data-tab="measure">MEASURE</button></div>
  <button class="gold" id="gyroBtn">ENABLE GYRO</button>
  <div id="state">GYRO OFF — drag to orbit · pinch to zoom · tap a node · tap ★ to ring the system</div>
 </div>
@@ -73,36 +97,36 @@
 <div class="mcard"><div class="mtitle">REACTIONS — THE WORLD ANSWERING</div><div class="mbody">19 public repositories · 0 stars, 0 forks, 0 followers — and a build cadence that accelerated 11.3×. Eight filings in 230 days; receipts 8/8; office actions 0; grants 0. Reaction is the binding constraint; the assets are not.</div></div>
 <div class="mcard"><div class="mtitle">THE PUPIL CHAIN — STANDARD OPTICS</div><div class="mbody">Every angle above arrived through a hole 2–8 mm wide. Eye focal length ≈ 17 mm. The lens lands the image on the retina INVERTED. The cornea mirrors ≈ 2.5% back out (Purkinje I). Air bends the incoming angles — atmospheric refraction ≈ 34 arcminutes at the horizon — and scatters blue as 1/λ⁴ (Rayleigh). Blind spot ≈ 5° × 7°, silently filled in. These are textbook reference values; the system’s own numbers are the cards above.</div></div>
 <div class="mcard"><div class="mtitle">THE CAPSTONE — MEASURED EITHER WAY</div><div class="mbody">It could all be a reflection of angles, manipulated by eyes, atmosphere, and every measurable reflection in between. The leftover does not care: measure what is left over after an interaction; admit only what fits inside that leftover; otherwise refuse and record the refusal. That rule survives every lens it is seen through.</div></div></div>
-<div id="tray">
- <div class="trow"><span class="tlab">LAYOUT</span>
+<div id="tray" class="hidden">
+ <div class="trow" data-tab="layout"><span class="tlab">LAYOUT</span>
   <button data-layout="sph" class="on">Sphere</button><button data-layout="flat">Spiral</button>
   <button data-layout="ring">Ring</button><button data-layout="strata">Strata sphere</button></div>
- <div class="trow"><span class="tlab">SCHEME</span>
+ <div class="trow" data-tab="scheme"><span class="tlab">SCHEME</span>
   <button data-scheme="spectrum" class="on">Spectrum</button><button data-scheme="iridescent">Iridescent</button>
   <button data-scheme="thermal">Thermal</button><button data-scheme="gold">Mono gold</button>
   <button data-scheme="blueprint">Blueprint</button><button data-scheme="paper">Paper</button></div>
- <div class="trow"><span class="tlab">EDGES</span>
+ <div class="trow" data-tab="edges"><span class="tlab">EDGES</span>
   <button data-estyle="line" class="on">Lines</button><button data-estyle="arc">Arcs</button><button data-estyle="dash">Marching</button>
   <button data-ecolor="dist" class="on">Color: distance</button><button data-ecolor="heat">Color: doors</button><button data-ecolor="uni">Color: uniform</button>
   <button data-cls="all" class="on">All doors</button><button data-cls="clean">Clean 360</button><button data-cls="wider">Wider 3,584</button><button data-cls="floor">Floor 3,196</button>
   <button id="neverBtn">Never-pairs</button></div>
- <div class="trow"><span class="tlab">NODES</span>
+ <div class="trow" data-tab="nodes"><span class="tlab">NODES</span>
   <button data-nshape="glow" class="on">Glow</button><button data-nshape="octa">Octahedra</button><button data-nshape="ring">Rings</button><button data-nshape="diamond">Diamonds</button><button data-nshape="star">Stars</button>
   <button data-label="sinks" class="on">Labels: sinks</button><button data-label="all">Labels: all</button><button data-label="binary">Labels: binary</button><button data-label="none">Labels: none</button>
   <span class="tlab" style="min-width:34px">SIZE</span><input type="range" id="nsize" min="40" max="220" value="100"></div>
- <div class="trow"><span class="tlab">FIELD</span>
+ <div class="trow" data-tab="field"><span class="tlab">FIELD</span>
   <button data-mesh="dense" class="on">Mesh dense</button><button data-mesh="sparse">Mesh sparse</button><button data-mesh="off">Mesh off</button>
   <button id="starsBtn" class="on">Starfield</button><button id="pulsesBtn" class="on">Flow pulses</button><button id="xrayBtn">X-Ray</button>
   <span class="tlab" style="min-width:40px">TRAILS</span><input type="range" id="trails" min="6" max="92" value="30">
   <span class="tlab" style="min-width:34px">GLOW</span><input type="range" id="glowr" min="40" max="240" value="100"></div>
- <div class="trow"><span class="tlab">PUPIL</span>
+ <div class="trow" data-tab="pupil"><span class="tlab">PUPIL</span>
   <button id="pupilBtn">THROUGH THE PUPIL</button><button id="refrBtn">Refraction</button><button id="scatBtn">Scatter (Rayleigh)</button><button id="purkBtn">Purkinje ghost</button><button id="invBtn" class="on">Retinal inversion</button></div>
- <div class="trow"><span class="tlab">GLOSS</span>
+ <div class="trow" data-tab="gloss"><span class="tlab">GLOSS</span>
   <button data-skin="wire" class="on">Skin: wireframe</button><button data-skin="shade">Skin: shaded</button><button data-skin="off">Skin: off</button>
   <button id="deformBtn" class="on">Universe shape</button><button id="coreBtn">Core: octahedron</button><button id="cageBtn" class="on">Frame cage</button><button id="floorBtn">Mirror floor</button>
   <button id="spokesBtn">Hub spokes</button><button id="focusBtn">Focus depth</button><button id="aberBtn">Aberration</button>
   <button id="crtBtn">CRT + vignette</button><button id="showBtn">SHOWCASE</button></div>
- <div class="trow"><span class="tlab">MOTION</span>
+ <div class="trow" data-tab="motion"><span class="tlab">MOTION</span>
   <button id="spinBtn" class="on">Spin</button><button id="tumbleBtn" class="on">Tumble</button><button id="revBtn">Reverse</button>
   <span class="tlab" style="min-width:40px">SPEED</span><input type="range" id="speed" min="0" max="300" value="100">
   <button id="ribbonBtn">Spectrum ribbon</button><button id="tourBtn">TOUR THE SINKS</button><button id="hapBtn" class="on">Haptics</button><button id="resetBtn">Reset view</button></div>
@@ -571,5 +595,37 @@ document.getElementById('gyroBtn').addEventListener('click', async () => {
     setTimeout(() => { if (!gyro.live) state.textContent = 'GYRO SILENT in this viewer — long-press the file link → Open in Safari for live sensors'; }, 2600);
   } catch(err){ state.textContent = 'GYRO UNAVAILABLE — drag to orbit'; }
 });
+</script>
+
+<script>
+(function () {
+  var tray = document.getElementById('tray'), deck = document.getElementById('deck');
+  var rows = {};
+  tray.querySelectorAll('.trow').forEach(function (r) { rows[r.getAttribute('data-tab')] = r; });
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('.tabbtn'));
+  var measureBtn = document.querySelector('.tabbtn[data-tab="measure"]');
+  var openTab = null;
+  function closeAll() {
+    tray.classList.add('hidden'); deck.classList.remove('open');
+    Object.keys(rows).forEach(function (k) { rows[k].classList.remove('active'); });
+    tabs.forEach(function (b) { b.classList.remove('on'); });
+    openTab = null;
+  }
+  function open(name) {
+    closeAll(); openTab = name;
+    document.querySelector('.tabbtn[data-tab="' + name + '"]').classList.add('on');
+    if (name === 'measure') deck.classList.add('open');
+    else { rows[name].classList.add('active'); tray.classList.remove('hidden'); }
+  }
+  tabs.forEach(function (b) {
+    b.addEventListener('click', function () {
+      var n = b.getAttribute('data-tab');
+      if (openTab === n) closeAll(); else open(n);
+    });
+  });
+  document.addEventListener('pointerdown', function (e) { if (e.target.tagName === 'CANVAS') closeAll(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeAll(); });
+  setInterval(function () { if (measureBtn) measureBtn.classList.toggle('on', deck.classList.contains('open')); }, 600);
+})();
 </script>
 </body></html>
