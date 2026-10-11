@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Core — An Exhibit of the 7,140-Door System</title>
+<meta name="description" content="48 masks. 1,128 pairs. 7,140 doors. Zero collisions. Every number on this page was recomputed from the system's 48 integers.">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #060608; color: #f2ecdc; font-family: Georgia, 'Times New Roman', serif; line-height: 1.65; text-shadow: 0 1px 3px rgba(0,0,0,0.9); }
+  header { text-align: center; padding: 64px 24px 30px; }
+  header h1 { font-size: clamp(2.2rem, 7vw, 4rem); letter-spacing: 0.3em; font-weight: 400; color: #f5f0e1; }
+  header .sub { margin-top: 12px; letter-spacing: 0.22em; font-size: 0.85rem; color: #ddd6bf; }
+  .stats { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 34px; max-width: 1000px; margin: 30px auto 8px; padding: 18px 20px; border-top: 1px solid #2e2716; border-bottom: 1px solid #2e2716; font-family: 'Courier New', monospace; font-size: 0.92rem; color: #ffd977; text-align: center; }
+  .stats span b { color: #f5efdb; font-weight: 700; }
+  .frameWrap { max-width: 1240px; margin: 26px auto 8px; padding: 0 16px; }
+  .frameWrap iframe { width: 100%; height: 88vh; min-height: 560px; border: 1px solid #6b5d3f; outline: 6px solid #0a0a0e; box-shadow: 0 0 0 7px #2e2716, 0 18px 50px rgba(0,0,0,0.55); background: #000; display: block; }
+  .hint { text-align: center; font-size: 0.85rem; color: #c9c2a6; font-family: 'Courier New', monospace; margin: 16px auto 10px; max-width: 900px; padding: 0 16px; }
+  section { max-width: 1080px; margin: 0 auto; padding: 44px 24px 8px; }
+  section h2 { font-size: 1.25rem; letter-spacing: 0.34em; font-weight: 400; color: #f5efdb; text-align: center; margin-bottom: 8px; }
+  section .lede { text-align: center; color: #d8d2ba; font-style: italic; margin-bottom: 30px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
+  .card { border: 1px solid #2e2716; background: rgba(12,12,16,0.72); padding: 20px 22px; }
+  .card h3 { font-size: 0.82rem; letter-spacing: 0.24em; color: #ffd977; font-weight: 700; margin-bottom: 10px; text-transform: uppercase; }
+  .card p, .card li { font-size: 0.95rem; color: #e9e3cf; }
+  .card .big { font-family: 'Courier New', monospace; font-size: 1.05rem; color: #f5efdb; }
+  .gems { columns: 2; column-gap: 40px; max-width: 1000px; margin: 0 auto; }
+  .gems li { break-inside: avoid; margin-bottom: 12px; font-size: 0.95rem; color: #e9e3cf; list-style: none; }
+  .gems li b { color: #ffd977; font-family: 'Courier New', monospace; font-weight: 700; }
+  @media (max-width: 700px) { .gems { columns: 1; } }
+  .wide { max-width: 820px; margin: 0 auto; font-size: 1rem; color: #e9e3cf; }
+  .wide p { margin-bottom: 16px; }
+  .wide b { color: #f5efdb; }
+  .false { color: #ff9d7a; }
+  .receipts { font-family: 'Courier New', monospace; font-size: 0.92rem; max-width: 820px; margin: 0 auto; color: #e9e3cf; }
+  .receipts li { list-style: none; padding: 7px 0; border-bottom: 1px solid #1c1a12; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .receipts .no { color: #ffd977; }
+  .tryit { text-align: center; padding: 20px 24px 4px; }
+  .tryit a { display: inline-block; color: #ffd977; border: 1px solid #6b5d3f; padding: 13px 26px; letter-spacing: 0.22em; font-size: 0.85rem; text-decoration: none; border-radius: 999px; background: rgba(10,10,14,0.6); }
+  .canon { text-align: center; max-width: 880px; margin: 70px auto 10px; padding: 0 24px; font-size: clamp(1.15rem, 3.4vw, 1.6rem); font-style: italic; color: #f5efdb; line-height: 1.55; }
+  footer { text-align: center; padding: 44px 24px 70px; color: #b3ac93; font-size: 0.85rem; letter-spacing: 0.14em; }
+  footer .suites { font-family: 'Courier New', monospace; color: #8f8875; margin-top: 10px; letter-spacing: 0.05em; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>THE CORE</h1>
+  <p class="sub">AN EXHIBIT OF THE 7,140-DOOR SYSTEM &middot; TAYLOR HELLER</p>
+  <div class="stats">
+    <span><b>48</b> MASKS</span>
+    <span><b>1,128</b> PAIRS</span>
+    <span><b>944</b> DOOR PAIRS</span>
+    <span><b>7,140</b> DOORS</span>
+    <span><b>184</b> NEVER PAIRS</span>
+    <span><b>0</b> XOR COLLISIONS</span>
+  </div>
+</header>
+
+<div class="frameWrap">
+  <iframe src="manifold.html" title="The Spatial Manifold — the 7,140-door system, interactive" loading="eager"></iframe>
+</div>
+<p class="hint">THE MANIFOLD, ALIVE &mdash; DRAG TO ORBIT &middot; TAP A NODE FOR ITS MEASUREMENTS &middot; ITS DEFAULT STATE IS THE MEASURED UNIVERSE: SPEED RATIO 529:148, CONSTANT-WIDTH SHAPE &middot; BEST IN A FULL BROWSER</p>
+
+<section>
+  <h2>THE MEASUREMENTS</h2>
+  <p class="lede">Every number below was recomputed from the system&rsquo;s 48 integers. Nothing is quoted.</p>
+  <div class="cards">
+    <div class="card"><h3>Door Census</h3><p class="big">360 CLEAN &middot; 3,584 WIDER &middot; 3,196 FLOOR</p><p>7,140 doors in three piles, summing exactly. Clean doors are forced: c = a &amp; b, all 360 of them.</p></div>
+    <div class="card"><h3>Distance Census</h3><p class="big">D2 488 &middot; D3 1,696 &middot; D4 2,548 &middot; D5 1,864 &middot; D6 544</p><p>Mean door distance 4.0392. There are no distance-1 doors &mdash; the gap at the bottom is the system&rsquo;s mass gap.</p></div>
+    <div class="card"><h3>Operator W &mdash; Pair Adjacency</h3><p class="big">&lambda;max 299.358 &middot; &lambda;min &minus;129.871 &middot; &Sigma;&lambda;&sup2; 191,808</p><p>27 distinct eigenvalues: 15 simple, 3 double, 9 triple. Invertible &mdash; barely: smallest |&lambda;| &asymp; 0.059.</p></div>
+    <div class="card"><h3>Operator T &mdash; Transition</h3><p class="big">&lambda;max 598.650 &middot; &lambda;min &minus;86.262 &middot; &Sigma;&lambda;&sup2; 685,584</p><p>Total appearances 28,560 = 4 &times; 7,140. A different operator from W; the exhibit never confuses them.</p></div>
+    <div class="card"><h3>The Exact Ratio</h3><p class="big">685,584 : 191,808 = 529 : 148</p><p>The Frobenius energies of the two operators reduce by 1,296 to an exact ratio. It is wired into the manifold above as its default speed: the frame turns at 148/529 of the spin.</p></div>
+    <div class="card"><h3>Flow Census</h3><p class="big">12,528 = 7,140 + 2,256 + 502 + 2,630</p><p>Every candidate accounted for: doors admitted, self-touching refused, 502 out the bottom, 2,630 out the top. Nothing uncounted.</p></div>
+    <div class="card"><h3>The Two Sinks</h3><p class="big">INTO 31 &rarr; 162 &middot; INTO 63 &rarr; 141</p><p>Baseline is 148.75 doors per node. Kirchhoff holds at all 48: hallway count equals sink count, everywhere.</p></div>
+    <div class="card"><h3>H&#8321;&#8324; &mdash; The Second Route</h3><p class="big">EVERY COLUMN WEIGHS EXACTLY 8 OF 14</p><p>Minimum pair-XOR weight 2; zero aliases across all 1,128 pairs. A second, independent construction reaching the same 0/1,128.</p></div>
+    <div class="card"><h3>The Never Pairs, Explained</h3><p class="big">184 = 124 + 45 + 15</p><p>124 distance-1 pairs admit only self-splits &mdash; no door can exist. 45 fail only through the top; 15 only through the bottom. No other failure mode exists.</p></div>
+    <div class="card"><h3>The Tollbooth</h3><p class="big">HALL = SINK = 134 AT MASKS 3, 5, 9</p><p>402 doors through three low-bit masks; the high-bit twins 17, 33, 65 carry 155 each. Popcount alone does not decide a mask&rsquo;s traffic.</p></div>
+  </div>
+</section>
+
+<section>
+  <h2>SEVENTEEN GEMS</h2>
+  <p class="lede">Derived from the system, then verified. Each one survived its own check.</p>
+  <ol class="gems">
+    <li><b>01</b> &mdash; H&#8321;&#8324; is constant-weight: every column weighs exactly 8 of 14.</li>
+    <li><b>02</b> &mdash; Its difference set is complete: the 1,128 pair XORs take exactly 63 values &mdash; every nonzero 7-bit vector with bit 0 equal to 0.</li>
+    <li><b>03</b> &mdash; The 544 identity: the distance-6 doors are exactly the complementary pairs &mdash; 17 pairs &times; 32 = 544, all Floor.</li>
+    <li><b>04</b> &mdash; The door involution (a,b,c,d) &harr; (a,b,d,c) has no fixed points, so every pair&rsquo;s door count is even.</li>
+    <li><b>05</b> &mdash; Sinks verified: into 31 &rarr; 162, into 63 &rarr; 141; masks 27, 23, 15 tie at 155.</li>
+    <li><b>06</b> &mdash; Reversibility folds the doors into exactly 1,785 quads.</li>
+    <li><b>07</b> &mdash; Partner pairs are balanced &mdash; identical door counts, zero mismatches; 944 door pairs form 280 partnership components.</li>
+    <li><b>08</b> &mdash; Clean doors are forced: c = a &amp; b for all 360.</li>
+    <li><b>09</b> &mdash; No mask is exiled: all 48 serve as both sink and hallway.</li>
+    <li><b>10</b> &mdash; The H&#8321;&#8324; difference set is the diagonal {(x, x)}; its distance distribution is H&#8327;&rsquo;s, doubled.</li>
+    <li><b>11</b> &mdash; Kirchhoff for doors: hallway equals sink at all 48 nodes; pair-membership equals hall + sink (node 31: 324 = 162 + 162).</li>
+    <li><b>12</b> &mdash; W is invertible, barely: smallest |&lambda;| &asymp; 0.059, determinant negative.</li>
+    <li><b>13</b> &mdash; W degeneracy: 27 distinct eigenvalues &mdash; 15 simple, 3 double, 9 triple.</li>
+    <li><b>14</b> &mdash; T&rsquo;s total appearances: 28,560 = 4 &times; 7,140.</li>
+    <li><b>15</b> &mdash; A refused candidate: reflection through the window&rsquo;s center preserves only 3,780 of 7,140 doors. Not a symmetry; recorded as refused.</li>
+    <li><b>16</b> &mdash; A rhyme, refused: 14,280 = 14,280 by two unrelated mechanisms. No identity claimed.</li>
+    <li><b>17</b> &mdash; The tollbooth split: low-bit popcount-2 masks carry 134; high-bit carry 155. Position, not weight, sets the toll.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>THE PLATES, GRADED</h2>
+  <div class="wide">
+    <p>Ten plates rendering this system were produced independently and later checked, claim by claim, against recomputation. <b>54 of 56 checkable claims are exact &mdash; 96.4%.</b> The exhibit prints its corrections:</p>
+    <p>Two claims are <span class="false"><b>false as printed</b></span>, both on one plate: &ldquo;3,384 Wider&rdquo; &mdash; the verified count is <b>3,584</b>, and the plate&rsquo;s own bins sum to 6,940, not 7,140 &mdash; and &ldquo;46 Odd Masks&rdquo; &mdash; there are <b>48</b>.</p>
+    <p>Two more plates are portraits with caveats: the heatmap&rsquo;s pixels decode to operator <b>T</b>, not the W its title claims (a swapped portrait); the spectrum bars decode to neither operator and stand as <b>schematic</b>.</p>
+    <p>Three claims remain <b>attested, not verified</b> &mdash; a spectral &lambda;min of 468/47, a codec pipeline figure of 1.06e&minus;14, and &lambda;&#8322;_norm = 0.642820. They are named here as attested. Nothing on this page borrows their authority.</p>
+  </div>
+</section>
+
+<section>
+  <h2>THE RECEIPTS</h2>
+  <p class="lede">Eight applications. First-named inventor: Taylor Wolfe Heller &middot; Monsters Ink LLC.</p>
+  <ul class="receipts">
+    <li><span class="no">63/988,462</span><span>filed Feb 23, 2026</span></li>
+    <li><span class="no">63/989,327 &middot; 63/989,336</span><span>filed Feb 24, 2026</span></li>
+    <li><span class="no">64/041,875</span><span>filed Apr 17, 2026</span></li>
+    <li><span class="no">19/658,750</span><span>nonprovisional &middot; filed Apr 27, 2026</span></li>
+    <li><span class="no">64/150,688</span><span>filed Sep 8, 2026</span></li>
+    <li><span class="no">64/169,264</span><span>filed Oct 4, 2026</span></li>
+    <li><span class="no">64/170,360</span><span>the codec &middot; filed Oct 6, 2026</span></li>
+    <li><span class="no">GRANTS 0 &middot; OFFICE ACTIONS 0</span><span>as of Oct 11, 2026</span></li>
+  </ul>
+</section>
+
+<div class="tryit">
+  <a href="https://muse.ai/s/a-window-that-acts-like-a-door-xaxc6wlxzxjhxyvg" target="_blank" rel="noopener">TRY A DOOR &mdash; ONLY REAL DOORS OPEN</a>
+</div>
+
+<p class="canon">&ldquo;Measure what is left over after an interaction; admit only what fits inside that leftover; otherwise refuse and record the refusal.&rdquo;</p>
+
+<footer>
+  THE CORE &middot; TAYLOR HELLER &middot; MONSTERS INK LLC &middot; MMXXVI
+  <div class="suites">VERIFICATION SUITES AT EXHIBIT: CORE ENGINE 34/34 &middot; CORE FULL 37/37 &middot; H&#8321;&#8324; 8/8 &middot; NEVER PAIRS 7/7 &middot; GEMS 6/6 &middot; STARTING LINE ALL PASS</div>
+</footer>
+
+</body>
+</html>
