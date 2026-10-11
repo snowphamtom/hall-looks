@@ -9,14 +9,16 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: #060608; color: #f6f1e3; font-family: Georgia, 'Times New Roman', serif; line-height: 1.7; }
   body { text-shadow: 0 1px 4px rgba(0,0,0,0.95), 0 0 18px rgba(0,0,0,0.6); }
-  body::before { content: ""; position: fixed; inset: 0; z-index: -1; background: url('img/fiddler_vortex_bg.jpg') center center / contain no-repeat; opacity: 0.5; filter: hue-rotate(var(--hue, 0deg)); transition: filter 0.25s linear, opacity 1.2s ease; transform: translateZ(0); }
+  body::before { content: ""; position: fixed; inset: 0; z-index: -1; background: url('img/fiddler_vortex_bg.jpg') center center / contain no-repeat; opacity: 0.5; filter: hue-rotate(var(--hue, 0deg)); transition: filter 0.25s linear, opacity 1.2s ease; transform: translateZ(0); animation: breathe 44s ease-in-out infinite; }
   .piece img, .hero img { border-color: #4a3f2a; }
 
 
-  body::after { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; background: url('img/fiddler_vortex_bg.jpg') center bottom / cover no-repeat; opacity: 0; filter: hue-rotate(var(--hue, 0deg)); transition: opacity 1.2s ease; transform: translateZ(0); }
+  body::after { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; background: url('img/fiddler_vortex_bg.jpg') center bottom / cover no-repeat; opacity: 0; filter: hue-rotate(var(--hue, 0deg)); transition: opacity 1.2s ease; transform: translateZ(0); animation: breathe 44s ease-in-out infinite; }
   body.story-on::after { opacity: 0.55; }
   body.story-on::before { opacity: 0.22; }
-  @media (prefers-reduced-motion: reduce) { body::before, body::after { transition: none; } }
+  @media (prefers-reduced-motion: reduce) { body::before, body::after { transition: none; animation: none; } .piece { opacity: 1 !important; transform: none !important; transition: none !important; } .board { animation: none !important; } }
+  @keyframes breathe { 0%, 100% { transform: scale(1) translateZ(0); } 50% { transform: scale(1.045) translateZ(0); } }
+  @keyframes boardPulse { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
   #rail { position: fixed; top: 0; left: 0; right: 0; height: 26px; z-index: 40; pointer-events: none; }
   #rail::before { content: ""; position: absolute; left: 4%; right: 4%; top: 12px; height: 2px; background: linear-gradient(90deg, #4a3f2a, #8a7a4d, #4a3f2a); opacity: 0.8; }
   #rail .st { position: absolute; top: 8px; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; border: 1px solid #8a7a4d; background: #0a0a0e; }
@@ -38,6 +40,20 @@
   .ninth .hdot { width: 12px; height: 12px; margin: 0 auto 26px; border-radius: 50%; border: 1px solid #8a7a4d; background: transparent; }
   .ninth h2 { font-size: 0.95rem; letter-spacing: 0.42em; color: #d8d2ba; font-weight: 400; margin-bottom: 20px; }
   .ninth p { font-style: italic; font-size: 1.15rem; color: #f2ecdc; }
+
+  #vig { position: fixed; inset: 0; z-index: 29; pointer-events: none; background: radial-gradient(ellipse at center, transparent 52%, rgba(0,0,0,0.52) 100%); }
+  #grain { position: fixed; inset: 0; z-index: 30; pointer-events: none; opacity: 0.055; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E"); }
+  .cover { position: relative; height: 100svh; min-height: 540px; overflow: hidden; margin-bottom: 60px; }
+  .coverArt { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 28%; cursor: zoom-in; }
+  .coverShade { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, rgba(3,3,5,0.45), rgba(3,3,5,0) 34%, rgba(3,3,5,0) 52%, rgba(3,3,5,0.82)); }
+  .coverText { position: absolute; left: 0; right: 0; bottom: 13%; text-align: center; padding: 0 20px; pointer-events: none; }
+  .coverText h1 { font-size: clamp(1.9rem, 6.2vw, 4.2rem); letter-spacing: 0.18em; font-weight: 400; color: #f5f0e1; }
+  .coverText .sub { margin-top: 14px; letter-spacing: 0.22em; font-size: 0.85rem; color: #ddd6bf; }
+  .board { margin-top: 30px; letter-spacing: 0.34em; font-size: 0.72rem; color: #ffd977; animation: boardPulse 2.6s ease-in-out infinite; }
+  .coverCap { position: absolute; bottom: 12px; right: 16px; font-size: 0.8rem; color: #d6cfb4; font-style: italic; }
+  .piece { opacity: 0; transform: translateY(26px); transition: opacity 0.8s ease, transform 0.8s ease; }
+  .piece.in { opacity: 1; transform: none; }
+  .piece img { border: 1px solid #6b5d3f; outline: 6px solid #0a0a0e; box-shadow: 0 0 0 7px #2e2716, 0 18px 50px rgba(0,0,0,0.55); }
   .scene { font-style: italic; color: #d8d2ba; margin-bottom: 22px; }
   .spk { color: #ffd977; font-weight: 700; letter-spacing: 0.14em; font-size: 0.82rem; text-transform: uppercase; }
   header { text-align: center; padding: 72px 24px 40px; }
@@ -62,16 +78,19 @@
 </style>
 </head>
 <body>
+<div id="vig"></div>
+<div id="grain"></div>
 
-<header>
-  <h1>TRAINS OF THOUGHT</h1>
-  <p class="sub">The wire-tunnel masterpiece series &middot; Taylor Heller</p>
-</header>
-
-<div class="hero">
-  <img src="img/wt_arrival.jpg" alt="Arrival — a train head-on between striated iridescent walls, over a marbled rose floor">
-  <p class="caption">Arrival &middot; 1179 &times; 2159 px</p>
-</div>
+<section class="cover hero">
+  <img class="coverArt" src="img/wt_arrival.jpg" alt="Arrival — a train head-on between striated iridescent walls, over a marbled rose floor">
+  <div class="coverShade"></div>
+  <div class="coverText">
+    <h1>TRAINS OF THOUGHT</h1>
+    <p class="sub">The wire-tunnel masterpiece series &middot; Taylor Heller</p>
+    <p class="board">&mdash; SCROLL TO BOARD &mdash;</p>
+  </div>
+  <p class="caption coverCap">Arrival &middot; 1179 &times; 2159 px</p>
+</section>
 
 <div class="grid">
   <div class="piece">
@@ -251,6 +270,17 @@
       btn.textContent = '✦ NO SENSOR — SCROLL ONLY';
     }
   });
+
+  /* ---- scroll reveal: stations arriving ---- */
+  var pieces = document.querySelectorAll('.piece');
+  if ('IntersectionObserver' in window && !reduced) {
+    var rio = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) { if (en.isIntersecting) { en.target.classList.add('in'); rio.unobserve(en.target); } });
+    }, { threshold: 0.1 });
+    pieces.forEach(function (el) { rio.observe(el); });
+  } else {
+    pieces.forEach(function (el) { el.classList.add('in'); });
+  }
 
   /* ---- story transition: the lower half rises ---- */
   var storySec = document.getElementById('storySec');
