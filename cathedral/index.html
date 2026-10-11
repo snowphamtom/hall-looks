@@ -128,7 +128,7 @@
 <div id="boot">
   <div class="t">THE CATHEDRAL ENGINE</div>
   <div class="g">★</div>
-  <div class="s">MEASURING NOTRE DAME…</div>
+  <div class="s">RAISING THE WIRE SKELETON…</div>
 </div>
 
 <script>
@@ -142,7 +142,17 @@ setTimeout(function () {
 <div id="readout"><div class="rt"></div><div class="rb"></div></div>
 
 <div class="panel" id="panel-parts">
-  <div class="prow"><span class="plab">ADD A PART</span>
+  <div class="prow"><span class="plab">SKELETON STARTS</span>
+    <button class="pbtn" data-skel="nd">NOTRE DAME</button>
+    <button class="pbtn" data-skel="amiens">AMIENS</button>
+    <button class="pbtn" data-skel="salisbury">SALISBURY</button>
+    <button class="pbtn" data-skel="york">YORK</button>
+    <button class="pbtn" data-skel="lubeck">LÜBECK</button>
+    <button class="pbtn" data-skel="core">THE CORE (44 ★ 26)</button>
+    <button class="pbtn" data-skel="filigree">GRAND FILIGREE</button>
+    <button class="pbtn" data-skel="frame">EMPTY FRAME</button></div>
+  <div class="prow"><span class="note">Whole-cathedral skeletons, standing in wire. Pick one, then change it — every tool works on the skeleton. Slide MATERIALIZE in VIEW to flesh it into stone.</span></div>
+<div class="prow"><span class="plab">ADD A PART</span>
     <button class="pbtn" data-add="pillar">PILLAR</button>
     <button class="pbtn" data-add="arch">ARCH</button>
     <button class="pbtn" data-add="wall">WALL</button>
@@ -200,7 +210,7 @@ setTimeout(function () {
 <div class="panel" id="panel-view">
   <div class="prow"><span class="plab">MATERIALIZE</span>
     <span class="note" style="min-width:0">BLUEPRINT</span>
-    <input type="range" id="matRange" min="0" max="100" value="100">
+    <input type="range" id="matRange" min="0" max="100" value="0">
     <span class="note" style="min-width:0">HYPERREAL</span></div>
   <div class="prow"><span class="plab">SUN ANGLE</span>
     <input type="range" id="sunRange" min="0" max="360" value="128">
@@ -686,13 +696,13 @@ bpBtn.addEventListener('click', () => {
   bpBtn.textContent = bpMode ? 'LEAVE BLUEPRINT' : 'ENTER BLUEPRINT';
   bpBtn.classList.toggle('on', bpMode);
   if (bpMode) {
-    scene.overrideMaterial = bpMat;
+    applyRenderMode();
     scene.background.setHex(0x0a1a3a); scene.fog.color.setHex(0x0a1a3a);
     grid.material.opacity = 0.85;
     camera.position.set(0, 175, 0.01); controls.target.set(0, 0, 0);
     setState('BLUEPRINT — the building as its drawing · MOVE, STRETCH or WARP it');
   } else {
-    scene.overrideMaterial = null;
+    applyRenderMode();
     scene.background.setHex(0x060608); scene.fog.color.setHex(0x060608);
     grid.material.opacity = 0.35;
     camera.position.copy(CAM0); controls.target.copy(TGT0);
@@ -706,9 +716,11 @@ const bpBg = new THREE.Color(0x0a1a3a), realBg = new THREE.Color(0x060608);
 document.getElementById('matRange').addEventListener('input', e => {
   if (bpMode) return;
   const v = parseInt(e.target.value, 10) / 100;
+  matV = v;
   scene.background.copy(bpBg).lerp(realBg, v);
   scene.fog.color.copy(scene.background);
   sun.intensity = 0.9 + v * 1.7;
+  applyRenderMode();
 });
 document.getElementById('sunRange').addEventListener('input', e => { sunAngle = parseInt(e.target.value, 10); placeSun(); });
 document.getElementById('orbitBtn').addEventListener('click', e => {
@@ -1115,6 +1127,45 @@ setInterval(updBudget, 900);
     if (b.dataset.theme !== 'blocks') b.addEventListener('click', () => { if (MATS.stone.map) { MATS.stone.map = null; MATS.stone.needsUpdate = true; } });
   });
 })();
+
+
+/* ============ V6 — THE WIRE SKELETON, FIRST ============ */
+let matV = 0;
+const skelMat = new THREE.MeshBasicMaterial({ color: 0xf5f2e8, wireframe: true });
+function applyRenderMode() {
+  if (bpMode) { scene.overrideMaterial = bpMat; return; }
+  if (matV < 0.04) { scene.overrideMaterial = skelMat; scene.background.setHex(0x000000); scene.fog.color.setHex(0x000000); }
+  else scene.overrideMaterial = null;
+}
+function skeletonStart(kind) {
+  const mr = document.getElementById('matRange');
+  mr.value = 0; matV = 0;
+  if (kind === 'nd') presetNotreDame();
+  else if (kind === 'core') presetCore();
+  else if (kind === 'filigree') {
+    buildCathedral({ LEN: 128, WID: 43, NAVE_W: 12, VAULT_H: 32.5, TOWER_H: 69, SPIRE_H: 96, ROSE_D: 9.6, BAY: 8, note: 'GRAND FILIGREE — the canon skeleton, dressed in pinnacles' });
+    [-21.5, 21.5].forEach(x => [-58, 58].forEach(z => {
+      const pin = addItem('spire', x * 0.72, z + (z > 0 ? 5 : -5)); pin.group.scale.set(0.16, 0.19, 0.16); pin.group.position.y = 55;
+    }));
+    for (let z = -48; z <= 48; z += 16) [-8.5, 8.5].forEach(x => {
+      const sp = addItem('spire', x, z); sp.group.scale.set(0.07, 0.10, 0.07); sp.group.position.y = 30;
+    });
+    select(null);
+    setState('GRAND FILIGREE — the whole skeleton, pinnacled like the plate');
+  }
+  else if (kind === 'frame') {
+    clearAll(); addItem('floor', 0, 0);
+    const seed = addItem('vault', 0, 0); seed.group.position.y = 26;
+    select(null);
+    setState('EMPTY FRAME — plot, module, and one seed vault. Build the skeleton yourself.');
+  }
+  else buildCathedral(EXEMPLARS[kind]);
+  applyRenderMode();
+  haptic();
+}
+document.querySelectorAll('[data-skel]').forEach(b => b.addEventListener('click', () => skeletonStart(b.dataset.skel)));
+applyRenderMode();
+setState('THE WIRE SKELETON — pick a SKELETON START in PARTS, or change this one · MATERIALIZE fleshes it');
 
 </script>
 </body>
