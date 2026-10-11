@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Spatial Manifold — The 7,140-Door System</title>
+<style>
+ html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:ui-monospace,Menlo,monospace;color:#cfe3ff;-webkit-user-select:none;user-select:none}
+ #cv{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+ .hud{position:fixed;top:14px;left:16px;font-size:12.5px;line-height:1.8;letter-spacing:.06em;color:#7fb2ff;text-shadow:0 0 6px #123;pointer-events:none;white-space:pre;z-index:3}
+ #spark{position:fixed;top:118px;left:16px;pointer-events:none;z-index:3;opacity:.9}
+ .cap{position:fixed;left:16px;bottom:172px;font-family:Georgia,serif;font-style:italic;font-size:14.5px;color:#e8e6df;max-width:72vw;pointer-events:none;z-index:3}
+ .tick{position:fixed;left:16px;bottom:148px;font-size:11.5px;color:#5b7bb5;pointer-events:none;z-index:3;letter-spacing:.05em}
+ .bar{position:fixed;top:12px;right:12px;display:flex;flex-direction:column;gap:8px;align-items:flex-end;z-index:5}
+ button{background:rgba(10,18,38,.88);color:#cfe3ff;border:1px solid #3a5a9c;border-radius:8px;padding:8px 12px;font-family:ui-monospace,Menlo,monospace;font-size:12.5px;cursor:pointer}
+ button.gold{border-color:#c9a227;color:#f3e9c8;font-size:15px;padding:11px 18px}
+ button.on{border-color:#c9a227;color:#f3e9c8}
+ #state{font-size:12.5px;color:#f3e9c8;text-align:right;max-width:62vw}
+ #readout{position:fixed;right:12px;bottom:172px;background:rgba(8,12,26,.92);border:1px solid #c9a227;border-radius:9px;padding:11px 15px;font-family:Georgia,serif;font-size:14.5px;color:#e8e6df;max-width:76vw;display:none;z-index:5}
+ #readout .bar2{height:5px;background:#c9a227;border-radius:3px;margin-top:6px}
+ #tray{position:fixed;left:0;right:0;bottom:0;z-index:6;background:rgba(5,8,18,.94);border-top:1px solid #2a3554;padding:8px 10px 12px;max-height:150px;overflow-y:auto;transition:transform .35s}
+ #tray.hidden{transform:translateY(110%)}
+ .trow{display:flex;gap:6px;align-items:center;margin:4px 0;flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px}
+ .tlab{font-size:10.5px;color:#5b7bb5;letter-spacing:.12em;min-width:62px}
+ .trow button{white-space:nowrap;padding:6px 10px;font-size:12px}
+ input[type=range]{accent-color:#c9a227;width:110px}
+ #trayBtn{position:fixed;right:12px;bottom:162px;z-index:7;border-color:#c9a227;color:#f3e9c8}
+ #deckBtn{position:fixed;left:12px;bottom:162px;z-index:7;border-color:#c9a227;color:#f3e9c8}
+ #deck{position:fixed;left:10px;top:176px;bottom:196px;width:248px;z-index:5;overflow-y:auto;display:none;padding-right:2px}
+ #deck.open{display:block}
+ .mcard{background:rgba(8,12,26,.92);border:1px solid #2a3554;border-left:3px solid #c9a227;border-radius:8px;padding:9px 11px;margin-bottom:8px}
+ .mtitle{font-size:11px;letter-spacing:.1em;color:#f3e9c8;margin-bottom:5px}
+ .mbody{font-family:Georgia,serif;font-size:12.8px;line-height:1.5;color:#cfd6e4}
+ .mcard svg{margin-top:6px;max-width:100%}
+ #boot{position:fixed;inset:0;background:#000;z-index:9;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;transition:opacity .7s}
+ #crt{position:fixed;inset:0;pointer-events:none;z-index:8;display:none;background:repeating-linear-gradient(0deg, rgba(0,0,0,0.16) 0 1px, transparent 1px 3px)}
+ #vig{position:fixed;inset:0;pointer-events:none;z-index:8;display:none;background:radial-gradient(ellipse at center, transparent 52%, rgba(0,0,0,0.55) 100%)}
+ .corner{position:fixed;width:26px;height:26px;z-index:4;pointer-events:none;border:0 solid #c9a227;opacity:.65}
+ #boot div{font-size:13px;letter-spacing:.14em;color:#7fb2ff}
+ #boot .g{color:#f3e9c8;font-size:19px}
+</style></head><body>
+<canvas id="cv"></canvas>
+<div id="crt"></div><div id="vig"></div>
+<div class="corner" style="top:8px;left:8px;border-top-width:2px;border-left-width:2px"></div>
+<div class="corner" style="top:8px;right:8px;border-top-width:2px;border-right-width:2px"></div>
+<div class="corner" style="bottom:158px;left:8px;border-bottom-width:2px;border-left-width:2px"></div>
+<div class="corner" style="bottom:158px;right:8px;border-bottom-width:2px;border-right-width:2px"></div>
+<div class="hud" id="hud"></div>
+<canvas id="spark" width="150" height="30"></canvas>
+<div class="cap">You are looking at a flat shadow of the 7,140-door system.</div>
+<div class="tick" id="tick"></div>
+<div class="bar">
+ <button class="gold" id="gyroBtn">ENABLE GYRO</button>
+ <div id="state">GYRO OFF — drag to orbit · pinch to zoom · tap a node · tap ★ to ring the system</div>
+</div>
+<div id="readout"></div>
+<button id="trayBtn">VISUAL CONTROLS ▾</button>
+<button id="deckBtn">◉ EVERYTHING MEASURED</button>
+<div id="deck"><div class="mcard"><div class="mtitle">DEFAULT STATE — THE MEASURED UNIVERSE</div><div class="mbody">On load, the object runs at the system’s exact speed ratio and wears its measured shape. THE RATIO: the two operators’ total spectral energies are the integers 685,584 (T, flow) and 191,808 (W, structure) — their ratio reduces to exactly <b>529 : 148</b>. The manifold’s spin is the unit; the frame cage turns at 148/529 of it; the core solid and the flow pulses run at 529/148 of it. THE SHAPE: node radii are the measured appearances themselves, and the skin carries the curvature law’s constant-width preference as a three-lobed field. The frame around all this — “every observable universe in galaxy” — is the frame you chose; everything inside it is the system’s own exact arithmetic.</div></div>
+<div class="mcard"><div class="mtitle">DOOR CENSUS — THE INSIDE TOTAL</div><div class="mbody">7,140 doors · 944 door-pairs · 184 never-pairs · 12,528 flow transitions closing exactly.</div><svg width="200" height="44" viewBox="0 0 200 44"><rect x="1.0" y="40.8" width="64.7" height="3.2" fill="#c9a227" opacity="0.85"/><text x="33.3" y="43" fill="#9aa3b8" font-size="7.5" text-anchor="middle">CLEAN 360</text><rect x="67.7" y="12.0" width="64.7" height="32.0" fill="#c9a227" opacity="0.85"/><text x="100.0" y="43" fill="#9aa3b8" font-size="7.5" text-anchor="middle">WIDER 3584</text><rect x="134.3" y="15.5" width="64.7" height="28.5" fill="#c9a227" opacity="0.85"/><text x="166.7" y="43" fill="#9aa3b8" font-size="7.5" text-anchor="middle">FLOOR 3196</text></svg></div>
+<div class="mcard"><div class="mtitle">DISTANCE CENSUS</div><div class="mbody">Pairs by distance 1–6: 124 / 282 / 352 / 253 / 100 / 17. Doors live only at 2–6. The 124 distance-1 pairs are the gap — zero doors.</div><svg width="200" height="44" viewBox="0 0 200 44"><rect x="1.0" y="37.9" width="38.0" height="6.1" fill="#a8e6b0" opacity="0.85"/><text x="20.0" y="43" fill="#9aa3b8" font-size="7.5" text-anchor="middle">d2</text><rect x="41.0" y="22.7" width="38.0" height="21.3" fill="#a8e6b0" opacity="0.85"/><text x="60.0" y="43" fill="#9aa3b8" font-size="7.5" text-anchor="middle">d3</text><rect x="81.0" y="12.0" width="38.0" height="32.0" fill="#a8e6b0" opacity="0.85"/><text x="100.0" y="43" fill="#9aa3b8" font-size="7.5" text-anchor="middle">d4</text><rect x="121.0" y="20.6" width="38.0" height="23.4" fill="#a8e6b0" opacity="0.85"/><text x="140.0" y="43" fill="#9aa3b8" font-size="7.5" text-anchor="middle">d5</text><rect x="161.0" y="37.2" width="38.0" height="6.8" fill="#a8e6b0" opacity="0.85"/><text x="180.0" y="43" fill="#9aa3b8" font-size="7.5" text-anchor="middle">d6</text></svg></div>
+<div class="mcard"><div class="mtitle">THE TWO SINKS</div><div class="mbody">Into 31: 162 doors, mean distance 3.9012 (+8.9% over the 148.75 baseline). Into 63: 141 doors, mean 4.0426 (−5.2%).</div><svg width="200" height="44" viewBox="0 0 200 44"><rect x="1.0" y="36.6" width="18.0" height="7.4" fill="#7dd3fc" opacity="0.85"/><text x="10.0" y="43" fill="#9aa3b8" font-size="7.5" text-anchor="middle">31→</text><rect x="21.0" y="18.8" width="18.0" height="25.2" fill="#7dd3fc" opacity="0.85"/><text x="30.0" y="43" fill="#9aa3b8" font-size="7.5" text-anchor="middle"></text><rect x="41.0" y="14.6" width="18.0" height="29.4" fill="#7dd3fc" opacity="0.85"/><text x="50.0" y="43" fill="#9aa3b8" font-size="7.5" text-anchor="middle"></text><rect x="61.0" y="29.3" width="18.0" height="14.7" fill="#7dd3fc" opacity="0.85"/><text x="70.0" y="43" fill="#9aa3b8" font-size="7.5" text-anchor="middle"></text><rect x="81.0" y="35.6" width="18.0" height="8.4" fill="#7dd3fc" opacity="0.85"/><text x="90.0" y="43" fill="#9aa3b8" font-size="7.5" text-anchor="middle"></text><rect x="101.0" y="38.0" width="18.0" height="6.0" fill="#7dd3fc" opacity="0.85"/><text x="110.0" y="43" fill="#9aa3b8" font-size="7.5" text-anchor="middle">63→</text><rect x="121.0" y="23.5" width="18.0" height="20.5" fill="#7dd3fc" opacity="0.85"/><text x="130.0" y="43" fill="#9aa3b8" font-size="7.5" text-anchor="middle"></text><rect x="141.0" y="12.0" width="18.0" height="32.0" fill="#7dd3fc" opacity="0.85"/><text x="150.0" y="43" fill="#9aa3b8" font-size="7.5" text-anchor="middle"></text><rect x="161.0" y="27.1" width="18.0" height="16.9" fill="#7dd3fc" opacity="0.85"/><text x="170.0" y="43" fill="#9aa3b8" font-size="7.5" text-anchor="middle"></text><rect x="181.0" y="34.3" width="18.0" height="9.7" fill="#7dd3fc" opacity="0.85"/><text x="190.0" y="43" fill="#9aa3b8" font-size="7.5" text-anchor="middle"></text></svg></div>
+<div class="mcard"><div class="mtitle">THE TOLLBOOTH — GEM 17</div><div class="mbody">Hall = sink = 134 at the low-bit popcount-2 masks {3, 5, 9} — 402 doors through three gates. The high-bit twins {17, 33, 65} run 155. Popcount alone does not set the toll; position does.</div><svg width="200" height="44" viewBox="0 0 200 44"><rect x="1.0" y="16.3" width="31.3" height="27.7" fill="#ffcf8a" opacity="0.85"/><text x="16.7" y="43" fill="#9aa3b8" font-size="7.5" text-anchor="middle">3</text><rect x="34.3" y="16.3" width="31.3" height="27.7" fill="#ffcf8a" opacity="0.85"/><text x="50.0" y="43" fill="#9aa3b8" font-size="7.5" text-anchor="middle">5</text><rect x="67.7" y="16.3" width="31.3" height="27.7" fill="#ffcf8a" opacity="0.85"/><text x="83.3" y="43" fill="#9aa3b8" font-size="7.5" text-anchor="middle">9</text><rect x="101.0" y="12.0" width="31.3" height="32.0" fill="#ffcf8a" opacity="0.85"/><text x="116.7" y="43" fill="#9aa3b8" font-size="7.5" text-anchor="middle">17</text><rect x="134.3" y="12.0" width="31.3" height="32.0" fill="#ffcf8a" opacity="0.85"/><text x="150.0" y="43" fill="#9aa3b8" font-size="7.5" text-anchor="middle">33</text><rect x="167.7" y="12.0" width="31.3" height="32.0" fill="#ffcf8a" opacity="0.85"/><text x="183.3" y="43" fill="#9aa3b8" font-size="7.5" text-anchor="middle">65</text></svg></div>
+<div class="mcard"><div class="mtitle">KIRCHHOFF — THE BALANCE LAW</div><div class="mbody">At every one of the 48 nodes, hallways in = sink doors out. Δ = 0 × 48, no exceptions. Pair-membership = hall + sink (node 31: 324 = 162 + 162; 648 appearances, the maximum).</div></div>
+<div class="mcard"><div class="mtitle">SPECTRUM W — PAIR ADJACENCY</div><div class="mbody">λmax 299.358 · λmin −129.871 (×3) · Σλ² = 191,808 (Frobenius closes) · 27 distinct eigenvalues · smallest |λ| ≈ 0.059 — invertible, barely.</div><svg width="200" height="44" viewBox="0 0 200 44"><rect x="1.0" y="12.0" width="10.5" height="32.0" fill="#7dd3fc" opacity="0.85"/><rect x="13.5" y="39.1" width="10.5" height="4.9" fill="#7dd3fc" opacity="0.85"/><rect x="26.0" y="39.1" width="10.5" height="4.9" fill="#7dd3fc" opacity="0.85"/><rect x="38.5" y="39.1" width="10.5" height="4.9" fill="#7dd3fc" opacity="0.85"/><rect x="51.0" y="39.2" width="10.5" height="4.8" fill="#7dd3fc" opacity="0.85"/><rect x="63.5" y="39.3" width="10.5" height="4.7" fill="#7dd3fc" opacity="0.85"/><rect x="76.0" y="39.3" width="10.5" height="4.7" fill="#7dd3fc" opacity="0.85"/><rect x="88.5" y="40.5" width="10.5" height="3.5" fill="#7dd3fc" opacity="0.85"/><rect x="101.0" y="40.5" width="10.5" height="3.5" fill="#7dd3fc" opacity="0.85"/><rect x="113.5" y="40.5" width="10.5" height="3.5" fill="#7dd3fc" opacity="0.85"/><rect x="126.0" y="40.5" width="10.5" height="3.5" fill="#7dd3fc" opacity="0.85"/><rect x="138.5" y="40.9" width="10.5" height="3.1" fill="#7dd3fc" opacity="0.85"/><rect x="151.0" y="41.5" width="10.5" height="2.5" fill="#7dd3fc" opacity="0.85"/><rect x="163.5" y="41.5" width="10.5" height="2.5" fill="#7dd3fc" opacity="0.85"/><rect x="176.0" y="41.5" width="10.5" height="2.5" fill="#7dd3fc" opacity="0.85"/><rect x="188.5" y="42.5" width="10.5" height="1.5" fill="#7dd3fc" opacity="0.85"/></svg></div>
+<div class="mcard"><div class="mtitle">SPECTRUM T — TRANSITION</div><div class="mbody">The second operator, measured separately and never conflated: λmax 598.650 · λmin −86.262 · Σλ² = 685,584 · 28,560 entries = 4 × 7,140.</div></div>
+<div class="mcard"><div class="mtitle">FLOW CENSUS — THE RIVER LEDGER</div><div class="mbody">12,528 = 7,140 doors + 2,256 self-touching + 502 bottom exits + 2,630 top exits. Every transition accounted for; nothing leaves uncounted.</div><svg width="200" height="44" viewBox="0 0 200 44"><rect x="1.0" y="12.0" width="48.0" height="32.0" fill="#d8b4fe" opacity="0.85"/><text x="25.0" y="43" fill="#9aa3b8" font-size="7.5" text-anchor="middle">DOORS</text><rect x="51.0" y="33.9" width="48.0" height="10.1" fill="#d8b4fe" opacity="0.85"/><text x="75.0" y="43" fill="#9aa3b8" font-size="7.5" text-anchor="middle">SELF</text><rect x="101.0" y="32.2" width="48.0" height="11.8" fill="#d8b4fe" opacity="0.85"/><text x="125.0" y="43" fill="#9aa3b8" font-size="7.5" text-anchor="middle">TOP</text><rect x="151.0" y="41.8" width="48.0" height="2.2" fill="#d8b4fe" opacity="0.85"/><text x="175.0" y="43" fill="#9aa3b8" font-size="7.5" text-anchor="middle">BOTTOM</text></svg></div>
+<div class="mcard"><div class="mtitle">H₁₄ — THE SECOND CONSTRUCTION</div><div class="mbody">Every column weighs exactly 8 of 14. Pair syndrome distribution 124/282/352/253/100/17 at weights 2–12 — the pair distances, doubled. Minimum weight 2 → 0 collisions in 1,128, by a second independent route.</div><svg width="200" height="44" viewBox="0 0 200 44"><rect x="1.0" y="32.7" width="31.3" height="11.3" fill="#a8e6b0" opacity="0.85"/><text x="16.7" y="43" fill="#9aa3b8" font-size="7.5" text-anchor="middle">w2</text><rect x="34.3" y="18.4" width="31.3" height="25.6" fill="#a8e6b0" opacity="0.85"/><text x="50.0" y="43" fill="#9aa3b8" font-size="7.5" text-anchor="middle">w4</text><rect x="67.7" y="12.0" width="31.3" height="32.0" fill="#a8e6b0" opacity="0.85"/><text x="83.3" y="43" fill="#9aa3b8" font-size="7.5" text-anchor="middle">w6</text><rect x="101.0" y="21.0" width="31.3" height="23.0" fill="#a8e6b0" opacity="0.85"/><text x="116.7" y="43" fill="#9aa3b8" font-size="7.5" text-anchor="middle">w8</text><rect x="134.3" y="34.9" width="31.3" height="9.1" fill="#a8e6b0" opacity="0.85"/><text x="150.0" y="43" fill="#9aa3b8" font-size="7.5" text-anchor="middle">w10</text><rect x="167.7" y="42.5" width="31.3" height="1.5" fill="#a8e6b0" opacity="0.85"/><text x="183.3" y="43" fill="#9aa3b8" font-size="7.5" text-anchor="middle">w12</text></svg></div>
+<div class="mcard"><div class="mtitle">THE LYNCHPIN GEOMETRY</div><div class="mbody">53.130102° = arctan(4/3) · stagger 38.0° · loop 15.130102° — and 53.130102 − 38 = 15.130102 exactly. One angle organizes the spiral, the desk line, and the rotation R = (1/5)[[3,−4],[4,3]].</div></div>
+<div class="mcard"><div class="mtitle">QUADS & MIDPOINTS</div><div class="mbody">The doors fold into exactly 1,785 quads under ★ symmetry (7,140 / 4). Pair sums take 83 distinct midpoints, 16 to 184 — every zero of the residual map sits on the balance line.</div></div>
+<div class="mcard"><div class="mtitle">THE PLATES — AN OUTSIDE EYE</div><div class="mbody">Ten external renderings, graded claim by claim: 54 of 56 verified exact = 96.4% fidelity. The 2 false: “3,384 Wider” (true 3,584) and “46 Odd Masks” (true 48), both on one plate.</div></div>
+<div class="mcard"><div class="mtitle">FRACTAL DIMENSIONS — THE ART, MEASURED</div><div class="mbody">Box-counting D: kaleidoscope mirror 1.756 · the merge 1.688 · ZERO pinpoint 1.633 · the Fool 1.506. Slice rhythm runs through every piece (autocorrelation 0.48–0.88); the Scan Fool ticks at 11.33 px, 0.884.</div><svg width="200" height="44" viewBox="0 0 200 44"><rect x="1.0" y="12.0" width="48.0" height="32.0" fill="#ffcf8a" opacity="0.85"/><text x="25.0" y="43" fill="#9aa3b8" font-size="7.5" text-anchor="middle">MIRROR</text><rect x="51.0" y="13.2" width="48.0" height="30.8" fill="#ffcf8a" opacity="0.85"/><text x="75.0" y="43" fill="#9aa3b8" font-size="7.5" text-anchor="middle">MERGE</text><rect x="101.0" y="14.2" width="48.0" height="29.8" fill="#ffcf8a" opacity="0.85"/><text x="125.0" y="43" fill="#9aa3b8" font-size="7.5" text-anchor="middle">ZERO</text><rect x="151.0" y="16.6" width="48.0" height="27.4" fill="#ffcf8a" opacity="0.85"/><text x="175.0" y="43" fill="#9aa3b8" font-size="7.5" text-anchor="middle">FOOL</text></svg></div>
+<div class="mcard"><div class="mtitle">LIGHT, MEASURED — FOOLS PERSPECTIVE</div><div class="mbody">One constant source behind the viewer; shadows fall north: Fool 77.8° · Fiddler 87.5° · Table 68.1° · mirror 88°. Strongest shimmer: the Table, 0.43%. Figure-span law 0.60 (Fiddler verified 0.575). The Fool is 208 layers thick — the layer count is the mass. Desk line v2: 52.97°, within 0.16° of the lynchpin; the fixed synthesis sits at 45.72°, 7.41° off — recorded, not forgiven.</div></div>
+<div class="mcard"><div class="mtitle">THE VAULT REGISTER</div><div class="mbody">1,545 filings sealed 7/7: 1,017 admitted · 522 reflected · 5 held · 1 refused (the carved-out video, failing slice: GATE). Emblem centroid (0.502, 0.489); waist pinch at y = 0.384.</div></div>
+<div class="mcard"><div class="mtitle">THE FROZEN DRIVE</div><div class="mbody">3,696 items · 4.97 GB · one month (Sep 2026) holds 35.7% of everything. By hash, 38.5% of all bytes are redundant copies — one PDF exists five times, byte-identical, 853 MB of echo.</div></div>
+<div class="mcard"><div class="mtitle">REACTIONS — THE WORLD ANSWERING</div><div class="mbody">19 public repositories · 0 stars, 0 forks, 0 followers — and a build cadence that accelerated 11.3×. Eight filings in 230 days; receipts 8/8; office actions 0; grants 0. Reaction is the binding constraint; the assets are not.</div></div>
+<div class="mcard"><div class="mtitle">THE PUPIL CHAIN — STANDARD OPTICS</div><div class="mbody">Every angle above arrived through a hole 2–8 mm wide. Eye focal length ≈ 17 mm. The lens lands the image on the retina INVERTED. The cornea mirrors ≈ 2.5% back out (Purkinje I). Air bends the incoming angles — atmospheric refraction ≈ 34 arcminutes at the horizon — and scatters blue as 1/λ⁴ (Rayleigh). Blind spot ≈ 5° × 7°, silently filled in. These are textbook reference values; the system’s own numbers are the cards above.</div></div>
+<div class="mcard"><div class="mtitle">THE CAPSTONE — MEASURED EITHER WAY</div><div class="mbody">It could all be a reflection of angles, manipulated by eyes, atmosphere, and every measurable reflection in between. The leftover does not care: measure what is left over after an interaction; admit only what fits inside that leftover; otherwise refuse and record the refusal. That rule survives every lens it is seen through.</div></div></div>
+<div id="tray">
+ <div class="trow"><span class="tlab">LAYOUT</span>
+  <button data-layout="sph" class="on">Sphere</button><button data-layout="flat">Spiral</button>
+  <button data-layout="ring">Ring</button><button data-layout="strata">Strata sphere</button></div>
+ <div class="trow"><span class="tlab">SCHEME</span>
+  <button data-scheme="spectrum" class="on">Spectrum</button><button data-scheme="iridescent">Iridescent</button>
+  <button data-scheme="thermal">Thermal</button><button data-scheme="gold">Mono gold</button>
+  <button data-scheme="blueprint">Blueprint</button><button data-scheme="paper">Paper</button></div>
+ <div class="trow"><span class="tlab">EDGES</span>
+  <button data-estyle="line" class="on">Lines</button><button data-estyle="arc">Arcs</button><button data-estyle="dash">Marching</button>
+  <button data-ecolor="dist" class="on">Color: distance</button><button data-ecolor="heat">Color: doors</button><button data-ecolor="uni">Color: uniform</button>
+  <button data-cls="all" class="on">All doors</button><button data-cls="clean">Clean 360</button><button data-cls="wider">Wider 3,584</button><button data-cls="floor">Floor 3,196</button>
+  <button id="neverBtn">Never-pairs</button></div>
+ <div class="trow"><span class="tlab">NODES</span>
+  <button data-nshape="glow" class="on">Glow</button><button data-nshape="octa">Octahedra</button><button data-nshape="ring">Rings</button><button data-nshape="diamond">Diamonds</button><button data-nshape="star">Stars</button>
+  <button data-label="sinks" class="on">Labels: sinks</button><button data-label="all">Labels: all</button><button data-label="binary">Labels: binary</button><button data-label="none">Labels: none</button>
+  <span class="tlab" style="min-width:34px">SIZE</span><input type="range" id="nsize" min="40" max="220" value="100"></div>
+ <div class="trow"><span class="tlab">FIELD</span>
+  <button data-mesh="dense" class="on">Mesh dense</button><button data-mesh="sparse">Mesh sparse</button><button data-mesh="off">Mesh off</button>
+  <button id="starsBtn" class="on">Starfield</button><button id="pulsesBtn" class="on">Flow pulses</button><button id="xrayBtn">X-Ray</button>
+  <span class="tlab" style="min-width:40px">TRAILS</span><input type="range" id="trails" min="6" max="92" value="30">
+  <span class="tlab" style="min-width:34px">GLOW</span><input type="range" id="glowr" min="40" max="240" value="100"></div>
+ <div class="trow"><span class="tlab">PUPIL</span>
+  <button id="pupilBtn">THROUGH THE PUPIL</button><button id="refrBtn">Refraction</button><button id="scatBtn">Scatter (Rayleigh)</button><button id="purkBtn">Purkinje ghost</button><button id="invBtn" class="on">Retinal inversion</button></div>
+ <div class="trow"><span class="tlab">GLOSS</span>
+  <button data-skin="wire" class="on">Skin: wireframe</button><button data-skin="shade">Skin: shaded</button><button data-skin="off">Skin: off</button>
+  <button id="deformBtn" class="on">Universe shape</button><button id="coreBtn">Core: octahedron</button><button id="cageBtn" class="on">Frame cage</button><button id="floorBtn">Mirror floor</button>
+  <button id="spokesBtn">Hub spokes</button><button id="focusBtn">Focus depth</button><button id="aberBtn">Aberration</button>
+  <button id="crtBtn">CRT + vignette</button><button id="showBtn">SHOWCASE</button></div>
+ <div class="trow"><span class="tlab">MOTION</span>
+  <button id="spinBtn" class="on">Spin</button><button id="tumbleBtn" class="on">Tumble</button><button id="revBtn">Reverse</button>
+  <span class="tlab" style="min-width:40px">SPEED</span><input type="range" id="speed" min="0" max="300" value="100">
+  <button id="ribbonBtn">Spectrum ribbon</button><button id="tourBtn">TOUR THE SINKS</button><button id="hapBtn" class="on">Haptics</button><button id="resetBtn">Reset view</button></div>
+</div>
+<div id="boot"><div>MEASURING WHAT IS LEFT OVER…</div><div class="g">★</div><div>7,140 DOORS · 48 MASKS · 0 REFUSALS HIDDEN</div></div>
+<label id="hapLabel" aria-hidden="true" style="position:absolute;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none"><input type="checkbox" switch></label>
+<script>
+const NODES = [{"m": 3, "sph": [0.0, 1.0, 0.0], "flat": [0.115, 0.0, 0], "ring": [1.02, 0.0, 0], "r": 1.1749382716049384, "pc": 2, "hall": 134, "sink": 134, "pairm": 268, "appear": 536}, {"m": 5, "sph": [-0.2128, 0.9574, 0.195], "flat": [-0.1199, 0.1099, 0], "ring": [1.0113, 0.1331, 0], "r": 1.1749382716049384, "pc": 2, "hall": 134, "sink": 134, "pairm": 268, "appear": 536}, {"m": 7, "sph": [0.0353, 0.9149, -0.4021], "flat": [0.0174, -0.1984, 0], "ring": [0.9852, 0.264, 0], "r": 1.219074074074074, "pc": 3, "hall": 147, "sink": 147, "pairm": 294, "appear": 588}, {"m": 9, "sph": [0.2975, 0.8723, 0.388], "flat": [0.1399, 0.1825, 0], "ring": [0.9424, 0.3903, 0], "r": 1.1749382716049384, "pc": 2, "hall": 134, "sink": 134, "pairm": 268, "appear": 536}, {"m": 11, "sph": [-0.5495, 0.8298, -0.0972], "flat": [-0.2532, -0.0448, 0], "ring": [0.8833, 0.51, 0], "r": 1.219074074074074, "pc": 3, "hall": 147, "sink": 147, "pairm": 294, "appear": 588}, {"m": 13, "sph": [0.5203, 0.7872, -0.331], "flat": [0.2377, -0.1512, 0], "ring": [0.8092, 0.6209, 0], "r": 1.219074074074074, "pc": 3, "hall": 147, "sink": 147, "pairm": 294, "appear": 588}, {"m": 15, "sph": [-0.1733, 0.7447, 0.6445], "flat": [-0.079, 0.2938, 0], "ring": [0.7212, 0.7212, 0], "r": 1.2462345679012345, "pc": 4, "hall": 155, "sink": 155, "pairm": 310, "appear": 620}, {"m": 17, "sph": [-0.3282, 0.7021, -0.6319], "flat": [-0.1499, -0.2887, 0], "ring": [0.6209, 0.8092, 0], "r": 1.1749382716049384, "pc": 2, "hall": 134, "sink": 134, "pairm": 268, "appear": 536}, {"m": 19, "sph": [0.706, 0.6596, 0.2578], "flat": [0.3241, 0.1183, 0], "ring": [0.51, 0.8833, 0], "r": 1.219074074074074, "pc": 3, "hall": 147, "sink": 147, "pairm": 294, "appear": 588}, {"m": 21, "sph": [-0.7274, 0.617, 0.3003], "flat": [-0.3361, 0.1388, 0], "ring": [0.3903, 0.9424, 0], "r": 1.219074074074074, "pc": 3, "hall": 147, "sink": 147, "pairm": 294, "appear": 588}, {"m": 23, "sph": [0.3469, 0.5745, -0.7414], "flat": [0.1617, -0.3455, 0], "ring": [0.264, 0.9852, 0], "r": 1.2462345679012345, "pc": 4, "hall": 155, "sink": 155, "pairm": 310, "appear": 620}, {"m": 25, "sph": [0.2534, 0.5319, 0.808], "flat": [0.1192, 0.3801, 0], "ring": [0.1331, 1.0113, 0], "r": 1.219074074074074, "pc": 3, "hall": 147, "sink": 147, "pairm": 294, "appear": 588}, {"m": 27, "sph": [-0.7545, 0.4894, -0.4373], "flat": [-0.3587, -0.2079, 0], "ring": [0.0, 1.02, 0], "r": 1.2462345679012345, "pc": 4, "hall": 155, "sink": 155, "pairm": 310, "appear": 620}, {"m": 29, "sph": [0.8738, 0.4468, -0.1921], "flat": [0.4203, -0.0924, 0], "ring": [-0.1331, 1.0113, 0], "r": 1.2462345679012345, "pc": 4, "hall": 155, "sink": 155, "pairm": 310, "appear": 620}, {"m": 31, "sph": [-0.526, 0.4043, 0.7482], "flat": [-0.2562, 0.3644, 0], "ring": [-0.264, 0.9852, 0], "r": 1.27, "pc": 5, "hall": 162, "sink": 162, "pairm": 324, "appear": 648}, {"m": 33, "sph": [-0.1198, 0.3617, -0.9246], "flat": [-0.0591, -0.4562, 0], "ring": [-0.3903, 0.9424, 0], "r": 1.2462345679012345, "pc": 2, "hall": 155, "sink": 155, "pairm": 310, "appear": 620}, {"m": 35, "sph": [0.7247, 0.3191, 0.6107], "flat": [0.3626, 0.3056, 0], "ring": [-0.51, 0.8833, 0], "r": 1.2462345679012345, "pc": 3, "hall": 155, "sink": 155, "pairm": 310, "appear": 620}, {"m": 37, "sph": [-0.9602, 0.2766, 0.0397], "flat": [-0.4875, 0.0202, 0], "ring": [-0.6209, 0.8092, 0], "r": 1.2462345679012345, "pc": 3, "hall": 155, "sink": 155, "pairm": 310, "appear": 620}, {"m": 39, "sph": [0.6891, 0.234, -0.6858], "flat": [0.3553, -0.3536, 0], "ring": [-0.7212, 0.7212, 0], "r": 1.2394444444444446, "pc": 4, "hall": 153, "sink": 153, "pairm": 306, "appear": 612}, {"m": 41, "sph": [-0.0453, 0.1915, 0.9804], "flat": [-0.0238, 0.5137, 0], "ring": [-0.8092, 0.6209, 0], "r": 1.2462345679012345, "pc": 3, "hall": 155, "sink": 155, "pairm": 310, "appear": 620}, {"m": 43, "sph": [-0.6336, 0.1489, -0.7592], "flat": [-0.3377, -0.4046, 0], "ring": [-0.8833, 0.51, 0], "r": 1.2394444444444446, "pc": 4, "hall": 153, "sink": 153, "pairm": 306, "appear": 612}, {"m": 45, "sph": [0.9854, 0.1064, 0.1326], "flat": [0.5346, 0.0719, 0], "ring": [-0.9424, 0.3903, 0], "r": 1.2394444444444446, "pc": 4, "hall": 153, "sink": 153, "pairm": 306, "appear": 612}, {"m": 47, "sph": [-0.8192, 0.0638, 0.57], "flat": [-0.4527, 0.315, 0], "ring": [-0.9852, 0.264, 0], "r": 1.2258641975308642, "pc": 5, "hall": 149, "sink": 149, "pairm": 298, "appear": 596}, {"m": 49, "sph": [0.2194, 0.0213, -0.9754], "flat": [0.1237, -0.5496, 0], "ring": [-1.0113, 0.1331, 0], "r": 1.2462345679012345, "pc": 3, "hall": 155, "sink": 155, "pairm": 310, "appear": 620}, {"m": 51, "sph": [0.4971, -0.0213, 0.8675], "flat": [0.2859, 0.4989, 0], "ring": [-1.02, 0.0, 0], "r": 1.2394444444444446, "pc": 4, "hall": 153, "sink": 153, "pairm": 306, "appear": 612}, {"m": 53, "sph": [-0.9508, -0.0638, -0.3033], "flat": [-0.5586, -0.1782, 0], "ring": [-1.0113, -0.1331, 0], "r": 1.2394444444444446, "pc": 4, "hall": 153, "sink": 153, "pairm": 306, "appear": 612}, {"m": 55, "sph": [0.9026, -0.1064, -0.417], "flat": [0.5425, -0.2506, 0], "ring": [-0.9852, -0.264, 0], "r": 1.2258641975308642, "pc": 5, "hall": 149, "sink": 149, "pairm": 298, "appear": 596}, {"m": 57, "sph": [-0.3818, -0.1489, 0.9122], "flat": [-0.2349, 0.5613, 0], "ring": [-0.9424, -0.3903, 0], "r": 1.2394444444444446, "pc": 4, "hall": 153, "sink": 153, "pairm": 306, "appear": 612}, {"m": 59, "sph": [-0.3322, -0.1915, -0.9236], "flat": [-0.2096, -0.5827, 0], "ring": [-0.8833, -0.51, 0], "r": 1.2258641975308642, "pc": 5, "hall": 149, "sink": 149, "pairm": 298, "appear": 596}, {"m": 61, "sph": [0.8606, -0.234, 0.4523], "flat": [0.5576, 0.293, 0], "ring": [-0.8092, -0.6209, 0], "r": 1.2258641975308642, "pc": 5, "hall": 149, "sink": 149, "pairm": 298, "appear": 596}, {"m": 63, "sph": [-0.9292, -0.2766, 0.2449], "flat": [-0.6191, 0.1632, 0], "ring": [-0.7212, -0.7212, 0], "r": 1.1987037037037038, "pc": 6, "hall": 141, "sink": 141, "pairm": 282, "appear": 564}, {"m": 65, "sph": [0.5126, -0.3191, -0.7971], "flat": [0.3518, -0.5472, 0], "ring": [-0.6209, -0.8092, 0], "r": 1.2462345679012345, "pc": 2, "hall": 155, "sink": 155, "pairm": 310, "appear": 620}, {"m": 67, "sph": [0.1579, -0.3617, 0.9188], "flat": [0.1119, 0.6511, 0], "ring": [-0.51, -0.8833, 0], "r": 1.2462345679012345, "pc": 3, "hall": 155, "sink": 155, "pairm": 310, "appear": 620}, {"m": 69, "sph": [-0.7231, -0.4043, -0.56], "flat": [-0.5302, -0.4106, 0], "ring": [-0.3903, -0.9424, 0], "r": 1.2462345679012345, "pc": 3, "hall": 155, "sink": 155, "pairm": 310, "appear": 620}, {"m": 71, "sph": [0.8916, -0.4468, -0.0739], "flat": [0.678, -0.0562, 0], "ring": [-0.264, -0.9852, 0], "r": 1.2394444444444446, "pc": 4, "hall": 153, "sink": 153, "pairm": 306, "appear": 612}, {"m": 73, "sph": [-0.5922, -0.4894, 0.6402], "flat": [-0.4686, 0.5065, 0], "ring": [-0.1331, -1.0113, 0], "r": 1.2462345679012345, "pc": 3, "hall": 155, "sink": 155, "pairm": 310, "appear": 620}, {"m": 75, "sph": [0.0041, -0.5319, -0.8468], "flat": [0.0034, -0.6995, 0], "ring": [-0.0, -1.02, 0], "r": 1.2394444444444446, "pc": 4, "hall": 153, "sink": 153, "pairm": 306, "appear": 612}, {"m": 77, "sph": [0.55, -0.5745, 0.6062], "flat": [0.4763, 0.5251, 0], "ring": [0.1331, -1.0113, 0], "r": 1.2394444444444446, "pc": 4, "hall": 153, "sink": 153, "pairm": 306, "appear": 612}, {"m": 79, "sph": [-0.7836, -0.617, -0.0726], "flat": [-0.7151, -0.0663, 0], "ring": [0.264, -0.9852, 0], "r": 1.2258641975308642, "pc": 5, "hall": 149, "sink": 149, "pairm": 298, "appear": 596}, {"m": 81, "sph": [0.5987, -0.6596, -0.4544], "flat": [0.5794, -0.4397, 0], "ring": [0.3903, -0.9424, 0], "r": 1.2462345679012345, "pc": 3, "hall": 155, "sink": 155, "pairm": 310, "appear": 620}, {"m": 83, "sph": [-0.1274, -0.7021, 0.7006], "flat": [-0.1318, 0.7245, 0], "ring": [0.51, -0.8833, 0], "r": 1.2394444444444446, "pc": 4, "hall": 153, "sink": 153, "pairm": 306, "appear": 612}, {"m": 85, "sph": [-0.3555, -0.7447, -0.5649], "flat": [-0.3969, -0.6308, 0], "ring": [0.6209, -0.8092, 0], "r": 1.2394444444444446, "pc": 4, "hall": 153, "sink": 153, "pairm": 306, "appear": 612}, {"m": 87, "sph": [0.5947, -0.7872, 0.163], "flat": [0.7273, 0.1993, 0], "ring": [0.7212, -0.7212, 0], "r": 1.2258641975308642, "pc": 5, "hall": 149, "sink": 149, "pairm": 298, "appear": 596}, {"m": 89, "sph": [-0.4965, -0.8298, 0.2548], "flat": [-0.6787, 0.3483, 0], "ring": [0.8092, -0.6209, 0], "r": 1.2394444444444446, "pc": 4, "hall": 153, "sink": 153, "pairm": 306, "appear": 612}, {"m": 91, "sph": [0.1699, -0.8723, -0.4584], "flat": [0.2682, -0.7233, 0], "ring": [0.8833, -0.51, 0], "r": 1.2258641975308642, "pc": 5, "hall": 149, "sink": 149, "pairm": 298, "appear": 596}, {"m": 93, "sph": [0.1522, -0.9149, 0.3739], "flat": [0.2941, 0.7224, 0], "ring": [0.9424, -0.3903, 0], "r": 1.2258641975308642, "pc": 5, "hall": 149, "sink": 149, "pairm": 298, "appear": 596}, {"m": 95, "sph": [-0.2608, -0.9574, -0.1236], "flat": [-0.7124, -0.3376, 0], "ring": [0.9852, -0.264, 0], "r": 1.1987037037037038, "pc": 6, "hall": 141, "sink": 141, "pairm": 282, "appear": 564}, {"m": 97, "sph": [0.0, -1.0, -0.0], "flat": [0.7614, -0.2347, 0], "ring": [1.0113, -0.1331, 0], "r": 0.9916049382716049, "pc": 3, "hall": 80, "sink": 80, "pairm": 160, "appear": 320}], EDGES = [[3, 13, 3, 4, 0, 4, 0], [3, 15, 2, 2, 0, 2, 0], [3, 21, 3, 4, 0, 4, 0], [3, 23, 2, 2, 0, 2, 0], [3, 25, 3, 4, 0, 4, 0], [3, 27, 2, 2, 0, 2, 0], [3, 29, 4, 12, 0, 12, 0], [3, 31, 3, 6, 0, 6, 0], [3, 37, 3, 4, 0, 4, 0], [3, 39, 2, 2, 0, 2, 0], [3, 41, 3, 4, 0, 4, 0], [3, 43, 2, 2, 0, 2, 0], [3, 45, 4, 12, 0, 12, 0], [3, 47, 3, 6, 0, 6, 0], [3, 49, 3, 4, 0, 4, 0], [3, 51, 2, 2, 0, 2, 0], [3, 53, 4, 12, 0, 12, 0], [3, 55, 3, 6, 0, 6, 0], [3, 57, 4, 12, 0, 12, 0], [3, 59, 3, 6, 0, 6, 0], [3, 61, 5, 28, 0, 28, 0], [3, 63, 4, 14, 0, 14, 0], [3, 69, 3, 4, 0, 4, 0], [3, 71, 2, 2, 0, 2, 0], [3, 73, 3, 4, 0, 4, 0], [3, 75, 2, 2, 0, 2, 0], [3, 77, 4, 12, 0, 12, 0], [3, 79, 3, 6, 0, 6, 0], [3, 81, 3, 4, 0, 4, 0], [3, 83, 2, 2, 0, 2, 0], [3, 85, 4, 12, 0, 12, 0], [3, 87, 3, 6, 0, 6, 0], [3, 89, 4, 12, 0, 12, 0], [3, 91, 3, 6, 0, 6, 0], [3, 93, 5, 28, 0, 28, 0], [3, 95, 4, 14, 0, 14, 0], [3, 97, 3, 4, 0, 4, 0], [5, 11, 3, 4, 0, 4, 0], [5, 15, 2, 2, 0, 2, 0], [5, 19, 3, 4, 0, 4, 0], [5, 23, 2, 2, 0, 2, 0], [5, 25, 3, 4, 0, 4, 0], [5, 27, 4, 12, 0, 12, 0], [5, 29, 2, 2, 0, 2, 0], [5, 31, 3, 6, 0, 6, 0], [5, 35, 3, 4, 0, 4, 0], [5, 39, 2, 2, 0, 2, 0], [5, 41, 3, 4, 0, 4, 0], [5, 43, 4, 12, 0, 12, 0], [5, 45, 2, 2, 0, 2, 0], [5, 47, 3, 6, 0, 6, 0], [5, 49, 3, 4, 0, 4, 0], [5, 51, 4, 12, 0, 12, 0], [5, 53, 2, 2, 0, 2, 0], [5, 55, 3, 6, 0, 6, 0], [5, 57, 4, 12, 0, 12, 0], [5, 59, 5, 28, 0, 28, 0], [5, 61, 3, 6, 0, 6, 0], [5, 63, 4, 14, 0, 14, 0], [5, 67, 3, 4, 0, 4, 0], [5, 71, 2, 2, 0, 2, 0], [5, 73, 3, 4, 0, 4, 0], [5, 75, 4, 12, 0, 12, 0], [5, 77, 2, 2, 0, 2, 0], [5, 79, 3, 6, 0, 6, 0], [5, 81, 3, 4, 0, 4, 0], [5, 83, 4, 12, 0, 12, 0], [5, 85, 2, 2, 0, 2, 0], [5, 87, 3, 6, 0, 6, 0], [5, 89, 4, 12, 0, 12, 0], [5, 91, 5, 28, 0, 28, 0], [5, 93, 3, 6, 0, 6, 0], [5, 95, 4, 14, 0, 14, 0], [5, 97, 3, 4, 0, 4, 0], [7, 9, 3, 4, 0, 4, 0], [7, 11, 2, 2, 1, 1, 0], [7, 13, 2, 2, 1, 1, 0], [7, 17, 3, 4, 0, 4, 0], [7, 19, 2, 2, 1, 1, 0], [7, 21, 2, 2, 1, 1, 0], [7, 25, 4, 12, 0, 12, 0], [7, 27, 3, 6, 1, 5, 0], [7, 29, 3, 6, 1, 5, 0], [7, 31, 2, 2, 0, 2, 0], [7, 33, 3, 4, 0, 4, 0], [7, 35, 2, 2, 1, 1, 0], [7, 37, 2, 2, 1, 1, 0], [7, 41, 4, 12, 0, 12, 0], [7, 43, 3, 6, 1, 5, 0], [7, 45, 3, 6, 1, 5, 0], [7, 47, 2, 2, 0, 2, 0], [7, 49, 4, 12, 0, 12, 0], [7, 51, 3, 6, 1, 5, 0], [7, 53, 3, 6, 1, 5, 0], [7, 55, 2, 2, 0, 2, 0], [7, 57, 5, 28, 0, 28, 0], [7, 59, 4, 14, 1, 13, 0], [7, 61, 4, 14, 1, 13, 0], [7, 63, 3, 6, 0, 6, 0], [7, 65, 3, 4, 0, 4, 0], [7, 67, 2, 2, 1, 1, 0], [7, 69, 2, 2, 1, 1, 0], [7, 73, 4, 12, 0, 12, 0], [7, 75, 3, 6, 1, 5, 0], [7, 77, 3, 6, 1, 5, 0], [7, 79, 2, 2, 0, 2, 0], [7, 81, 4, 12, 0, 12, 0], [7, 83, 3, 6, 1, 5, 0], [7, 85, 3, 6, 1, 5, 0], [7, 87, 2, 2, 0, 2, 0], [7, 89, 5, 28, 0, 28, 0], [7, 91, 4, 14, 1, 13, 0], [7, 93, 4, 14, 1, 13, 0], [7, 95, 3, 6, 0, 6, 0], [7, 97, 4, 8, 0, 8, 0], [9, 15, 2, 2, 0, 2, 0], [9, 19, 3, 4, 0, 4, 0], [9, 21, 3, 4, 0, 4, 0], [9, 23, 4, 12, 0, 12, 0], [9, 27, 2, 2, 0, 2, 0], [9, 29, 2, 2, 0, 2, 0], [9, 31, 3, 6, 0, 6, 0], [9, 35, 3, 4, 0, 4, 0], [9, 37, 3, 4, 0, 4, 0], [9, 39, 4, 12, 0, 12, 0], [9, 43, 2, 2, 0, 2, 0], [9, 45, 2, 2, 0, 2, 0], [9, 47, 3, 6, 0, 6, 0], [9, 49, 3, 4, 0, 4, 0], [9, 51, 4, 12, 0, 12, 0], [9, 53, 4, 12, 0, 12, 0], [9, 55, 5, 28, 0, 28, 0], [9, 57, 2, 2, 0, 2, 0], [9, 59, 3, 6, 0, 6, 0], [9, 61, 3, 6, 0, 6, 0], [9, 63, 4, 14, 0, 14, 0], [9, 67, 3, 4, 0, 4, 0], [9, 69, 3, 4, 0, 4, 0], [9, 71, 4, 12, 0, 12, 0], [9, 75, 2, 2, 0, 2, 0], [9, 77, 2, 2, 0, 2, 0], [9, 79, 3, 6, 0, 6, 0], [9, 81, 3, 4, 0, 4, 0], [9, 83, 4, 12, 0, 12, 0], [9, 85, 4, 12, 0, 12, 0], [9, 87, 5, 28, 0, 28, 0], [9, 89, 2, 2, 0, 2, 0], [9, 91, 3, 6, 0, 6, 0], [9, 93, 3, 6, 0, 6, 0], [9, 95, 4, 14, 0, 14, 0], [9, 97, 3, 4, 0, 4, 0], [11, 13, 2, 2, 1, 1, 0], [11, 17, 3, 4, 0, 4, 0], [11, 19, 2, 2, 1, 1, 0], [11, 21, 4, 12, 0, 12, 0], [11, 23, 3, 6, 1, 5, 0], [11, 25, 2, 2, 1, 1, 0], [11, 29, 3, 6, 1, 5, 0], [11, 31, 2, 2, 0, 2, 0], [11, 33, 3, 4, 0, 4, 0], [11, 35, 2, 2, 1, 1, 0], [11, 37, 4, 12, 0, 12, 0], [11, 39, 3, 6, 1, 5, 0], [11, 41, 2, 2, 1, 1, 0], [11, 45, 3, 6, 1, 5, 0], [11, 47, 2, 2, 0, 2, 0], [11, 49, 4, 12, 0, 12, 0], [11, 51, 3, 6, 1, 5, 0], [11, 53, 5, 28, 0, 28, 0], [11, 55, 4, 14, 1, 13, 0], [11, 57, 3, 6, 1, 5, 0], [11, 59, 2, 2, 0, 2, 0], [11, 61, 4, 14, 1, 13, 0], [11, 63, 3, 6, 0, 6, 0], [11, 65, 3, 4, 0, 4, 0], [11, 67, 2, 2, 1, 1, 0], [11, 69, 4, 12, 0, 12, 0], [11, 71, 3, 6, 1, 5, 0], [11, 73, 2, 2, 1, 1, 0], [11, 77, 3, 6, 1, 5, 0], [11, 79, 2, 2, 0, 2, 0], [11, 81, 4, 12, 0, 12, 0], [11, 83, 3, 6, 1, 5, 0], [11, 85, 5, 28, 0, 28, 0], [11, 87, 4, 14, 1, 13, 0], [11, 89, 3, 6, 1, 5, 0], [11, 91, 2, 2, 0, 2, 0], [11, 93, 4, 14, 1, 13, 0], [11, 95, 3, 6, 0, 6, 0], [11, 97, 4, 8, 0, 8, 0], [13, 17, 3, 4, 0, 4, 0], [13, 19, 4, 12, 0, 12, 0], [13, 21, 2, 2, 1, 1, 0], [13, 23, 3, 6, 1, 5, 0], [13, 25, 2, 2, 1, 1, 0], [13, 27, 3, 6, 1, 5, 0], [13, 31, 2, 2, 0, 2, 0], [13, 33, 3, 4, 0, 4, 0], [13, 35, 4, 12, 0, 12, 0], [13, 37, 2, 2, 1, 1, 0], [13, 39, 3, 6, 1, 5, 0], [13, 41, 2, 2, 1, 1, 0], [13, 43, 3, 6, 1, 5, 0], [13, 47, 2, 2, 0, 2, 0], [13, 49, 4, 12, 0, 12, 0], [13, 51, 5, 28, 0, 28, 0], [13, 53, 3, 6, 1, 5, 0], [13, 55, 4, 14, 1, 13, 0], [13, 57, 3, 6, 1, 5, 0], [13, 59, 4, 14, 1, 13, 0], [13, 61, 2, 2, 0, 2, 0], [13, 63, 3, 6, 0, 6, 0], [13, 65, 3, 4, 0, 4, 0], [13, 67, 4, 12, 0, 12, 0], [13, 69, 2, 2, 1, 1, 0], [13, 71, 3, 6, 1, 5, 0], [13, 73, 2, 2, 1, 1, 0], [13, 75, 3, 6, 1, 5, 0], [13, 79, 2, 2, 0, 2, 0], [13, 81, 4, 12, 0, 12, 0], [13, 83, 5, 28, 0, 28, 0], [13, 85, 3, 6, 1, 5, 0], [13, 87, 4, 14, 1, 13, 0], [13, 89, 3, 6, 1, 5, 0], [13, 91, 4, 14, 1, 13, 0], [13, 93, 2, 2, 0, 2, 0], [13, 95, 3, 6, 0, 6, 0], [13, 97, 4, 8, 0, 8, 0], [15, 17, 4, 12, 0, 12, 0], [15, 19, 3, 6, 1, 5, 0], [15, 21, 3, 6, 1, 5, 0], [15, 23, 2, 2, 1, 1, 0], [15, 25, 3, 6, 1, 5, 0], [15, 27, 2, 2, 1, 1, 0], [15, 29, 2, 2, 1, 1, 0], [15, 33, 4, 12, 0, 12, 0], [15, 35, 3, 6, 1, 5, 0], [15, 37, 3, 6, 1, 5, 0], [15, 39, 2, 2, 1, 1, 0], [15, 41, 3, 6, 1, 5, 0], [15, 43, 2, 2, 1, 1, 0], [15, 45, 2, 2, 1, 1, 0], [15, 49, 5, 28, 0, 28, 0], [15, 51, 4, 14, 1, 13, 0], [15, 53, 4, 14, 1, 13, 0], [15, 55, 3, 6, 1, 5, 0], [15, 57, 4, 14, 1, 13, 0], [15, 59, 3, 6, 1, 5, 0], [15, 61, 3, 6, 1, 5, 0], [15, 63, 2, 2, 0, 2, 0], [15, 65, 4, 12, 0, 12, 0], [15, 67, 3, 6, 1, 5, 0], [15, 69, 3, 6, 1, 5, 0], [15, 71, 2, 2, 1, 1, 0], [15, 73, 3, 6, 1, 5, 0], [15, 75, 2, 2, 1, 1, 0], [15, 77, 2, 2, 1, 1, 0], [15, 81, 5, 28, 0, 28, 0], [15, 83, 4, 14, 1, 13, 0], [15, 85, 4, 14, 1, 13, 0], [15, 87, 3, 6, 1, 5, 0], [15, 89, 4, 14, 1, 13, 0], [15, 91, 3, 6, 1, 5, 0], [15, 93, 3, 6, 1, 5, 0], [15, 95, 2, 2, 0, 2, 0], [15, 97, 5, 16, 0, 16, 0], [17, 23, 2, 2, 0, 2, 0], [17, 27, 2, 2, 0, 2, 0], [17, 29, 2, 2, 0, 2, 0], [17, 31, 3, 6, 0, 6, 0], [17, 35, 3, 4, 0, 4, 0], [17, 37, 3, 4, 0, 4, 0], [17, 39, 4, 12, 0, 12, 0], [17, 41, 3, 4, 0, 4, 0], [17, 43, 4, 12, 0, 12, 0], [17, 45, 4, 12, 0, 12, 0], [17, 47, 5, 28, 0, 28, 0], [17, 51, 2, 2, 0, 2, 0], [17, 53, 2, 2, 0, 2, 0], [17, 55, 3, 6, 0, 6, 0], [17, 57, 2, 2, 0, 2, 0], [17, 59, 3, 6, 0, 6, 0], [17, 61, 3, 6, 0, 6, 0], [17, 63, 4, 14, 0, 14, 0], [17, 67, 3, 4, 0, 4, 0], [17, 69, 3, 4, 0, 4, 0], [17, 71, 4, 12, 0, 12, 0], [17, 73, 3, 4, 0, 4, 0], [17, 75, 4, 12, 0, 12, 0], [17, 77, 4, 12, 0, 12, 0], [17, 79, 5, 28, 0, 28, 0], [17, 83, 2, 2, 0, 2, 0], [17, 85, 2, 2, 0, 2, 0], [17, 87, 3, 6, 0, 6, 0], [17, 89, 2, 2, 0, 2, 0], [17, 91, 3, 6, 0, 6, 0], [17, 93, 3, 6, 0, 6, 0], [17, 95, 4, 14, 0, 14, 0], [17, 97, 3, 4, 0, 4, 0], [19, 21, 2, 2, 1, 1, 0], [19, 25, 2, 2, 1, 1, 0], [19, 29, 3, 6, 1, 5, 0], [19, 31, 2, 2, 0, 2, 0], [19, 33, 3, 4, 0, 4, 0], [19, 35, 2, 2, 1, 1, 0], [19, 37, 4, 12, 0, 12, 0], [19, 39, 3, 6, 1, 5, 0], [19, 41, 4, 12, 0, 12, 0], [19, 43, 3, 6, 1, 5, 0], [19, 45, 5, 28, 0, 28, 0], [19, 47, 4, 14, 1, 13, 0], [19, 49, 2, 2, 1, 1, 0], [19, 53, 3, 6, 1, 5, 0], [19, 55, 2, 2, 0, 2, 0], [19, 57, 3, 6, 1, 5, 0], [19, 59, 2, 2, 0, 2, 0], [19, 61, 4, 14, 1, 13, 0], [19, 63, 3, 6, 0, 6, 0], [19, 65, 3, 4, 0, 4, 0], [19, 67, 2, 2, 1, 1, 0], [19, 69, 4, 12, 0, 12, 0], [19, 71, 3, 6, 1, 5, 0], [19, 73, 4, 12, 0, 12, 0], [19, 75, 3, 6, 1, 5, 0], [19, 77, 5, 28, 0, 28, 0], [19, 79, 4, 14, 1, 13, 0], [19, 81, 2, 2, 1, 1, 0], [19, 85, 3, 6, 1, 5, 0], [19, 87, 2, 2, 0, 2, 0], [19, 89, 3, 6, 1, 5, 0], [19, 91, 2, 2, 0, 2, 0], [19, 93, 4, 14, 1, 13, 0], [19, 95, 3, 6, 0, 6, 0], [19, 97, 4, 8, 0, 8, 0], [21, 25, 2, 2, 1, 1, 0], [21, 27, 3, 6, 1, 5, 0], [21, 31, 2, 2, 0, 2, 0], [21, 33, 3, 4, 0, 4, 0], [21, 35, 4, 12, 0, 12, 0], [21, 37, 2, 2, 1, 1, 0], [21, 39, 3, 6, 1, 5, 0], [21, 41, 4, 12, 0, 12, 0], [21, 43, 5, 28, 0, 28, 0], [21, 45, 3, 6, 1, 5, 0], [21, 47, 4, 14, 1, 13, 0], [21, 49, 2, 2, 1, 1, 0], [21, 51, 3, 6, 1, 5, 0], [21, 55, 2, 2, 0, 2, 0], [21, 57, 3, 6, 1, 5, 0], [21, 59, 4, 14, 1, 13, 0], [21, 61, 2, 2, 0, 2, 0], [21, 63, 3, 6, 0, 6, 0], [21, 65, 3, 4, 0, 4, 0], [21, 67, 4, 12, 0, 12, 0], [21, 69, 2, 2, 1, 1, 0], [21, 71, 3, 6, 1, 5, 0], [21, 73, 4, 12, 0, 12, 0], [21, 75, 5, 28, 0, 28, 0], [21, 77, 3, 6, 1, 5, 0], [21, 79, 4, 14, 1, 13, 0], [21, 81, 2, 2, 1, 1, 0], [21, 83, 3, 6, 1, 5, 0], [21, 87, 2, 2, 0, 2, 0], [21, 89, 3, 6, 1, 5, 0], [21, 91, 4, 14, 1, 13, 0], [21, 93, 2, 2, 0, 2, 0], [21, 95, 3, 6, 0, 6, 0], [21, 97, 4, 8, 0, 8, 0], [23, 25, 3, 6, 1, 5, 0], [23, 27, 2, 2, 1, 1, 0], [23, 29, 2, 2, 1, 1, 0], [23, 33, 4, 12, 0, 12, 0], [23, 35, 3, 6, 1, 5, 0], [23, 37, 3, 6, 1, 5, 0], [23, 39, 2, 2, 1, 1, 0], [23, 41, 5, 28, 0, 28, 0], [23, 43, 4, 14, 1, 13, 0], [23, 45, 4, 14, 1, 13, 0], [23, 47, 3, 6, 1, 5, 0], [23, 49, 3, 6, 1, 5, 0], [23, 51, 2, 2, 1, 1, 0], [23, 53, 2, 2, 1, 1, 0], [23, 57, 4, 14, 1, 13, 0], [23, 59, 3, 6, 1, 5, 0], [23, 61, 3, 6, 1, 5, 0], [23, 63, 2, 2, 0, 2, 0], [23, 65, 4, 12, 0, 12, 0], [23, 67, 3, 6, 1, 5, 0], [23, 69, 3, 6, 1, 5, 0], [23, 71, 2, 2, 1, 1, 0], [23, 73, 5, 28, 0, 28, 0], [23, 75, 4, 14, 1, 13, 0], [23, 77, 4, 14, 1, 13, 0], [23, 79, 3, 6, 1, 5, 0], [23, 81, 3, 6, 1, 5, 0], [23, 83, 2, 2, 1, 1, 0], [23, 85, 2, 2, 1, 1, 0], [23, 89, 4, 14, 1, 13, 0], [23, 91, 3, 6, 1, 5, 0], [23, 93, 3, 6, 1, 5, 0], [23, 95, 2, 2, 0, 2, 0], [23, 97, 5, 16, 0, 16, 0], [25, 31, 2, 2, 0, 2, 0], [25, 33, 3, 4, 0, 4, 0], [25, 35, 4, 12, 0, 12, 0], [25, 37, 4, 12, 0, 12, 0], [25, 39, 5, 28, 0, 28, 0], [25, 41, 2, 2, 1, 1, 0], [25, 43, 3, 6, 1, 5, 0], [25, 45, 3, 6, 1, 5, 0], [25, 47, 4, 14, 1, 13, 0], [25, 49, 2, 2, 1, 1, 0], [25, 51, 3, 6, 1, 5, 0], [25, 53, 3, 6, 1, 5, 0], [25, 55, 4, 14, 1, 13, 0], [25, 59, 2, 2, 0, 2, 0], [25, 61, 2, 2, 0, 2, 0], [25, 63, 3, 6, 0, 6, 0], [25, 65, 3, 4, 0, 4, 0], [25, 67, 4, 12, 0, 12, 0], [25, 69, 4, 12, 0, 12, 0], [25, 71, 5, 28, 0, 28, 0], [25, 73, 2, 2, 1, 1, 0], [25, 75, 3, 6, 1, 5, 0], [25, 77, 3, 6, 1, 5, 0], [25, 79, 4, 14, 1, 13, 0], [25, 81, 2, 2, 1, 1, 0], [25, 83, 3, 6, 1, 5, 0], [25, 85, 3, 6, 1, 5, 0], [25, 87, 4, 14, 1, 13, 0], [25, 91, 2, 2, 0, 2, 0], [25, 93, 2, 2, 0, 2, 0], [25, 95, 3, 6, 0, 6, 0], [25, 97, 4, 8, 0, 8, 0], [27, 29, 2, 2, 1, 1, 0], [27, 33, 4, 12, 0, 12, 0], [27, 35, 3, 6, 1, 5, 0], [27, 37, 5, 28, 0, 28, 0], [27, 39, 4, 14, 1, 13, 0], [27, 41, 3, 6, 1, 5, 0], [27, 43, 2, 2, 1, 1, 0], [27, 45, 4, 14, 1, 13, 0], [27, 47, 3, 6, 1, 5, 0], [27, 49, 3, 6, 1, 5, 0], [27, 51, 2, 2, 1, 1, 0], [27, 53, 4, 14, 1, 13, 0], [27, 55, 3, 6, 1, 5, 0], [27, 57, 2, 2, 1, 1, 0], [27, 61, 3, 6, 1, 5, 0], [27, 63, 2, 2, 0, 2, 0], [27, 65, 4, 12, 0, 12, 0], [27, 67, 3, 6, 1, 5, 0], [27, 69, 5, 28, 0, 28, 0], [27, 71, 4, 14, 1, 13, 0], [27, 73, 3, 6, 1, 5, 0], [27, 75, 2, 2, 1, 1, 0], [27, 77, 4, 14, 1, 13, 0], [27, 79, 3, 6, 1, 5, 0], [27, 81, 3, 6, 1, 5, 0], [27, 83, 2, 2, 1, 1, 0], [27, 85, 4, 14, 1, 13, 0], [27, 87, 3, 6, 1, 5, 0], [27, 89, 2, 2, 1, 1, 0], [27, 93, 3, 6, 1, 5, 0], [27, 95, 2, 2, 0, 2, 0], [27, 97, 5, 16, 0, 16, 0], [29, 33, 4, 12, 0, 12, 0], [29, 35, 5, 28, 0, 28, 0], [29, 37, 3, 6, 1, 5, 0], [29, 39, 4, 14, 1, 13, 0], [29, 41, 3, 6, 1, 5, 0], [29, 43, 4, 14, 1, 13, 0], [29, 45, 2, 2, 1, 1, 0], [29, 47, 3, 6, 1, 5, 0], [29, 49, 3, 6, 1, 5, 0], [29, 51, 4, 14, 1, 13, 0], [29, 53, 2, 2, 1, 1, 0], [29, 55, 3, 6, 1, 5, 0], [29, 57, 2, 2, 1, 1, 0], [29, 59, 3, 6, 1, 5, 0], [29, 63, 2, 2, 0, 2, 0], [29, 65, 4, 12, 0, 12, 0], [29, 67, 5, 28, 0, 28, 0], [29, 69, 3, 6, 1, 5, 0], [29, 71, 4, 14, 1, 13, 0], [29, 73, 3, 6, 1, 5, 0], [29, 75, 4, 14, 1, 13, 0], [29, 77, 2, 2, 1, 1, 0], [29, 79, 3, 6, 1, 5, 0], [29, 81, 3, 6, 1, 5, 0], [29, 83, 4, 14, 1, 13, 0], [29, 85, 2, 2, 1, 1, 0], [29, 87, 3, 6, 1, 5, 0], [29, 89, 2, 2, 1, 1, 0], [29, 91, 3, 6, 1, 5, 0], [29, 95, 2, 2, 0, 2, 0], [29, 97, 5, 16, 0, 16, 0], [31, 33, 5, 28, 0, 28, 0], [31, 35, 4, 14, 1, 13, 0], [31, 37, 4, 14, 1, 13, 0], [31, 39, 3, 6, 1, 5, 0], [31, 41, 4, 14, 1, 13, 0], [31, 43, 3, 6, 1, 5, 0], [31, 45, 3, 6, 1, 5, 0], [31, 47, 2, 2, 1, 1, 0], [31, 49, 4, 14, 1, 13, 0], [31, 51, 3, 6, 1, 5, 0], [31, 53, 3, 6, 1, 5, 0], [31, 55, 2, 2, 1, 1, 0], [31, 57, 3, 6, 1, 5, 0], [31, 59, 2, 2, 1, 1, 0], [31, 61, 2, 2, 1, 1, 0], [31, 65, 5, 28, 0, 28, 0], [31, 67, 4, 14, 1, 13, 0], [31, 69, 4, 14, 1, 13, 0], [31, 71, 3, 6, 1, 5, 0], [31, 73, 4, 14, 1, 13, 0], [31, 75, 3, 6, 1, 5, 0], [31, 77, 3, 6, 1, 5, 0], [31, 79, 2, 2, 1, 1, 0], [31, 81, 4, 14, 1, 13, 0], [31, 83, 3, 6, 1, 5, 0], [31, 85, 3, 6, 1, 5, 0], [31, 87, 2, 2, 1, 1, 0], [31, 89, 3, 6, 1, 5, 0], [31, 91, 2, 2, 1, 1, 0], [31, 93, 2, 2, 1, 1, 0], [31, 97, 6, 32, 0, 32, 0], [33, 39, 2, 2, 0, 2, 0], [33, 43, 2, 2, 0, 2, 0], [33, 45, 2, 2, 0, 2, 0], [33, 47, 3, 6, 0, 6, 0], [33, 51, 2, 2, 0, 2, 0], [33, 53, 2, 2, 0, 2, 0], [33, 55, 3, 6, 0, 6, 0], [33, 57, 2, 2, 0, 2, 0], [33, 59, 3, 6, 0, 6, 0], [33, 61, 3, 6, 0, 6, 0], [33, 63, 4, 14, 0, 14, 0], [33, 67, 3, 4, 0, 4, 0], [33, 69, 3, 4, 0, 4, 0], [33, 71, 4, 8, 0, 8, 0], [33, 73, 3, 4, 0, 4, 0], [33, 75, 4, 8, 0, 8, 0], [33, 77, 4, 8, 0, 8, 0], [33, 79, 5, 16, 0, 16, 0], [33, 81, 3, 4, 0, 4, 0], [33, 83, 4, 8, 0, 8, 0], [33, 85, 4, 8, 0, 8, 0], [33, 87, 5, 16, 0, 16, 0], [33, 89, 4, 8, 0, 8, 0], [33, 91, 5, 16, 0, 16, 0], [33, 93, 5, 16, 0, 16, 0], [33, 95, 6, 32, 0, 32, 0], [35, 37, 2, 2, 1, 1, 0], [35, 41, 2, 2, 1, 1, 0], [35, 45, 3, 6, 1, 5, 0], [35, 47, 2, 2, 0, 2, 0], [35, 49, 2, 2, 1, 1, 0], [35, 53, 3, 6, 1, 5, 0], [35, 55, 2, 2, 0, 2, 0], [35, 57, 3, 6, 1, 5, 0], [35, 59, 2, 2, 0, 2, 0], [35, 61, 4, 14, 1, 13, 0], [35, 63, 3, 6, 0, 6, 0], [35, 65, 3, 4, 0, 4, 0], [35, 69, 4, 8, 0, 8, 0], [35, 71, 3, 2, 0, 2, 0], [35, 73, 4, 8, 0, 8, 0], [35, 75, 3, 2, 0, 2, 0], [35, 77, 5, 16, 0, 16, 0], [35, 79, 4, 6, 0, 6, 0], [35, 81, 4, 8, 0, 8, 0], [35, 83, 3, 2, 0, 2, 0], [35, 85, 5, 16, 0, 16, 0], [35, 87, 4, 6, 0, 6, 0], [35, 89, 5, 16, 0, 16, 0], [35, 91, 4, 6, 0, 6, 0], [35, 93, 6, 32, 0, 32, 0], [35, 95, 5, 14, 0, 14, 0], [37, 41, 2, 2, 1, 1, 0], [37, 43, 3, 6, 1, 5, 0], [37, 47, 2, 2, 0, 2, 0], [37, 49, 2, 2, 1, 1, 0], [37, 51, 3, 6, 1, 5, 0], [37, 55, 2, 2, 0, 2, 0], [37, 57, 3, 6, 1, 5, 0], [37, 59, 4, 14, 1, 13, 0], [37, 61, 2, 2, 0, 2, 0], [37, 63, 3, 6, 0, 6, 0], [37, 65, 3, 4, 0, 4, 0], [37, 67, 4, 8, 0, 8, 0], [37, 71, 3, 2, 0, 2, 0], [37, 73, 4, 8, 0, 8, 0], [37, 75, 5, 16, 0, 16, 0], [37, 77, 3, 2, 0, 2, 0], [37, 79, 4, 6, 0, 6, 0], [37, 81, 4, 8, 0, 8, 0], [37, 83, 5, 16, 0, 16, 0], [37, 85, 3, 2, 0, 2, 0], [37, 87, 4, 6, 0, 6, 0], [37, 89, 5, 16, 0, 16, 0], [37, 91, 6, 32, 0, 32, 0], [37, 93, 4, 6, 0, 6, 0], [37, 95, 5, 14, 0, 14, 0], [39, 41, 3, 6, 1, 5, 0], [39, 43, 2, 2, 1, 1, 0], [39, 45, 2, 2, 1, 1, 0], [39, 49, 3, 6, 1, 5, 0], [39, 51, 2, 2, 1, 1, 0], [39, 53, 2, 2, 1, 1, 0], [39, 57, 4, 14, 1, 13, 0], [39, 59, 3, 6, 1, 5, 0], [39, 61, 3, 6, 1, 5, 0], [39, 63, 2, 2, 0, 2, 0], [39, 65, 4, 8, 0, 8, 0], [39, 67, 3, 2, 0, 2, 0], [39, 69, 3, 2, 0, 2, 0], [39, 73, 5, 16, 0, 16, 0], [39, 75, 4, 6, 0, 6, 0], [39, 77, 4, 6, 0, 6, 0], [39, 79, 3, 2, 0, 2, 0], [39, 81, 5, 16, 0, 16, 0], [39, 83, 4, 6, 0, 6, 0], [39, 85, 4, 6, 0, 6, 0], [39, 87, 3, 2, 0, 2, 0], [39, 89, 6, 32, 0, 32, 0], [39, 91, 5, 14, 0, 14, 0], [39, 93, 5, 14, 0, 14, 0], [39, 95, 4, 6, 0, 6, 0], [41, 47, 2, 2, 0, 2, 0], [41, 49, 2, 2, 1, 1, 0], [41, 51, 3, 6, 1, 5, 0], [41, 53, 3, 6, 1, 5, 0], [41, 55, 4, 14, 1, 13, 0], [41, 59, 2, 2, 0, 2, 0], [41, 61, 2, 2, 0, 2, 0], [41, 63, 3, 6, 0, 6, 0], [41, 65, 3, 4, 0, 4, 0], [41, 67, 4, 8, 0, 8, 0], [41, 69, 4, 8, 0, 8, 0], [41, 71, 5, 16, 0, 16, 0], [41, 75, 3, 2, 0, 2, 0], [41, 77, 3, 2, 0, 2, 0], [41, 79, 4, 6, 0, 6, 0], [41, 81, 4, 8, 0, 8, 0], [41, 83, 5, 16, 0, 16, 0], [41, 85, 5, 16, 0, 16, 0], [41, 87, 6, 32, 0, 32, 0], [41, 89, 3, 2, 0, 2, 0], [41, 91, 4, 6, 0, 6, 0], [41, 93, 4, 6, 0, 6, 0], [41, 95, 5, 14, 0, 14, 0], [43, 45, 2, 2, 1, 1, 0], [43, 49, 3, 6, 1, 5, 0], [43, 51, 2, 2, 1, 1, 0], [43, 53, 4, 14, 1, 13, 0], [43, 55, 3, 6, 1, 5, 0], [43, 57, 2, 2, 1, 1, 0], [43, 61, 3, 6, 1, 5, 0], [43, 63, 2, 2, 0, 2, 0], [43, 65, 4, 8, 0, 8, 0], [43, 67, 3, 2, 0, 2, 0], [43, 69, 5, 16, 0, 16, 0], [43, 71, 4, 6, 0, 6, 0], [43, 73, 3, 2, 0, 2, 0], [43, 77, 4, 6, 0, 6, 0], [43, 79, 3, 2, 0, 2, 0], [43, 81, 5, 16, 0, 16, 0], [43, 83, 4, 6, 0, 6, 0], [43, 85, 6, 32, 0, 32, 0], [43, 87, 5, 14, 0, 14, 0], [43, 89, 4, 6, 0, 6, 0], [43, 91, 3, 2, 0, 2, 0], [43, 93, 5, 14, 0, 14, 0], [43, 95, 4, 6, 0, 6, 0], [45, 49, 3, 6, 1, 5, 0], [45, 51, 4, 14, 1, 13, 0], [45, 53, 2, 2, 1, 1, 0], [45, 55, 3, 6, 1, 5, 0], [45, 57, 2, 2, 1, 1, 0], [45, 59, 3, 6, 1, 5, 0], [45, 63, 2, 2, 0, 2, 0], [45, 65, 4, 8, 0, 8, 0], [45, 67, 5, 16, 0, 16, 0], [45, 69, 3, 2, 0, 2, 0], [45, 71, 4, 6, 0, 6, 0], [45, 73, 3, 2, 0, 2, 0], [45, 75, 4, 6, 0, 6, 0], [45, 79, 3, 2, 0, 2, 0], [45, 81, 5, 16, 0, 16, 0], [45, 83, 6, 32, 0, 32, 0], [45, 85, 4, 6, 0, 6, 0], [45, 87, 5, 14, 0, 14, 0], [45, 89, 4, 6, 0, 6, 0], [45, 91, 5, 14, 0, 14, 0], [45, 93, 3, 2, 0, 2, 0], [45, 95, 4, 6, 0, 6, 0], [47, 49, 4, 14, 1, 13, 0], [47, 51, 3, 6, 1, 5, 0], [47, 53, 3, 6, 1, 5, 0], [47, 55, 2, 2, 1, 1, 0], [47, 57, 3, 6, 1, 5, 0], [47, 59, 2, 2, 1, 1, 0], [47, 61, 2, 2, 1, 1, 0], [47, 65, 5, 16, 0, 16, 0], [47, 67, 4, 6, 0, 6, 0], [47, 69, 4, 6, 0, 6, 0], [47, 71, 3, 2, 0, 2, 0], [47, 73, 4, 6, 0, 6, 0], [47, 75, 3, 2, 0, 2, 0], [47, 77, 3, 2, 0, 2, 0], [47, 81, 6, 32, 0, 32, 0], [47, 83, 5, 14, 0, 14, 0], [47, 85, 5, 14, 0, 14, 0], [47, 87, 4, 6, 0, 6, 0], [47, 89, 5, 14, 0, 14, 0], [47, 91, 4, 6, 0, 6, 0], [47, 93, 4, 6, 0, 6, 0], [47, 95, 3, 2, 0, 2, 0], [49, 55, 2, 2, 0, 2, 0], [49, 59, 2, 2, 0, 2, 0], [49, 61, 2, 2, 0, 2, 0], [49, 63, 3, 6, 0, 6, 0], [49, 65, 3, 4, 0, 4, 0], [49, 67, 4, 8, 0, 8, 0], [49, 69, 4, 8, 0, 8, 0], [49, 71, 5, 16, 0, 16, 0], [49, 73, 4, 8, 0, 8, 0], [49, 75, 5, 16, 0, 16, 0], [49, 77, 5, 16, 0, 16, 0], [49, 79, 6, 32, 0, 32, 0], [49, 83, 3, 2, 0, 2, 0], [49, 85, 3, 2, 0, 2, 0], [49, 87, 4, 6, 0, 6, 0], [49, 89, 3, 2, 0, 2, 0], [49, 91, 4, 6, 0, 6, 0], [49, 93, 4, 6, 0, 6, 0], [49, 95, 5, 14, 0, 14, 0], [51, 53, 2, 2, 1, 1, 0], [51, 57, 2, 2, 1, 1, 0], [51, 61, 3, 6, 1, 5, 0], [51, 63, 2, 2, 0, 2, 0], [51, 65, 4, 8, 0, 8, 0], [51, 67, 3, 2, 0, 2, 0], [51, 69, 5, 16, 0, 16, 0], [51, 71, 4, 6, 0, 6, 0], [51, 73, 5, 16, 0, 16, 0], [51, 75, 4, 6, 0, 6, 0], [51, 77, 6, 32, 0, 32, 0], [51, 79, 5, 14, 0, 14, 0], [51, 81, 3, 2, 0, 2, 0], [51, 85, 4, 6, 0, 6, 0], [51, 87, 3, 2, 0, 2, 0], [51, 89, 4, 6, 0, 6, 0], [51, 91, 3, 2, 0, 2, 0], [51, 93, 5, 14, 0, 14, 0], [51, 95, 4, 6, 0, 6, 0], [53, 57, 2, 2, 1, 1, 0], [53, 59, 3, 6, 1, 5, 0], [53, 63, 2, 2, 0, 2, 0], [53, 65, 4, 8, 0, 8, 0], [53, 67, 5, 16, 0, 16, 0], [53, 69, 3, 2, 0, 2, 0], [53, 71, 4, 6, 0, 6, 0], [53, 73, 5, 16, 0, 16, 0], [53, 75, 6, 32, 0, 32, 0], [53, 77, 4, 6, 0, 6, 0], [53, 79, 5, 14, 0, 14, 0], [53, 81, 3, 2, 0, 2, 0], [53, 83, 4, 6, 0, 6, 0], [53, 87, 3, 2, 0, 2, 0], [53, 89, 4, 6, 0, 6, 0], [53, 91, 5, 14, 0, 14, 0], [53, 93, 3, 2, 0, 2, 0], [53, 95, 4, 6, 0, 6, 0], [55, 57, 3, 6, 1, 5, 0], [55, 59, 2, 2, 1, 1, 0], [55, 61, 2, 2, 1, 1, 0], [55, 65, 5, 16, 0, 16, 0], [55, 67, 4, 6, 0, 6, 0], [55, 69, 4, 6, 0, 6, 0], [55, 71, 3, 2, 0, 2, 0], [55, 73, 6, 32, 0, 32, 0], [55, 75, 5, 14, 0, 14, 0], [55, 77, 5, 14, 0, 14, 0], [55, 79, 4, 6, 0, 6, 0], [55, 81, 4, 6, 0, 6, 0], [55, 83, 3, 2, 0, 2, 0], [55, 85, 3, 2, 0, 2, 0], [55, 89, 5, 14, 0, 14, 0], [55, 91, 4, 6, 0, 6, 0], [55, 93, 4, 6, 0, 6, 0], [55, 95, 3, 2, 0, 2, 0], [57, 63, 2, 2, 0, 2, 0], [57, 65, 4, 8, 0, 8, 0], [57, 67, 5, 16, 0, 16, 0], [57, 69, 5, 16, 0, 16, 0], [57, 71, 6, 32, 0, 32, 0], [57, 73, 3, 2, 0, 2, 0], [57, 75, 4, 6, 0, 6, 0], [57, 77, 4, 6, 0, 6, 0], [57, 79, 5, 14, 0, 14, 0], [57, 81, 3, 2, 0, 2, 0], [57, 83, 4, 6, 0, 6, 0], [57, 85, 4, 6, 0, 6, 0], [57, 87, 5, 14, 0, 14, 0], [57, 91, 3, 2, 0, 2, 0], [57, 93, 3, 2, 0, 2, 0], [57, 95, 4, 6, 0, 6, 0], [59, 61, 2, 2, 1, 1, 0], [59, 65, 5, 16, 0, 16, 0], [59, 67, 4, 6, 0, 6, 0], [59, 69, 6, 32, 0, 32, 0], [59, 71, 5, 14, 0, 14, 0], [59, 73, 4, 6, 0, 6, 0], [59, 75, 3, 2, 0, 2, 0], [59, 77, 5, 14, 0, 14, 0], [59, 79, 4, 6, 0, 6, 0], [59, 81, 4, 6, 0, 6, 0], [59, 83, 3, 2, 0, 2, 0], [59, 85, 5, 14, 0, 14, 0], [59, 87, 4, 6, 0, 6, 0], [59, 89, 3, 2, 0, 2, 0], [59, 93, 4, 6, 0, 6, 0], [59, 95, 3, 2, 0, 2, 0], [61, 65, 5, 16, 0, 16, 0], [61, 67, 6, 32, 0, 32, 0], [61, 69, 4, 6, 0, 6, 0], [61, 71, 5, 14, 0, 14, 0], [61, 73, 4, 6, 0, 6, 0], [61, 75, 5, 14, 0, 14, 0], [61, 77, 3, 2, 0, 2, 0], [61, 79, 4, 6, 0, 6, 0], [61, 81, 4, 6, 0, 6, 0], [61, 83, 5, 14, 0, 14, 0], [61, 85, 3, 2, 0, 2, 0], [61, 87, 4, 6, 0, 6, 0], [61, 89, 3, 2, 0, 2, 0], [61, 91, 4, 6, 0, 6, 0], [61, 95, 3, 2, 0, 2, 0], [63, 65, 6, 32, 0, 32, 0], [63, 67, 5, 14, 0, 14, 0], [63, 69, 5, 14, 0, 14, 0], [63, 71, 4, 6, 0, 6, 0], [63, 73, 5, 14, 0, 14, 0], [63, 75, 4, 6, 0, 6, 0], [63, 77, 4, 6, 0, 6, 0], [63, 79, 3, 2, 0, 2, 0], [63, 81, 5, 14, 0, 14, 0], [63, 83, 4, 6, 0, 6, 0], [63, 85, 4, 6, 0, 6, 0], [63, 87, 3, 2, 0, 2, 0], [63, 89, 4, 6, 0, 6, 0], [63, 91, 3, 2, 0, 2, 0], [63, 93, 3, 2, 0, 2, 0], [65, 71, 2, 2, 0, 2, 0], [65, 75, 2, 2, 0, 2, 0], [65, 77, 2, 2, 0, 2, 0], [65, 79, 3, 6, 0, 6, 0], [65, 83, 2, 2, 0, 2, 0], [65, 85, 2, 2, 0, 2, 0], [65, 87, 3, 6, 0, 6, 0], [65, 89, 2, 2, 0, 2, 0], [65, 91, 3, 6, 0, 6, 0], [65, 93, 3, 6, 0, 6, 0], [65, 95, 4, 14, 0, 14, 0], [67, 69, 2, 2, 1, 1, 0], [67, 73, 2, 2, 1, 1, 0], [67, 77, 3, 6, 1, 5, 0], [67, 79, 2, 2, 0, 2, 0], [67, 81, 2, 2, 1, 1, 0], [67, 85, 3, 6, 1, 5, 0], [67, 87, 2, 2, 0, 2, 0], [67, 89, 3, 6, 1, 5, 0], [67, 91, 2, 2, 0, 2, 0], [67, 93, 4, 14, 1, 13, 0], [67, 95, 3, 6, 0, 6, 0], [69, 73, 2, 2, 1, 1, 0], [69, 75, 3, 6, 1, 5, 0], [69, 79, 2, 2, 0, 2, 0], [69, 81, 2, 2, 1, 1, 0], [69, 83, 3, 6, 1, 5, 0], [69, 87, 2, 2, 0, 2, 0], [69, 89, 3, 6, 1, 5, 0], [69, 91, 4, 14, 1, 13, 0], [69, 93, 2, 2, 0, 2, 0], [69, 95, 3, 6, 0, 6, 0], [71, 73, 3, 6, 1, 5, 0], [71, 75, 2, 2, 1, 1, 0], [71, 77, 2, 2, 1, 1, 0], [71, 81, 3, 6, 1, 5, 0], [71, 83, 2, 2, 1, 1, 0], [71, 85, 2, 2, 1, 1, 0], [71, 89, 4, 14, 1, 13, 0], [71, 91, 3, 6, 1, 5, 0], [71, 93, 3, 6, 1, 5, 0], [71, 95, 2, 2, 0, 2, 0], [73, 79, 2, 2, 0, 2, 0], [73, 81, 2, 2, 1, 1, 0], [73, 83, 3, 6, 1, 5, 0], [73, 85, 3, 6, 1, 5, 0], [73, 87, 4, 14, 1, 13, 0], [73, 91, 2, 2, 0, 2, 0], [73, 93, 2, 2, 0, 2, 0], [73, 95, 3, 6, 0, 6, 0], [75, 77, 2, 2, 1, 1, 0], [75, 81, 3, 6, 1, 5, 0], [75, 83, 2, 2, 1, 1, 0], [75, 85, 4, 14, 1, 13, 0], [75, 87, 3, 6, 1, 5, 0], [75, 89, 2, 2, 1, 1, 0], [75, 93, 3, 6, 1, 5, 0], [75, 95, 2, 2, 0, 2, 0], [77, 81, 3, 6, 1, 5, 0], [77, 83, 4, 14, 1, 13, 0], [77, 85, 2, 2, 1, 1, 0], [77, 87, 3, 6, 1, 5, 0], [77, 89, 2, 2, 1, 1, 0], [77, 91, 3, 6, 1, 5, 0], [77, 95, 2, 2, 0, 2, 0], [79, 81, 4, 14, 1, 13, 0], [79, 83, 3, 6, 1, 5, 0], [79, 85, 3, 6, 1, 5, 0], [79, 87, 2, 2, 1, 1, 0], [79, 89, 3, 6, 1, 5, 0], [79, 91, 2, 2, 1, 1, 0], [79, 93, 2, 2, 1, 1, 0], [81, 87, 2, 2, 0, 2, 0], [81, 91, 2, 2, 0, 2, 0], [81, 93, 2, 2, 0, 2, 0], [81, 95, 3, 6, 0, 6, 0], [83, 85, 2, 2, 1, 1, 0], [83, 89, 2, 2, 1, 1, 0], [83, 93, 3, 6, 1, 5, 0], [83, 95, 2, 2, 0, 2, 0], [85, 89, 2, 2, 1, 1, 0], [85, 91, 3, 6, 1, 5, 0], [85, 95, 2, 2, 0, 2, 0], [87, 89, 3, 6, 1, 5, 0], [87, 91, 2, 2, 1, 1, 0], [87, 93, 2, 2, 1, 1, 0], [89, 95, 2, 2, 0, 2, 0], [91, 93, 2, 2, 1, 1, 0]], SPEC = [-129.871, -129.871, -129.871, -125.644, -90.421, -83.804, -13.81, -13.7, -13.7, -13.7, -10.0, -10.0, -9.147, -9.147, -9.147, -7.98, -7.122, -6.969, -6.969, -6.969, -6.159, -6.159, -0.059, 0.509, 3.537, 3.537, 3.537, 4.458, 4.532, 4.532, 4.532, 5.463, 6.597, 23.457, 23.457, 23.457, 29.144, 32.616, 32.616, 32.616, 32.72, 44.159, 44.159, 44.593, 45.546, 45.546, 45.546, 299.358], TOP = [[31, 97, 6, 32, 0, 32, 0], [33, 95, 6, 32, 0, 32, 0], [35, 93, 6, 32, 0, 32, 0], [37, 91, 6, 32, 0, 32, 0], [39, 89, 6, 32, 0, 32, 0], [41, 87, 6, 32, 0, 32, 0], [43, 85, 6, 32, 0, 32, 0], [45, 83, 6, 32, 0, 32, 0], [47, 81, 6, 32, 0, 32, 0], [49, 79, 6, 32, 0, 32, 0], [51, 77, 6, 32, 0, 32, 0], [53, 75, 6, 32, 0, 32, 0], [55, 73, 6, 32, 0, 32, 0], [57, 71, 6, 32, 0, 32, 0], [59, 69, 6, 32, 0, 32, 0], [61, 67, 6, 32, 0, 32, 0], [63, 65, 6, 32, 0, 32, 0], [3, 61, 5, 28, 0, 28, 0], [3, 93, 5, 28, 0, 28, 0], [5, 59, 5, 28, 0, 28, 0], [5, 91, 5, 28, 0, 28, 0], [7, 57, 5, 28, 0, 28, 0], [7, 89, 5, 28, 0, 28, 0], [9, 55, 5, 28, 0, 28, 0], [9, 87, 5, 28, 0, 28, 0], [11, 53, 5, 28, 0, 28, 0], [11, 85, 5, 28, 0, 28, 0], [13, 51, 5, 28, 0, 28, 0]], NEVER = [[3, 5, 2], [3, 7, 1], [3, 9, 2], [3, 11, 1], [3, 17, 2], [3, 19, 1], [3, 33, 2], [3, 35, 1], [3, 65, 2], [3, 67, 1], [5, 7, 1], [5, 9, 2], [5, 13, 1], [5, 17, 2], [5, 21, 1], [5, 33, 2], [5, 37, 1], [5, 65, 2], [5, 69, 1], [7, 15, 1], [7, 23, 1], [7, 39, 1], [7, 71, 1], [9, 11, 1], [9, 13, 1], [9, 17, 2], [9, 25, 1], [9, 33, 2], [9, 41, 1], [9, 65, 2], [9, 73, 1], [11, 15, 1], [11, 27, 1], [11, 43, 1], [11, 75, 1], [13, 15, 1], [13, 29, 1], [13, 45, 1], [13, 77, 1], [15, 31, 1], [15, 47, 1], [15, 79, 1], [17, 19, 1], [17, 21, 1], [17, 25, 1], [17, 33, 2], [17, 49, 1], [17, 65, 2], [17, 81, 1], [19, 23, 1], [19, 27, 1], [19, 51, 1], [19, 83, 1], [21, 23, 1], [21, 29, 1], [21, 53, 1], [21, 85, 1], [23, 31, 1], [23, 55, 1], [23, 87, 1], [25, 27, 1], [25, 29, 1], [25, 57, 1], [25, 89, 1], [27, 31, 1], [27, 59, 1], [27, 91, 1], [29, 31, 1], [29, 61, 1], [29, 93, 1], [31, 63, 1], [31, 95, 1], [33, 35, 1], [33, 37, 1], [33, 41, 1], [33, 49, 1], [33, 65, 2], [33, 97, 1], [35, 39, 1], [35, 43, 1], [35, 51, 1], [35, 67, 2], [35, 97, 2], [37, 39, 1], [37, 45, 1], [37, 53, 1], [37, 69, 2], [37, 97, 2], [39, 47, 1], [39, 55, 1], [39, 71, 2], [39, 97, 3], [41, 43, 1], [41, 45, 1], [41, 57, 1], [41, 73, 2], [41, 97, 2], [43, 47, 1], [43, 59, 1], [43, 75, 2], [43, 97, 3], [45, 47, 1], [45, 61, 1], [45, 77, 2], [45, 97, 3], [47, 63, 1], [47, 79, 2], [47, 97, 4], [49, 51, 1], [49, 53, 1], [49, 57, 1], [49, 81, 2], [49, 97, 2], [51, 55, 1], [51, 59, 1], [51, 83, 2], [51, 97, 3], [53, 55, 1], [53, 61, 1], [53, 85, 2], [53, 97, 3], [55, 63, 1], [55, 87, 2], [55, 97, 4], [57, 59, 1], [57, 61, 1], [57, 89, 2], [57, 97, 3], [59, 63, 1], [59, 91, 2], [59, 97, 4], [61, 63, 1], [61, 93, 2], [61, 97, 4], [63, 95, 2], [63, 97, 5], [65, 67, 1], [65, 69, 1], [65, 73, 1], [65, 81, 1], [65, 97, 1], [67, 71, 1], [67, 75, 1], [67, 83, 1], [67, 97, 2], [69, 71, 1], [69, 77, 1], [69, 85, 1], [69, 97, 2], [71, 79, 1], [71, 87, 1], [71, 97, 3], [73, 75, 1], [73, 77, 1], [73, 89, 1], [73, 97, 2], [75, 79, 1], [75, 91, 1], [75, 97, 3], [77, 79, 1], [77, 93, 1], [77, 97, 3], [79, 95, 1], [79, 97, 4], [81, 83, 1], [81, 85, 1], [81, 89, 1], [81, 97, 2], [83, 87, 1], [83, 91, 1], [83, 97, 3], [85, 87, 1], [85, 93, 1], [85, 97, 3], [87, 95, 1], [87, 97, 4], [89, 91, 1], [89, 93, 1], [89, 97, 3], [91, 95, 1], [91, 97, 4], [93, 95, 1], [93, 97, 4], [95, 97, 5]];
+const RNUM = 529, RDEN = 148, R = RNUM / RDEN;   // 529/148 — the exact speed ratio of the system
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+let W = 0, H = 0, DPR = 1;
+function size(){ DPR = Math.min(2, window.devicePixelRatio || 1); W = innerWidth; H = innerHeight; cv.width = W * DPR; cv.height = H * DPR; }
+addEventListener('resize', size); size();
+
+const SCHEMES = {
+  spectrum:  {dist: {2:'#7dd3fc',3:'#a8e6b0',4:'#f3e9c8',5:'#ffcf8a',6:'#ff9d8a'}, node: ['','#7dd3fc','#a8e6b0','#f3e9c8','#ffcf8a','#ff9d8a','#d8b4fe'], fade: 'rgba(0,0,0,', mesh: 'rgba(110,150,220,', bg: '#000', acc: '#c9a227'},
+  thermal:   {dist: {2:'#31338a',3:'#2a6fd0',4:'#21b573',5:'#f2c531',6:'#e33f2e'}, node: ['','#31338a','#2a6fd0','#21b573','#f2c531','#e3642e','#e33f2e'], fade: 'rgba(2,0,8,', mesh: 'rgba(220,120,80,', bg: '#050108', acc: '#ff7a3c'},
+  gold:      {dist: {2:'#8a6d1f',3:'#a8862a',4:'#c9a227',5:'#e8c95a',6:'#f7e08a'}, node: ['','#8a6d1f','#a8862a','#c9a227','#e0bc45','#e8c95a','#f7e08a'], fade: 'rgba(4,3,0,', mesh: 'rgba(201,162,39,', bg: '#030200', acc: '#c9a227'},
+  blueprint: {dist: {2:'#9fd8ff',3:'#6fc2ff',4:'#3fa9f5',5:'#1e88e5',6:'#0d5aa6'}, node: ['','#e8f6ff','#bfe6ff','#9fd8ff','#6fc2ff','#3fa9f5','#1e88e5'], fade: 'rgba(2,10,32,', mesh: 'rgba(160,210,255,', bg: '#020a20', acc: '#9fd8ff'},
+  paper:     {dist: {2:'#34618e',3:'#3d7a4d',4:'#7a6420',5:'#9c5a1e',6:'#93392e'}, node: ['','#222','#34618e','#3d7a4d','#7a6420','#9c5a1e','#93392e'], fade: 'rgba(238,234,222,', mesh: 'rgba(60,60,60,', bg: '#eeeade', acc: '#7a6420', light: true},
+  iridescent:{dist: null, node: null, fade: 'rgba(0,0,0,', mesh: 'rgba(200,180,255,', bg: '#000', acc: '#e8b4fe'}
+};
+let SCH = SCHEMES.spectrum;
+function iri(seed, t){ return 'hsl(' + ((t * 24 + seed * 37) % 360) + ',85%,68%)'; }
+function distCol(d, t, seed){ if (SCH.dist) return SCH.dist[d]; return iri(d * 2 + (seed || 0), t); }
+function nodeCol(p, t){ if (SCH.node) return SCH.node[p.pc]; return iri(p.pc * 3 + p.m, t); }
+function heatCol(v){ const stops = ['#31338a','#2a6fd0','#21b573','#f2c531','#e33f2e']; return stops[Math.min(4, Math.floor(v * 5))]; }
+
+function sprite(hex){
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const g = c.getContext('2d'), gr = g.createRadialGradient(32,32,0,32,32,32);
+  gr.addColorStop(0, '#ffffff'); gr.addColorStop(0.25, hex); gr.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = gr; g.fillRect(0,0,64,64); return c;
+}
+const SPRCACHE = {};
+function sprFor(hex){ if (!SPRCACHE[hex]) SPRCACHE[hex] = sprite(hex); return SPRCACHE[hex]; }
+const STARS = Array.from({length: 130}, () => ({x: Math.random(), y: Math.random(), z: 0.3 + Math.random() * 0.7, s: Math.random() * 1.4 + 0.3}));
+
+// state
+const S = { layout: 'sph', estyle: 'line', ecolor: 'dist', cls: 'all', never: false, nshape: 'glow', label: 'sinks',
+            nsize: 1, mesh: 'dense', stars: true, pulsesOn: true, xray: false, trails: 0.30, glow: 1, spin: true,
+            tumble: true, rev: false, speed: 1, ribbon: false, hap: true,
+            skin: 'wire', core: 'octa', cage: true, floor: false, spokes: false, focus: false, aber: false, crt: false,
+            pupil: false, refr: false, scat: false, purk: false, invert: true, deform: true };
+let rotY = 0.6, rotX = 0.35, rotZ = 0, zoom = 1, wave = -1, sel = null, fpsEMA = 60;
+let layFrom = null, layTo = null, layK = 1;
+let gyro = {live: false, head: 0, beta: 0, gamma: 0}, gT = null, lastAct = performance.now();
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+if (REDUCED){ S.spin = false; document.getElementById('spinBtn').classList.remove('on'); }
+function haptic(s){ if(!S.hap) return; try{ document.getElementById('hapLabel').click(); }catch(e){} if (navigator.vibrate) navigator.vibrate(s===2?[14,40,14]:10); }
+
+const LAM2 = SPEC.map(x => x * x), LAM2SUM = LAM2.reduce((a,b) => a + b, 0);
+function resonance(t){ let s = 0; for (let i = 0; i < SPEC.length; i++){ const c = Math.cos(t * 0.35 + i * 0.618); s += LAM2[i] * c * c; } return Math.sqrt(s / LAM2SUM); }
+const SIG_HIST = [];
+const P3 = NODES.map(n => ({...n, th: Math.atan2(n.sph[2], n.sph[0]), ph: Math.acos(Math.max(-1, Math.min(1, n.sph[1])))}));
+const BYM = {}; P3.forEach(p => BYM[p.m] = p);
+const pulses = TOP.map((e, i) => ({e, ph: (i * 0.618) % 1, sp: 0.05 + (e[3] / 28) * 0.10}));
+const TOUR = [31, 63, 27, 23, 15]; let tourI = -1, tourTimer = 0;
+// wireframe skin: lat/long triangle grid on the unit sphere
+const SKIN = (() => {
+  const rings = 11, segs = 16, V = [], T = [];
+  for (let i = 0; i <= rings; i++){
+    const ph = i / rings * Math.PI, y = Math.cos(ph), rr = Math.sin(ph);
+    for (let j = 0; j < segs; j++){ const a = j / segs * Math.PI * 2; V.push([Math.cos(a) * rr, y, Math.sin(a) * rr]); }
+  }
+  for (let i = 0; i < rings; i++) for (let j = 0; j < segs; j++){
+    const a = i * segs + j, b = i * segs + (j + 1) % segs, c = a + segs, d = b + segs;
+    T.push([a, c, b], [b, c, d]);
+  }
+  return {V, T};
+})();
+const SOLIDS = {
+  octa: {v: [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]], e: [[0,2],[0,3],[0,4],[0,5],[1,2],[1,3],[1,4],[1,5],[2,4],[2,5],[3,4],[3,5]]},
+  tetra: {v: [[1,1,1],[1,-1,-1],[-1,1,-1],[-1,-1,1]], e: [[0,1],[0,2],[0,3],[1,2],[1,3],[2,3]]},
+  icosa: (() => { const t = (1 + Math.sqrt(5)) / 2, v = [];
+    [[-1,t,0],[1,t,0],[-1,-t,0],[1,-t,0],[0,-1,t],[0,1,t],[0,-1,-t],[0,1,-t],[t,0,-1],[t,0,1],[-t,0,-1],[-t,0,1]].forEach(p => { const l = Math.hypot(...p); v.push(p.map(x => x / l)); });
+    const e = []; for (let i = 0; i < 12; i++) for (let j = i + 1; j < 12; j++){ const d = Math.hypot(v[i][0]-v[j][0], v[i][1]-v[j][1], v[i][2]-v[j][2]); if (d < 1.06) e.push([i, j]); } return {v, e}; })()
+};
+let skinK = 1, introK = 0, showcase = false, showcaseTimer = null, qualityNote = '';
+let pupilR = 0, pupilKick = 0, coreAng = 0, prevRotY = 0.6, deformK = 1;
+
+function nodePos(p){
+  let base;
+  if (S.layout === 'strata'){ const s = p.sph, k = 1 + (p.pc - 3.17) * 0.17; base = [s[0] * k, s[1] * k, s[2] * k]; }
+  else base = p[S.layout === 'sph' ? 'sph' : S.layout];
+  if (S.layout === 'sph' || S.layout === 'strata') return [base[0] * p.r, base[1] * p.r, base[2] * p.r];
+  return base;
+}
+function curPos(p){
+  const target = nodePos(p);
+  if (!layFrom || layK >= 1) return target;
+  const f = layFrom[p.m], e = layK < .5 ? 2 * layK * layK : 1 - Math.pow(-2 * layK + 2, 2) / 2;
+  return [f[0] + (target[0] - f[0]) * e, f[1] + (target[1] - f[1]) * e, f[2] + (target[2] - f[2]) * e];
+}
+function projXYZ(x, y, z, t){
+  const th = Math.atan2(z, x), ph = Math.acos(Math.max(-1, Math.min(1, y / (Math.hypot(x, y, z) || 1))));
+  const rip = 1 + 0.055 * Math.sin(3 * th + 2.1 * t) * Math.sin(2 * ph - 1.3 * t);
+  x *= rip; y *= rip; z *= rip;
+  const cx = Math.cos(rotX), sx = Math.sin(rotX), cy = Math.cos(rotY), sy = Math.sin(rotY);
+  const y1 = y * cx - z * sx, z1 = y * sx + z * cx;
+  const x2 = x * cy + z1 * sy, z2 = -x * sy + z1 * cy;
+  const ie = 1 - Math.pow(1 - introK, 3);
+  const base = Math.min(W, H) * 0.36 * zoom * (0.45 + 0.55 * ie), f = 1 / (1 + 0.24 * z2);
+  return {X: W/2 + x2 * base * f, Y: H/2 + y1 * base * f, Z: z2, F: f};
+}
+const TICKS = ['Σλ² = 191,808 — FROBENIUS CLOSES', 'KIRCHHOFF: HALL = SINK, Δ = 0 AT ALL 48', 'TOLLBOOTH 402 = 134 × {3, 5, 9}', '544 DISTANCE-6 DOORS = 17 COMPLEMENTARY PAIRS × 32', '1,785 QUADS = 7,140 / 4 UNDER ★', 'DISTANCE-1 GAP: 124 PAIRS, ZERO DOORS', 'H₁₄: EVERY COLUMN WEIGHS EXACTLY 8 OF 14'];
+let tickI = 0; document.getElementById('tick').textContent = TICKS[0];
+setInterval(() => { document.getElementById('tick').textContent = TICKS[tickI++ % TICKS.length]; }, 4200);
+
+const t0 = performance.now(); let lastF = performance.now();
+const ripples = [];
+function frame(now){
+  const t = (now - t0) / 1000, dt = Math.max(1, now - lastF); lastF = now; fpsEMA += (1000 / dt - fpsEMA) * 0.05;
+  if (layK < 1) layK = Math.min(1, layK + dt / 650);
+  const idle = now - lastAct > 6000 && !gyro.live;
+  if (gT){ rotY += (gT.y - rotY) * 0.07; rotX += (gT.x - rotX) * 0.07; rotZ += (gT.z - rotZ) * 0.05; }
+  else if (S.spin){ const v = 0.0035 * S.speed * (S.rev ? -1 : 1); rotY += v; if (S.tumble){ rotX += Math.sin(t * 0.23) * 0.0006 * S.speed; } if (idle){ rotY += Math.sin(t * 0.4) * 0.0012; rotX += Math.cos(t * 0.31) * 0.0005; } }
+  if (tourI >= 0){ tourTimer -= dt; if (tourTimer <= 0){ tourTimer = 3400; sel = TOUR[tourI++ % TOUR.length]; showReadout(BYM[sel]); haptic(1); } }
+  const dRot = rotY - prevRotY; prevRotY = rotY; coreAng += dRot * R;
+  deformK += ((S.deform ? 1 : 0) - deformK) * 0.05;
+  introK = Math.min(1, introK + dt / 2400);
+  skinK += (((S.layout === 'sph' || S.layout === 'strata') ? 1 : 0) - skinK) * 0.05;
+  if (fpsEMA < 36 && S.mesh === 'dense' && !qualityNote){ S.mesh = 'sparse'; qualityNote = ' · quality auto-tuned (mesh sparse)'; document.querySelectorAll('[data-mesh]').forEach(x => x.classList.toggle('on', x.dataset.mesh === 'sparse')); }
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.fillStyle = SCH.fade + (REDUCED ? '1)' : S.trails + ')'); ctx.fillRect(0, 0, W, H);
+  ctx.save(); ctx.translate(W/2, H/2); ctx.rotate(rotZ);
+  if (S.pupil && S.invert) ctx.scale(1, -1);
+  if (S.pupil && S.refr) ctx.scale(1, 0.94);
+  ctx.translate(-W/2, -H/2);
+  if (S.stars) for (const s of STARS){ const sx = ((s.x + t * 0.002 * s.z) % 1) * W; ctx.globalAlpha = (0.25 + 0.4 * s.z) * (SCH.light ? 0.4 : 1); ctx.fillStyle = SCH.light ? '#666' : '#a8c4ff'; ctx.fillRect(sx, s.y * H, s.s, s.s); }
+  ctx.globalAlpha = 1;
+  if (S.mesh !== 'off'){
+    const latN = S.mesh === 'dense' ? 9 : 5, lonN = S.mesh === 'dense' ? 12 : 6;
+    ctx.lineWidth = 0.5;
+    for (let k = 0; k < latN; k++){
+      const yy = -1 + k * (2 / (latN - 1)), rr = Math.sqrt(Math.max(0, 1 - yy * yy));
+      ctx.beginPath();
+      for (let s = 0; s <= 48; s++){ const a = s / 48 * Math.PI * 2; const q = projXYZ(Math.cos(a) * rr * 1.04, yy * 1.04, Math.sin(a) * rr * 1.04, t); s ? ctx.lineTo(q.X, q.Y) : ctx.moveTo(q.X, q.Y); }
+      ctx.strokeStyle = SCH.mesh + '0.12)'; ctx.stroke();
+    }
+    for (let k = 0; k < lonN; k++){
+      const a0 = k / lonN * Math.PI * 2;
+      ctx.beginPath();
+      for (let s = 0; s <= 40; s++){ const ph = s / 40 * Math.PI; const q = projXYZ(Math.cos(a0) * Math.sin(ph) * 1.04, Math.cos(ph) * 1.04, Math.sin(a0) * Math.sin(ph) * 1.04, t); s ? ctx.lineTo(q.X, q.Y) : ctx.moveTo(q.X, q.Y); }
+      ctx.strokeStyle = SCH.mesh + '0.09)'; ctx.stroke();
+    }
+  }
+  const pr = {}; P3.forEach(p => { const c = curPos(p); pr[p.m] = projXYZ(c[0], c[1], c[2], t); });
+  // ---- WIREFRAME SKIN (triangulated manifold surface, depth-shaded)
+  if (S.skin !== 'off' && skinK > 0.03){
+    const pv = SKIN.V.map(v => { const df = 1 + deformK * 0.05 * Math.cos(3 * Math.atan2(v[2], v[0])); return projXYZ(v[0] * 1.045 * df, v[1] * 1.045, v[2] * 1.045 * df, t); });
+    if (S.skin === 'shade'){
+      const tris = SKIN.T.map(tr => [tr, (pv[tr[0]].Z + pv[tr[1]].Z + pv[tr[2]].Z) / 3]).sort((a, b) => b[1] - a[1]);
+      for (const [tr, z] of tris){
+        ctx.beginPath(); ctx.moveTo(pv[tr[0]].X, pv[tr[0]].Y); ctx.lineTo(pv[tr[1]].X, pv[tr[1]].Y); ctx.lineTo(pv[tr[2]].X, pv[tr[2]].Y); ctx.closePath();
+        ctx.fillStyle = SCH.mesh + (0.05 + 0.10 * Math.max(0, 1 - (z + 1) / 2)) * skinK + ')'; ctx.fill();
+      }
+    }
+    ctx.lineWidth = 0.55;
+    for (const tr of SKIN.T){
+      ctx.strokeStyle = SCH.mesh + 0.34 * skinK + ')';
+      ctx.beginPath(); ctx.moveTo(pv[tr[0]].X, pv[tr[0]].Y); ctx.lineTo(pv[tr[1]].X, pv[tr[1]].Y); ctx.lineTo(pv[tr[2]].X, pv[tr[2]].Y); ctx.closePath(); ctx.stroke();
+    }
+  }
+  // ---- FRAME CAGE (rotating wire cube the manifold lives inside)
+  if (S.cage){
+    const C = 1.3, corners = [];
+    for (const sx of [-1, 1]) for (const sy of [-1, 1]) for (const sz of [-1, 1]) corners.push([sx * C, sy * C, sz * C]);
+    const cp = corners.map(c => { const a = -rotY * (RNUM - RDEN) / RNUM, ca = Math.cos(a), sa = Math.sin(a); return projXYZ(c[0] * ca - c[2] * sa, c[1], c[0] * sa + c[2] * ca, t); });
+    ctx.strokeStyle = SCH.acc; ctx.globalAlpha = 0.30; ctx.lineWidth = 1;
+    const CE = [[0,1],[0,2],[0,4],[1,3],[1,5],[2,3],[2,6],[3,7],[4,5],[4,6],[5,7],[6,7]];
+    for (const [i, j] of CE){ ctx.beginPath(); ctx.moveTo(cp[i].X, cp[i].Y); ctx.lineTo(cp[j].X, cp[j].Y); ctx.stroke(); }
+    ctx.globalAlpha = 1;
+  }
+  // ---- HUB SPOKES
+  if (S.spokes){
+    ctx.strokeStyle = SCH.acc; ctx.lineWidth = 0.6;
+    for (const p of P3){ ctx.globalAlpha = 0.10 + 0.1 * pr[p.m].F; ctx.beginPath(); ctx.moveTo(W/2, H/2); ctx.lineTo(pr[p.m].X, pr[p.m].Y); ctx.stroke(); }
+    ctx.globalAlpha = 1;
+  }
+  ctx.globalCompositeOperation = SCH.light ? 'source-over' : 'lighter';
+  if (S.never){
+    ctx.setLineDash([3, 5]); ctx.lineWidth = 0.6; ctx.strokeStyle = SCH.light ? '#888' : '#8a93a8';
+    for (const nv of NEVER){ const A = pr[nv[0]], B = pr[nv[1]]; if (S.xray && (A.Z > 0.05 || B.Z > 0.05)) continue; ctx.globalAlpha = 0.35; ctx.beginPath(); ctx.moveTo(A.X, A.Y); ctx.lineTo(B.X, B.Y); ctx.stroke(); }
+    ctx.setLineDash([]);
+  }
+  const es = EDGES.filter(e => S.cls === 'all' || (S.cls === 'clean' ? e[4] >= e[5] && e[4] >= e[6] : S.cls === 'wider' ? e[5] > e[4] && e[5] >= e[6] : e[6] > e[4] && e[6] > e[5]))
+                  .map(e => [e, (pr[e[0]].Z + pr[e[1]].Z) / 2]).sort((a, b) => b[1] - a[1]);
+  if (S.estyle === 'dash') ctx.setLineDash([4, 5]);
+  ctx.lineDashOffset = -t * 24;
+  for (const [e] of es){
+    const A = pr[e[0]], B = pr[e[1]];
+    if (S.xray && (A.Z > 0.05 || B.Z > 0.05)) continue;
+    const hot = sel && (e[0] === sel || e[1] === sel);
+    ctx.beginPath(); ctx.moveTo(A.X, A.Y);
+    if (S.estyle === 'arc'){ const mx = (A.X + B.X) / 2, my = (A.Y + B.Y) / 2; const dx = mx - W/2, dy = my - H/2; ctx.quadraticCurveTo(mx + dx * 0.22, my + dy * 0.22, B.X, B.Y); }
+    else ctx.lineTo(B.X, B.Y);
+    ctx.strokeStyle = S.ecolor === 'dist' ? distCol(e[2], t, e[0]) : S.ecolor === 'heat' ? heatCol(e[3] / 28) : (SCH.acc);
+    ctx.globalAlpha = (0.045 + Math.min(e[3], 28) / 55) * (0.5 + 0.5 * A.F) + (hot ? 0.5 : 0);
+    if (sel && !hot) ctx.globalAlpha *= 0.25;
+    ctx.lineWidth = hot ? 1.5 : 0.7; ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  if (S.pulsesOn) for (const pu of pulses){
+    pu.ph = (pu.ph + pu.sp * 0.016 * S.speed * R) % 1;
+    const a = BYM[pu.e[0]], b = BYM[pu.e[1]];
+    const from = a.sink >= b.sink ? pr[b.m] : pr[a.m], to = a.sink >= b.sink ? pr[a.m] : pr[b.m];
+    const X = from.X + (to.X - from.X) * pu.ph, Y = from.Y + (to.Y - from.Y) * pu.ph;
+    ctx.globalAlpha = 0.85 * Math.sin(pu.ph * Math.PI);
+    ctx.drawImage(sprFor(SCH.acc), X - 7, Y - 7, 14, 14);
+  }
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+  const ns = P3.map(p => [p, pr[p.m], curPos(p)]).sort((a, b) => b[1].Z - a[1].Z);
+  for (const [p, q, c3] of ns){
+    if (S.xray && q.Z > 0.05) continue;
+    const big = p.m === 31 || p.m === 63;
+    const r = (big ? 15 : 9.5) * q.F * (sel === p.m ? 1.8 : 1) * S.nsize * S.glow;
+    const col = nodeCol(p, t);
+    ctx.globalAlpha = (0.5 + 0.5 * q.F) * (S.focus && q.Z > 0.05 ? 0.30 : 1);
+    if (S.nshape === 'glow') ctx.drawImage(sprFor(col), q.X - r, q.Y - r, r * 2, r * 2);
+    else if (S.nshape === 'octa'){
+      const rr = r * 0.62, top = projXYZ(c3[0], c3[1] + 0.09, c3[2], t), bot = projXYZ(c3[0], c3[1] - 0.09, c3[2], t);
+      ctx.strokeStyle = col; ctx.lineWidth = 1.1;
+      ctx.beginPath(); ctx.moveTo(q.X, q.Y - rr); ctx.lineTo(q.X + rr, q.Y); ctx.lineTo(q.X, q.Y + rr); ctx.lineTo(q.X - rr, q.Y); ctx.closePath(); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(top.X, top.Y); ctx.lineTo(q.X + rr, q.Y); ctx.moveTo(top.X, top.Y); ctx.lineTo(q.X - rr, q.Y); ctx.moveTo(bot.X, bot.Y); ctx.lineTo(q.X + rr, q.Y); ctx.moveTo(bot.X, bot.Y); ctx.lineTo(q.X - rr, q.Y); ctx.stroke();
+    }
+    else {
+      ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      if (S.nshape === 'ring') ctx.arc(q.X, q.Y, r * 0.55, 0, 7);
+      else if (S.nshape === 'diamond'){ ctx.moveTo(q.X, q.Y - r * 0.6); ctx.lineTo(q.X + r * 0.6, q.Y); ctx.lineTo(q.X, q.Y + r * 0.6); ctx.lineTo(q.X - r * 0.6, q.Y); ctx.closePath(); }
+      else { ctx.font = Math.round(r * 1.5) + 'px Georgia'; ctx.textAlign = 'center'; ctx.fillText('★', q.X, q.Y + r * 0.5); }
+      if (S.nshape !== 'star') ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    const showLabel = S.label === 'all' || S.label === 'binary' || (S.label === 'sinks' && (big || sel === p.m));
+    if (showLabel){ ctx.fillStyle = SCH.light ? '#333' : '#e8e6df'; ctx.font = '11px ui-monospace, Menlo, monospace'; ctx.textAlign = 'center'; ctx.fillText(S.label === 'binary' ? p.m.toString(2).padStart(7, '0') : p.m, q.X, q.Y - r - 4); }
+  }
+  // ---- MIRROR FLOOR: wire grid at y = -1.35 with the manifold reflected in it
+  if (S.floor){
+    const fy = -1.35;
+    ctx.strokeStyle = SCH.mesh; ctx.lineWidth = 0.6;
+    for (let g = -4; g <= 4; g++){
+      let a = projXYZ(g * 0.4, fy, -1.6, t), b = projXYZ(g * 0.4, fy, 1.6, t);
+      ctx.globalAlpha = 0.20; ctx.beginPath(); ctx.moveTo(a.X, a.Y); ctx.lineTo(b.X, b.Y); ctx.stroke();
+      a = projXYZ(-1.6, fy, g * 0.4, t); b = projXYZ(1.6, fy, g * 0.4, t);
+      ctx.beginPath(); ctx.moveTo(a.X, a.Y); ctx.lineTo(b.X, b.Y); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    for (const [p] of ns){
+      const c = curPos(p); const q = projXYZ(c[0], 2 * fy - c[1], c[2], t);
+      ctx.globalAlpha = 0.15; const r = 9.5 * q.F * S.nsize;
+      ctx.drawImage(sprFor(nodeCol(p, t)), q.X - r, q.Y - r, r * 2, r * 2);
+    }
+    ctx.globalAlpha = 1;
+  }
+  // ---- CORE SOLID: a platonic wireframe turning inside the ZERO
+  if (S.core !== 'off'){
+    const sol = SOLIDS[S.core], a1 = -coreAng, a2 = coreAng * RDEN / RNUM;
+    const sp = sol.v.map(v => {
+      let [x, y, z] = v.map(u => u * 0.30);
+      let X = x * Math.cos(a1) - z * Math.sin(a1), Z = x * Math.sin(a1) + z * Math.cos(a1);
+      let Y = y * Math.cos(a2) - Z * Math.sin(a2); Z = y * Math.sin(a2) + Z * Math.cos(a2);
+      return projXYZ(X, Y, Z, t);
+    });
+    ctx.strokeStyle = SCH.acc; ctx.globalAlpha = 0.85; ctx.lineWidth = 1.1;
+    for (const [i, j] of sol.e){ ctx.beginPath(); ctx.moveTo(sp[i].X, sp[i].Y); ctx.lineTo(sp[j].X, sp[j].Y); ctx.stroke(); }
+    ctx.globalAlpha = 1;
+  }
+  // ---- selection reticle + leader wire to the hub
+  if (sel && pr[sel]){
+    const q = pr[sel], rr = 22 + 3 * Math.sin(t * 3), a0 = t * 0.9;
+    ctx.strokeStyle = SCH.acc; ctx.lineWidth = 1.4;
+    for (let k = 0; k < 4; k++){
+      const a = a0 + k * Math.PI / 2;
+      ctx.beginPath(); ctx.arc(q.X, q.Y, rr, a, a + 0.7); ctx.stroke();
+    }
+    ctx.setLineDash([3, 5]); ctx.globalAlpha = 0.55; ctx.beginPath(); ctx.moveTo(W/2, H/2); ctx.lineTo(q.X, q.Y); ctx.stroke(); ctx.setLineDash([]); ctx.globalAlpha = 1;
+    if (S.aber){
+      const spr = sprFor(nodeCol(BYM[sel], t));
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.globalAlpha = 0.5; ctx.drawImage(sprFor('#ff2a3c'), q.X - 16, q.Y - 13.5, 27, 27);
+      ctx.drawImage(sprFor('#2affd8'), q.X - 11, q.Y - 13.5, 27, 27);
+      ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+    }
+  }
+  ctx.beginPath(); ctx.arc(W/2, H/2, 16 + 2.2 * Math.sin(t * 2), 0, 7); ctx.strokeStyle = SCH.acc; ctx.lineWidth = 2; ctx.stroke();
+  ctx.beginPath(); ctx.arc(W/2, H/2, 24 + 3 * Math.sin(t * 2 + 1), 0, 7); ctx.strokeStyle = SCH.acc; ctx.globalAlpha = 0.35; ctx.lineWidth = 1; ctx.stroke(); ctx.globalAlpha = 1;
+  ctx.fillStyle = SCH.light ? '#333' : '#f3e9c8'; ctx.font = '18px Georgia'; ctx.textAlign = 'center'; ctx.fillText('★', W/2, H/2 + 6.5);
+  if (wave >= 0){
+    const wr = wave * Math.min(W, H) * 0.52; wave += 0.016;
+    ctx.beginPath(); ctx.arc(W/2, H/2, wr, 0, 7); ctx.strokeStyle = SCH.acc; ctx.globalAlpha = Math.max(0, 0.8 - wave); ctx.lineWidth = 2.5; ctx.stroke(); ctx.globalAlpha = 1;
+    if (wave > 1.15) wave = -1;
+  }
+  for (let i = ripples.length - 1; i >= 0; i--){
+    const rp = ripples[i]; rp.r += 3.2; rp.a -= 0.03;
+    if (rp.a <= 0){ ripples.splice(i, 1); continue; }
+    ctx.beginPath(); ctx.arc(rp.x, rp.y, rp.r, 0, 7); ctx.strokeStyle = SCH.acc; ctx.globalAlpha = rp.a; ctx.lineWidth = 1.5; ctx.stroke(); ctx.globalAlpha = 1;
+  }
+  ctx.restore();
+  if (S.pupil){
+    pupilR += ((Math.min(W, H) * 0.46) - pupilR) * 0.06;
+    pupilKick *= 0.94;
+    const R = Math.max(40, pupilR * (1 - 0.16 * pupilKick) + Math.sin(t * 0.8) * 3);
+    if (S.purk){
+      const gx = W/2 - R * 0.38, gy = H/2 - R * 0.42;
+      const gr = ctx.createRadialGradient(gx, gy, 0, gx, gy, R * 0.5);
+      gr.addColorStop(0, 'rgba(255,255,255,0.20)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(W/2, H/2, R, 0, 7); ctx.fill();
+      ctx.fillStyle = 'rgba(243,233,200,0.35)'; ctx.font = '13px Georgia'; ctx.textAlign = 'center';
+      ctx.fillText('★', gx, gy + 4);
+    }
+    if (S.scat){
+      const gr2 = ctx.createRadialGradient(W/2, H/2, R * 0.2, W/2, H/2, R);
+      gr2.addColorStop(0, 'rgba(90,140,255,0)'); gr2.addColorStop(1, 'rgba(90,140,255,0.20)');
+      ctx.fillStyle = gr2; ctx.beginPath(); ctx.arc(W/2, H/2, R, 0, 7); ctx.fill();
+    }
+    // the world outside the pupil does not arrive
+    ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.arc(W/2, H/2, R, 0, 7);
+    ctx.fillStyle = '#000'; ctx.fill('evenodd');
+    // iris: woven rings of amber and umber around the hole
+    for (let k = 0; k < 5; k++){
+      ctx.beginPath(); ctx.arc(W/2, H/2, R + 3 + k * 5, 0, 7);
+      ctx.strokeStyle = ['#6b4a1f', '#8a5f27', '#54380f', '#a8762f', '#3d2708'][k];
+      ctx.globalAlpha = 0.85 - k * 0.13; ctx.lineWidth = 4.5; ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#c9b18a'; ctx.font = '11px ui-monospace, monospace'; ctx.textAlign = 'center';
+    ctx.fillText('THE PUPIL — Ø 2–8 MM · EVERY ANGLE YOU HAVE EVER MEASURED ENTERED HERE', W/2, H/2 + R + 42);
+  }
+  if (S.ribbon){
+    const bw = W / 48, baseY = H - 160;
+    ctx.fillStyle = SCH.light ? 'rgba(238,234,222,0.85)' : 'rgba(5,8,18,0.85)'; ctx.fillRect(0, baseY - 78, W, 74);
+    ctx.strokeStyle = SCH.acc; ctx.globalAlpha = 0.4; ctx.beginPath(); ctx.moveTo(0, baseY - 40); ctx.lineTo(W, baseY - 40); ctx.stroke(); ctx.globalAlpha = 1;
+    SPEC.forEach((v, i) => { const hh = Math.abs(v) / 300 * 36; ctx.fillStyle = v >= 0 ? '#7dd3fc' : '#ff9d8a'; ctx.fillRect(i * bw + 1, v >= 0 ? baseY - 40 - hh : baseY - 40, bw - 2, hh); });
+    ctx.fillStyle = SCH.light ? '#333' : '#9aa3b8'; ctx.font = '10px ui-monospace, monospace'; ctx.textAlign = 'left';
+    ctx.fillText('W SPECTRUM — 48 EIGENVALUES · λmax 299.358 · λmin −129.871', 8, baseY - 66);
+  }
+  const res = resonance(t);
+  SIG_HIST.push(res); if (SIG_HIST.length > 75) SIG_HIST.shift();
+  const sc = document.getElementById('spark').getContext('2d');
+  sc.clearRect(0, 0, 150, 30); sc.beginPath();
+  SIG_HIST.forEach((v, i) => { const X = i * 2, Y = 29 - v * 30; i ? sc.lineTo(X, Y) : sc.moveTo(X, Y); });
+  sc.strokeStyle = SCH.acc; sc.lineWidth = 1.2; sc.stroke();
+  document.getElementById('hud').textContent =
+    '[ TOPOLOGICAL MANIFOLD : DOOR SYSTEM ]\n[ HARMONIC RESONANCE (Σ): ' + res.toFixed(4) + ' ]\n[ ISOMETRIC ROTATION (θ): ' + ((rotY * 180 / Math.PI) % 360).toFixed(1) + '° ]\n[ FPS: ' + fpsEMA.toFixed(0) + ' · ' + S.layout.toUpperCase() + ' · '  + es.length + ' EDGES SHOWN ]\n[ DEFAULT : MEASURED UNIVERSE · SPEED ' + RNUM + ':' + RDEN + ' · CONSTANT-WIDTH SHAPE ]';
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+setTimeout(() => { const b = document.getElementById('boot'); b.style.opacity = '0'; setTimeout(() => b.remove(), 750); }, 1500);
+
+function showReadout(p){
+  const ro = document.getElementById('readout');
+  ro.style.display = 'block';
+  ro.innerHTML = '<b>Node ' + p.m + '</b> — popcount ' + p.pc + ' · hall ' + p.hall + ' = sink ' + p.sink +
+    ' · pair-membership ' + p.pairm + ' · appearances ' + p.appear +
+    '<div class="bar2" style="width:' + Math.round(p.appear / 648 * 100) + '%"></div>' +
+    '<span style="font-size:12px;color:#9aa3b8">appearances vs node 31 (648, the maximum)</span>';
+}
+// ---- controls
+function group(name, fn){ document.querySelectorAll('[data-' + name + ']').forEach(b => b.addEventListener('click', () => { document.querySelectorAll('[data-' + name + ']').forEach(x => x.classList.remove('on')); b.classList.add('on'); fn(b.dataset[name]); haptic(1); })); }
+group('layout', v => { layFrom = {}; P3.forEach(p => layFrom[p.m] = curPos(p)); S.layout = v; layK = 0; lastAct = performance.now(); });
+group('scheme', v => { SCH = SCHEMES[v]; document.body.style.background = SCH.bg; });
+group('estyle', v => S.estyle = v);
+group('ecolor', v => S.ecolor = v);
+group('cls', v => S.cls = v);
+group('nshape', v => S.nshape = v);
+group('label', v => S.label = v);
+group('mesh', v => S.mesh = v);
+function tog(id, key, fn){ const b = document.getElementById(id); b.addEventListener('click', () => { S[key] = !S[key]; b.classList.toggle('on', S[key]); if (fn) fn(); haptic(1); }); }
+tog('neverBtn', 'never'); tog('starsBtn', 'stars'); tog('pulsesBtn', 'pulsesOn'); tog('xrayBtn', 'xray');
+tog('ribbonBtn', 'ribbon'); tog('tumbleBtn', 'tumble'); tog('revBtn', 'rev'); tog('hapBtn', 'hap');
+tog('spinBtn', 'spin');
+document.getElementById('tourBtn').addEventListener('click', e => {
+  if (tourI >= 0){ tourI = -1; e.target.classList.remove('on'); e.target.textContent = 'TOUR THE SINKS'; }
+  else { tourI = 0; tourTimer = 0; e.target.classList.add('on'); e.target.textContent = 'STOP TOUR'; }
+  haptic(2);
+});
+group('skin', v => S.skin = v);
+const CORES = ['octa', 'tetra', 'icosa', 'off'];
+document.getElementById('coreBtn').addEventListener('click', e => {
+  const nx = CORES[(CORES.indexOf(S.core) + 1) % CORES.length]; S.core = nx;
+  e.target.textContent = 'Core: ' + (nx === 'off' ? 'none' : nx === 'octa' ? 'octahedron' : nx === 'tetra' ? 'tetrahedron' : 'icosahedron');
+  haptic(1);
+});
+tog('deformBtn', 'deform'); tog('cageBtn', 'cage'); tog('floorBtn', 'floor'); tog('spokesBtn', 'spokes'); tog('focusBtn', 'focus'); tog('aberBtn', 'aber');
+document.getElementById('crtBtn').addEventListener('click', e => {
+  S.crt = !S.crt; e.target.classList.toggle('on', S.crt);
+  document.getElementById('crt').style.display = S.crt ? 'block' : 'none';
+  document.getElementById('vig').style.display = S.crt ? 'block' : 'none';
+  haptic(1);
+});
+const SHOWSEQ = [['spectrum','sph'],['iridescent','strata'],['thermal','sph'],['gold','flat'],['blueprint','ring'],['paper','flat']];
+document.getElementById('showBtn').addEventListener('click', e => {
+  showcase = !showcase; e.target.classList.toggle('on', showcase);
+  if (showcase){
+    let i = 0;
+    const step = () => { if (!showcase) return; const [sch, lay] = SHOWSEQ[i++ % SHOWSEQ.length];
+      SCH = SCHEMES[sch]; document.querySelectorAll('[data-scheme]').forEach(x => x.classList.toggle('on', x.dataset.scheme === sch));
+      layFrom = {}; P3.forEach(p => layFrom[p.m] = curPos(p)); S.layout = lay; layK = 0;
+      document.querySelectorAll('[data-layout]').forEach(x => x.classList.toggle('on', x.dataset.layout === lay)); };
+    step(); showcaseTimer = setInterval(step, 6000);
+  } else clearInterval(showcaseTimer);
+  haptic(2);
+});
+cv.addEventListener('pointerdown', () => { if (showcase){ showcase = false; clearInterval(showcaseTimer); document.getElementById('showBtn').classList.remove('on'); } }, true);
+tog('pupilBtn', 'pupil', () => { if (S.pupil){ document.getElementById('deck').classList.add('open'); } });
+tog('refrBtn', 'refr', () => { if (S.refr && !S.pupil){ S.pupil = true; document.getElementById('pupilBtn').classList.add('on'); } });
+tog('scatBtn', 'scat', () => { if (S.scat && !S.pupil){ S.pupil = true; document.getElementById('pupilBtn').classList.add('on'); } });
+tog('purkBtn', 'purk', () => { if (S.purk && !S.pupil){ S.pupil = true; document.getElementById('pupilBtn').classList.add('on'); } });
+tog('invBtn', 'invert');
+document.getElementById('deckBtn').addEventListener('click', e => {
+  const d = document.getElementById('deck'); d.classList.toggle('open');
+  e.target.textContent = d.classList.contains('open') ? '◉ EVERYTHING MEASURED — OPEN' : '◉ EVERYTHING MEASURED';
+  haptic(1);
+});
+document.getElementById('resetBtn').addEventListener('click', () => { zoom = 1; rotY = 0.6; rotX = 0.35; sel = null; document.getElementById('readout').style.display = 'none'; haptic(2); });
+document.getElementById('trayBtn').addEventListener('click', e => { const tr = document.getElementById('tray'); tr.classList.toggle('hidden'); e.target.textContent = tr.classList.contains('hidden') ? 'VISUAL CONTROLS ▴' : 'VISUAL CONTROLS ▾'; });
+document.getElementById('nsize').addEventListener('input', e => S.nsize = e.target.value / 100);
+document.getElementById('trails').addEventListener('input', e => S.trails = e.target.value / 100);
+document.getElementById('glowr').addEventListener('input', e => S.glow = e.target.value / 100);
+document.getElementById('speed').addEventListener('input', e => S.speed = e.target.value / 100);
+
+// ---- canvas interaction
+let drag = null, pinch = null;
+function touchHub(e){ return Math.hypot(e.clientX - W/2, e.clientY - H/2) < 44; }
+cv.addEventListener('pointerdown', e => { lastAct = performance.now(); if (S.pupil) pupilKick = 1; ripples.push({x: e.clientX, y: e.clientY, r: 4, a: 0.7}); drag = {p: [e.clientX, e.clientY], moved: 0, hub: touchHub(e)}; cv.setPointerCapture(e.pointerId); });
+cv.addEventListener('pointermove', e => {
+  if (!drag) return; lastAct = performance.now();
+  const dx = e.clientX - drag.p[0], dy = e.clientY - drag.p[1];
+  drag.moved += Math.abs(dx) + Math.abs(dy); drag.p = [e.clientX, e.clientY];
+  if (drag.moved > 4 && !drag.hub){ gT = null; if (tourI >= 0) tourI = -1; rotY += dx * 0.008; rotX = Math.max(-1.4, Math.min(1.4, rotX + dy * 0.008)); }
+});
+cv.addEventListener('pointerup', e => {
+  const wasTap = drag && drag.moved <= 4, wasHub = drag && drag.hub; drag = null; lastAct = performance.now();
+  if (!wasTap) return;
+  if (wasHub){ wave = 0; haptic(2); return; }
+  const t = (performance.now() - t0) / 1000; let best = null, bd = 27;
+  for (const p of P3){ const c = curPos(p); const q = projXYZ(c[0], c[1], c[2], t); const d = Math.hypot(q.X - e.clientX, q.Y - e.clientY); if (d < bd){ bd = d; best = p; } }
+  if (best){ sel = best.m; haptic(1); showReadout(best); }
+  else { sel = null; document.getElementById('readout').style.display = 'none'; }
+});
+cv.addEventListener('wheel', e => { e.preventDefault(); zoom = Math.min(2.6, Math.max(0.45, zoom * (e.deltaY < 0 ? 1.09 : 0.92))); }, {passive: false});
+cv.addEventListener('touchstart', e => { if (e.touches.length === 2) pinch = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); }, {passive: true});
+cv.addEventListener('touchmove', e => { if (e.touches.length === 2 && pinch){ const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); zoom = Math.min(2.6, Math.max(0.45, zoom * d / pinch)); pinch = d; lastAct = performance.now(); } }, {passive: true});
+
+// ---- gyro
+const state = document.getElementById('state');
+function onOrient(e){
+  if (!gyro.live){ gyro.live = true; haptic(2); }
+  gyro.head = e.webkitCompassHeading != null ? e.webkitCompassHeading : (e.alpha != null ? 360 - e.alpha : 0);
+  gyro.beta = e.beta || 0; gyro.gamma = e.gamma || 0;
+  gT = {y: gyro.head * Math.PI / 180, x: Math.max(-1.4, Math.min(1.4, (gyro.beta - 40) * Math.PI / 180)), z: Math.max(-0.5, Math.min(0.5, -gyro.gamma * Math.PI / 360))};
+  state.textContent = 'GYRO LIVE — heading ' + gyro.head.toFixed(0) + '° · β ' + gyro.beta.toFixed(0) + '° · γ ' + gyro.gamma.toFixed(0) + '° (frame rolls with γ)';
+}
+document.getElementById('gyroBtn').addEventListener('click', async () => {
+  haptic(2); lastAct = performance.now();
+  try {
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function'){
+      const p = await DeviceOrientationEvent.requestPermission();
+      if (p !== 'granted'){ state.textContent = 'GYRO DENIED — drag to orbit. (App viewer blocks sensors: long-press the file link → Open in Safari.)'; return; }
+    }
+    if (typeof DeviceOrientationEvent === 'undefined'){ state.textContent = 'NO SENSOR — DESKTOP MODE: drag to orbit'; return; }
+    addEventListener('deviceorientation', onOrient, true);
+    state.textContent = 'GYRO ARMED — waiting for readings…';
+    setTimeout(() => { if (!gyro.live) state.textContent = 'GYRO SILENT in this viewer — long-press the file link → Open in Safari for live sensors'; }, 2600);
+  } catch(err){ state.textContent = 'GYRO UNAVAILABLE — drag to orbit'; }
+});
+</script>
+</body></html>
