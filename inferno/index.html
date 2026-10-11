@@ -11,6 +11,28 @@
   body { text-shadow: 0 1px 4px rgba(0,0,0,0.95), 0 0 18px rgba(0,0,0,0.6); }
   body::before { content: ""; position: fixed; inset: 0; z-index: -1; background: url('img/fiddler_bg.jpg') center center / contain no-repeat; opacity: 0.5; filter: hue-rotate(var(--hue, 0deg)); transition: filter 0.25s linear; transform: translateZ(0); }
   .piece img, .hero img { border-color: #4a3f2a; }
+
+  #rail { position: fixed; top: 0; left: 0; right: 0; height: 26px; z-index: 40; pointer-events: none; }
+  #rail::before { content: ""; position: absolute; left: 4%; right: 4%; top: 12px; height: 2px; background: linear-gradient(90deg, #4a3f2a, #8a7a4d, #4a3f2a); opacity: 0.8; }
+  #rail .st { position: absolute; top: 8px; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; border: 1px solid #8a7a4d; background: #0a0a0e; }
+  #rail .st.on { background: #ffd977; box-shadow: 0 0 8px rgba(255,217,119,0.8); }
+  #rail .st.hollow { background: transparent; }
+  #rail .st.hollow.on { background: transparent; box-shadow: 0 0 8px rgba(255,217,119,0.5); border-color: #ffd977; }
+  #marker { position: absolute; top: 7px; width: 12px; height: 12px; margin-left: -6px; background: #ffd977; transform: rotate(45deg); box-shadow: 0 0 12px rgba(255,217,119,0.95); }
+  #tiltBtn { position: fixed; right: 14px; bottom: 14px; z-index: 45; background: rgba(10,10,14,0.75); color: #ffd977; border: 1px solid #4a3f2a; padding: 9px 15px; font-family: 'Courier New', monospace; font-size: 0.72rem; letter-spacing: 0.18em; cursor: pointer; border-radius: 999px; }
+  #lightbox { position: fixed; inset: 0; z-index: 60; background: rgba(2,2,4,0.96); display: none; align-items: center; justify-content: center; flex-direction: column; padding: 20px; }
+  #lightbox.open { display: flex; }
+  #lightbox img { max-width: 96vw; max-height: 80vh; object-fit: contain; border: 1px solid #4a3f2a; }
+  #lbCap { margin-top: 16px; text-align: center; color: #f5efdb; letter-spacing: 0.1em; }
+  #lbTech { text-align: center; color: #c9c2a6; font-family: 'Courier New', monospace; font-size: 0.8rem; margin-top: 4px; }
+  .lbNav { position: absolute; top: 50%; transform: translateY(-50%); background: none; border: 1px solid #4a3f2a; color: #ffd977; font-size: 1.4rem; width: 46px; height: 46px; border-radius: 50%; cursor: pointer; }
+  #lbPrev { left: 14px; } #lbNext { right: 14px; }
+  #lbClose { position: absolute; top: 14px; right: 14px; background: none; border: 1px solid #4a3f2a; color: #ffd977; font-size: 1.1rem; width: 42px; height: 42px; border-radius: 50%; cursor: pointer; }
+  .piece img, .hero img { cursor: zoom-in; }
+  .ninth { text-align: center; padding: 130px 24px 40px; }
+  .ninth .hdot { width: 12px; height: 12px; margin: 0 auto 26px; border-radius: 50%; border: 1px solid #8a7a4d; background: transparent; }
+  .ninth h2 { font-size: 0.95rem; letter-spacing: 0.42em; color: #d8d2ba; font-weight: 400; margin-bottom: 20px; }
+  .ninth p { font-style: italic; font-size: 1.15rem; color: #f2ecdc; }
   .scene { font-style: italic; color: #d8d2ba; margin-bottom: 22px; }
   .spk { color: #ffd977; font-weight: 700; letter-spacing: 0.14em; font-size: 0.82rem; text-transform: uppercase; }
   header { text-align: center; padding: 72px 24px 40px; }
@@ -140,33 +162,128 @@
   </dl>
 </section>
 
+<section class="ninth">
+  <div class="hdot"></div>
+  <h2>THE NINTH STATION</h2>
+  <p>The train stops here.</p>
+</section>
+
 <footer>
   TRAINS OF THOUGHT &middot; Taylor Heller &middot; 2026<br>
   <a href="https://github.com/snowphamtom/inferno">github.com/snowphamtom/inferno</a>
 </footer>
 
+<button id="tiltBtn" type="button">&#10022; TILT THE PAINT</button>
 <script>
 (function () {
-  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  var root = document.documentElement, target = 0, current = 0, ticking = false;
-  function measure() {
+  var root = document.documentElement;
+  var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ---- station rail ---- */
+  var NST = 9, HOLLOW = 5;
+  var rail = document.createElement('div'); rail.id = 'rail';
+  var dots = [];
+  for (var i = 0; i < NST; i++) {
+    var d = document.createElement('span');
+    d.className = 'st' + (i === HOLLOW ? ' hollow' : '');
+    d.style.left = (4 + (i / (NST - 1)) * 92) + '%';
+    rail.appendChild(d); dots.push(d);
+  }
+  var marker = document.createElement('span'); marker.id = 'marker';
+  marker.style.left = '4%'; rail.appendChild(marker);
+  document.body.appendChild(rail);
+
+  /* ---- chameleon paint: scroll + tilt ---- */
+  var scrollDeg = 0, tiltDeg = 0, tiltTarget = 0, current = 0, running = false, tiltLive = false;
+  function progress() {
     var max = root.scrollHeight - window.innerHeight;
     var y = window.scrollY || window.pageYOffset || 0;
-    target = max > 0 ? (y / max) * 360 : 0;
+    return max > 0 ? Math.min(1, Math.max(0, y / max)) : 0;
+  }
+  function measure() {
+    var p = progress();
+    scrollDeg = p * 360;
+    marker.style.left = (4 + p * 92) + '%';
+    for (var i = 0; i < NST; i++) dots[i].classList.toggle('on', p >= (i / (NST - 1)) - 0.001);
   }
   function frame() {
-    current += (target - current) * 0.12;
-    if (Math.abs(target - current) < 0.05) current = target;
+    tiltDeg += (tiltTarget - tiltDeg) * 0.08;
+    var t = scrollDeg + tiltDeg;
+    current += (t - current) * 0.12;
+    if (Math.abs(t - current) < 0.05 && Math.abs(tiltTarget - tiltDeg) < 0.05) current = t;
     root.style.setProperty('--hue', current.toFixed(1) + 'deg');
-    if (current !== target) requestAnimationFrame(frame); else ticking = false;
+    if (current !== t || tiltLive) requestAnimationFrame(frame); else running = false;
   }
-  function onScroll() {
-    measure();
-    if (!ticking) { ticking = true; requestAnimationFrame(frame); }
+  function kick() { if (!running) { running = true; requestAnimationFrame(frame); } }
+  if (!reduced) {
+    window.addEventListener('scroll', function () { measure(); kick(); }, { passive: true });
+    window.addEventListener('resize', function () { measure(); kick(); }, { passive: true });
   }
-  window.addEventListener('scroll', onScroll, { passive: true });
-  window.addEventListener('resize', onScroll, { passive: true });
   measure();
+
+  /* ---- tilt button ---- */
+  var btn = document.getElementById('tiltBtn');
+  function startTilt() {
+    window.addEventListener('deviceorientation', function (e) {
+      if (e.gamma === null || e.gamma === undefined) return;
+      if (!tiltLive) { tiltLive = true; btn.textContent = '✦ TILT LIVE'; }
+      var g = Math.max(-45, Math.min(45, e.gamma));
+      tiltTarget = g * 2;
+      kick();
+    });
+    btn.textContent = '✦ TILT ON — MOVE THE PHONE';
+  }
+  if (reduced) { btn.style.display = 'none'; }
+  btn.addEventListener('click', function () {
+    if (tiltLive) return;
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+      DeviceOrientationEvent.requestPermission().then(function (r) {
+        if (r === 'granted') startTilt(); else btn.textContent = '✦ TILT DENIED — SCROLL ONLY';
+      }).catch(function () { btn.textContent = '✦ TILT UNAVAILABLE'; });
+    } else if (typeof DeviceOrientationEvent !== 'undefined') {
+      startTilt();
+    } else {
+      btn.textContent = '✦ NO SENSOR — SCROLL ONLY';
+    }
+  });
+
+  /* ---- lightbox ---- */
+  var imgs = Array.prototype.slice.call(document.querySelectorAll('.hero img, .piece img'));
+  var lb = document.createElement('div'); lb.id = 'lightbox';
+  lb.innerHTML = '<button id="lbClose" type="button" aria-label="Close">✕</button>' +
+    '<button class="lbNav" id="lbPrev" type="button" aria-label="Previous">‹</button>' +
+    '<img id="lbImg" alt="">' +
+    '<button class="lbNav" id="lbNext" type="button" aria-label="Next">›</button>' +
+    '<div id="lbCap"></div><div id="lbTech"></div>';
+  document.body.appendChild(lb);
+  var lbImg = lb.querySelector('#lbImg'), lbCap = lb.querySelector('#lbCap'), lbTech = lb.querySelector('#lbTech');
+  var idx = 0;
+  function captionFor(im) {
+    var box = im.closest('.piece') || im.closest('.hero');
+    var t = box ? box.querySelector('h3') : null;
+    var tech = box ? (box.querySelector('.tech') || box.querySelector('.caption')) : null;
+    return { title: t ? t.textContent : im.alt, tech: tech ? tech.textContent : '' };
+  }
+  function show(i) {
+    idx = (i + imgs.length) % imgs.length;
+    var im = imgs[idx], c = captionFor(im);
+    lbImg.src = im.src; lbImg.alt = im.alt;
+    lbCap.textContent = (idx + 1) + ' / ' + imgs.length + ' · ' + c.title;
+    lbTech.textContent = c.tech;
+  }
+  function openLb(i) { show(i); lb.classList.add('open'); document.body.style.overflow = 'hidden'; }
+  function closeLb() { lb.classList.remove('open'); document.body.style.overflow = ''; }
+  imgs.forEach(function (im, i) { im.addEventListener('click', function () { openLb(i); }); });
+  lb.querySelector('#lbClose').addEventListener('click', closeLb);
+  lb.querySelector('#lbPrev').addEventListener('click', function (e) { e.stopPropagation(); show(idx - 1); });
+  lb.querySelector('#lbNext').addEventListener('click', function (e) { e.stopPropagation(); show(idx + 1); });
+  lb.addEventListener('click', function (e) { if (e.target === lb) closeLb(); });
+  document.addEventListener('keydown', function (e) {
+    if (!lb.classList.contains('open')) return;
+    if (e.key === 'Escape') closeLb();
+    if (e.key === 'ArrowLeft') show(idx - 1);
+    if (e.key === 'ArrowRight') show(idx + 1);
+  });
 })();
 </script>
 </body>
