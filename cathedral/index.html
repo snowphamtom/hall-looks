@@ -122,6 +122,16 @@
   #notePin b { color:#ffd977; }
   .wnote { color:#bdb395; font-size:.78rem; line-height:1.45; }
   body.nonotes .wnote { display:none; }
+
+  /* ===== v8: nav hud + cluster ===== */
+  #navHud { position:fixed; left:50%; transform:translateX(-50%); top:calc(54px + env(safe-area-inset-top)); z-index:8;
+    background:rgba(6,7,11,.88); border:1px solid #3a3420; color:#ffd977; padding:6px 14px;
+    font-family:'Courier New',monospace; font-size:10.5px; letter-spacing:.14em; white-space:nowrap; max-width:94vw; overflow:hidden; }
+  #navCluster { position:fixed; right:10px; top:44%; z-index:11; display:flex; flex-direction:column; gap:8px; }
+  #navCluster button { width:48px; height:48px; border-radius:50%; background:rgba(10,10,14,.92); border:1.5px solid #6b5d3f;
+    color:#ffd977; font-size:19px; cursor:pointer; font-family:'Courier New',monospace; }
+  #navCluster button:active { background:rgba(60,50,20,.95); }
+  #navCluster .cap { display:block; font-size:6.5px; letter-spacing:.1em; margin-top:1px; color:#a89f83; }
 </style>
 <script type="importmap">
 { "imports": {
@@ -246,6 +256,7 @@ setTimeout(function () {
   <div class="prow"><span class="plab">ANATOMY</span>
     <button class="pbtn" id="anatBtn">ANATOMY — NUMBERED TOUR</button>
     <span class="note">Gold numbers from the anatomy plate, pinned to the living building. Tap one.</span></div>
+  <div class="prow"><span class="plab">NAVIGATE</span><span class="wnote" id="navRead">—</span></div>
   <div class="prow"><span class="plab">GYRO CENTER</span>
     <button class="pbtn" id="gyroBtn">ENABLE GYRO</button><span class="sval" id="gyroState">OFF</span></div>
   <div class="prow"><span class="wnote">The gold hub floats at the measured center of the frame, wired to its corners and feet. Drag the hub to turn the whole cathedral; tilt leans it. A building tap settles it level — no measurement is ever taken on a tilt.</span></div>
@@ -301,6 +312,12 @@ setTimeout(function () {
 </div>
 <div id="hotbar"><button class="slot" data-hot="pillar"><span class="g">PL</span><span class="n">PILLAR</span></button><button class="slot" data-hot="arch"><span class="g">AR</span><span class="n">ARCH</span></button><button class="slot" data-hot="wall"><span class="g">WA</span><span class="n">WALL</span></button><button class="slot" data-hot="buttress"><span class="g">BU</span><span class="n">BUTTR</span></button><button class="slot" data-hot="lancet"><span class="g">LA</span><span class="n">LANCET</span></button><button class="slot" data-hot="rose"><span class="g">RO</span><span class="n">ROSE</span></button><button class="slot" data-hot="portal"><span class="g">PO</span><span class="n">PORTAL</span></button><button class="slot" data-hot="pew"><span class="g">PW</span><span class="n">PEW</span></button><button class="slot" data-hot="floor"><span class="g">FL</span><span class="n">FLOOR</span></button></div>
 <div id="notePin"></div>
+<div id="navHud">—</div>
+<div id="navCluster">
+  <button id="navOver">⌖<span class="cap">OVERHEAD</span></button>
+  <button id="navIn">+</button>
+  <button id="navOut">−</button>
+</div>
 <div id="anatomy"></div>
 <div class="dim" id="dimL"></div>
 <div class="dim" id="dimW"></div>
@@ -847,7 +864,7 @@ function animate() {
     if (fpsEMA < 42 && pixelCap > 1.0) { pixelCap = Math.max(1.0, pixelCap - 0.25); renderer.setPixelRatio(pixelCap); }
     if (openTab === 'measure') recount();
   }
-  controls.update(); frameStep();
+  controls.update(); frameStep(); navStep();
   renderer.render(scene, camera);
 }
 window.__cathBooted = true;
@@ -1441,6 +1458,88 @@ function notePinLoop() {
 window.__v7Ready = true;
 notePinLoop();
 opsNotes();
+
+
+/* ============ V8 — OVERHEAD OPENING · TOUCH NAVIGATION WITH HAPTICS ============ */
+controls.touches = { ONE: THREE.TOUCH.ROTATE, TWO: THREE.TOUCH.DOLLY_PAN };
+controls.enablePan = true; controls.screenSpacePanning = false;
+
+/* the fit distance is computed from the measured extents and this screen — nothing eyeballed */
+function fitDistance() {
+  if (!lastExtents) return 170;
+  const sx = lastExtents.maxX - lastExtents.minX, sz = lastExtents.maxZ - lastExtents.minZ;
+  const vF = THREE.MathUtils.degToRad(camera.fov) / 2;
+  const hF = Math.atan(Math.tan(vF) * camera.aspect);
+  const d = Math.max((sz / 2) / Math.tan(vF), (sx / 2) / Math.tan(hF)) * 1.14;
+  return Math.min(255, Math.max(24, d));
+}
+function fitCenter() {
+  if (!lastExtents) return { x: 0, z: 0 };
+  return { x: (lastExtents.minX + lastExtents.maxX) / 2, z: (lastExtents.minZ + lastExtents.maxZ) / 2 };
+}
+let navAnim = null;
+function fitOverhead(animate) {
+  const c = fitCenter(), d = fitDistance();
+  const tp = new THREE.Vector3(c.x + 0.02, d, c.z + 0.02), tt = new THREE.Vector3(c.x, 0, c.z);
+  if (!animate) {
+    camera.position.copy(tp); controls.target.copy(tt); controls.update();
+    return;
+  }
+  navAnim = { t0: performance.now(), dur: 950, fp: camera.position.clone(), tp, ft: controls.target.clone(), tt };
+}
+function navStep() {
+  if (!window.__v8Ready || !navAnim) return;
+  const k = Math.min(1, (performance.now() - navAnim.t0) / navAnim.dur);
+  const e = 1 - Math.pow(1 - k, 3);
+  camera.position.lerpVectors(navAnim.fp, navAnim.tp, e);
+  controls.target.lerpVectors(navAnim.ft, navAnim.tt, e);
+  if (k >= 1) {
+    navAnim = null; haptic(); setTimeout(haptic, 95);
+    setState('OVERHEAD — the entire cathedral in one frame');
+  }
+}
+document.getElementById('navOver').addEventListener('click', () => { fitOverhead(true); haptic(); });
+function dolly(f) {
+  const dir = camera.position.clone().sub(controls.target);
+  const len = THREE.MathUtils.clamp(dir.length() * f, controls.minDistance, controls.maxDistance);
+  dir.setLength(len);
+  camera.position.copy(controls.target).add(dir);
+  controls.update(); haptic();
+}
+document.getElementById('navIn').addEventListener('click', () => dolly(1 / 1.3));
+document.getElementById('navOut').addEventListener('click', () => dolly(1.3));
+
+/* skeleton starts re-frame the whole building, overhead */
+const _skelStart = skeletonStart;
+skeletonStart = function (k) { _skelStart(k); fitOverhead(true); };
+
+/* navigation instruments: band, azimuth, elevation, distance — all read live off the camera */
+const navHud = document.getElementById('navHud'), navRead = document.getElementById('navRead');
+let curBand = '', inCardinal = false, atLimit = false;
+setInterval(() => {
+  if (!window.__v8Ready) return;
+  const off = camera.position.clone().sub(controls.target);
+  const dist = off.length();
+  const fit = fitDistance();
+  const r = dist / fit;
+  const band = r > 0.92 ? 'PLAN — THE ENTIRE FRAME' : r > 0.45 ? 'APPROACH' : r > 0.16 ? 'DETAIL' : 'INSIDE THE STONE';
+  const az = ((THREE.MathUtils.radToDeg(Math.atan2(off.x, off.z)) % 360) + 360) % 360;
+  const el = THREE.MathUtils.radToDeg(Math.asin(THREE.MathUtils.clamp(off.y / (dist || 1), -1, 1)));
+  navHud.textContent = band + ' · AZ ' + az.toFixed(0) + '° · EL ' + el.toFixed(0) + '° · ' + dist.toFixed(1) + ' M';
+  if (navRead) navRead.textContent = 'Camera: azimuth ' + az.toFixed(1) + '° · elevation ' + el.toFixed(1) + '° · distance ' + dist.toFixed(2) + ' m · fit distance for this frame ' + fit.toFixed(2) + ' m. One finger turns, two fingers travel and zoom — the ticks mark the bands and the cardinals.';
+  if (band !== curBand) { curBand = band; haptic(); }
+  const nearest = Math.round(az / 90) * 90 % 360;
+  const nearCard = Math.abs(((az - nearest + 540) % 360) - 180) > 178;
+  if (nearCard && !inCardinal) { inCardinal = true; haptic(); }
+  if (!nearCard) inCardinal = false;
+  const lim = dist <= controls.minDistance * 1.02 || dist >= controls.maxDistance * 0.98;
+  if (lim && !atLimit) { atLimit = true; haptic(); setTimeout(haptic, 90); }
+  if (!lim) atLimit = false;
+}, 160);
+
+window.__v8Ready = true;
+fitOverhead(false);
+setState('OVERHEAD — the entire cathedral in one frame · one finger turns · pinch dives · two fingers travel');
 
 </script>
 </body>
