@@ -51,6 +51,23 @@
   .sheet .srow b.drift { color:#ff9a86; }
   .sheet .law { text-align:center; font-style:italic; color:#f5efdb; margin-top:18px; font-size:1rem; line-height:1.55; }
   .note { font-size:.9rem; color:#c9c2a6; }
+
+  .marker { position:fixed; z-index:7; width:36px; height:36px; margin:-18px 0 0 -18px; border-radius:50%;
+            border:1.5px solid #c9a44d; background:rgba(8,9,14,.88); color:#ffd977; font-family:Georgia,serif;
+            font-size:15px; cursor:pointer; display:none; }
+  .dim { position:fixed; z-index:7; transform:translate(-50%,-50%); font-family:'Courier New',monospace; font-size:11px;
+         letter-spacing:.14em; color:#ffd977; background:rgba(8,9,14,.85); border:1px solid #6b5d3f; padding:3px 8px;
+         display:none; pointer-events:none; white-space:nowrap; }
+  #hint { position:fixed; top:12px; left:50%; transform:translateX(-50%); z-index:11; background:rgba(8,9,14,.92);
+          border:1px solid #6b5d3f; color:#e9e3cf; font-size:.85rem; padding:9px 16px; border-radius:999px;
+          cursor:pointer; max-width:92vw; text-align:center; }
+  body[data-theme="navy"] .panel, body[data-theme="navy"] #bar { background:rgba(8,18,38,.97); border-color:#2c4a7a; color:#dbe8ff; }
+  body[data-theme="navy"] .pbtn, body[data-theme="navy"] .tabbtn { border-color:#2c4a7a; color:#cfe0ff; }
+  body[data-theme="parchment"] .panel, body[data-theme="parchment"] #bar { background:rgba(238,230,210,.97); border-color:#8a7a56; color:#2e2a20; }
+  body[data-theme="parchment"] .pbtn, body[data-theme="parchment"] .tabbtn { border-color:#8a7a56; color:#3a3428; }
+  body[data-theme="parchment"] .note, body[data-theme="parchment"] .plab, body[data-theme="parchment"] #state { color:#6a6046; }
+  body[data-theme="parchment"] .sheet .srow { color:#2e2a20; border-color:#c9bc96; }
+  body[data-theme="filigree"] .pbtn.on, body[data-theme="filigree"] .tabbtn.on { border-color:#fff; color:#fff; }
 </style>
 <script type="importmap">
 { "imports": {
@@ -88,11 +105,18 @@
     <button class="pbtn" id="presetND">NOTRE DAME CANON</button>
     <button class="pbtn" id="presetCore">THE CORE NAVE (44 ★ 26)</button>
     <button class="pbtn" id="presetEmpty">EMPTY PLOT</button></div>
+  <div class="prow"><span class="plab">EXEMPLARS</span>
+    <button class="pbtn" data-exemplar="amiens">AMIENS · VAULT 42.3</button>
+    <button class="pbtn" data-exemplar="salisbury">SALISBURY · SPIRE 123</button>
+    <button class="pbtn" data-exemplar="york">YORK · 160 M</button>
+    <button class="pbtn" data-exemplar="lubeck">LÜBECK · BRICK 125</button></div>
+  <div class="prow"><span class="note">The great plates draw them all to the same scale — so does the sandbox. Exemplars are proportion studies governed by their headline published figures; the ledger keeps auditing against Notre Dame.</span></div>
   <div class="prow"><span class="note">Parts land at the plot center, snapped to the 2 m module. Drag any part to move it — it snaps as it goes. Tap a part to select it, then size and format it.</span></div>
 </div>
 
 <div class="panel" id="panel-format">
   <div class="prow"><span class="plab">SELECTED</span><span id="selName" class="note">nothing selected — tap a part</span></div>
+  <div id="detailCard"></div>
   <div class="prow"><span class="plab">WIDTH</span><input type="range" id="sclX" min="25" max="300" value="100"><span class="sval" id="valX">—</span></div>
   <div class="prow"><span class="plab">HEIGHT</span><input type="range" id="sclY" min="25" max="300" value="100"><span class="sval" id="valY">—</span></div>
   <div class="prow"><span class="plab">DEPTH</span><input type="range" id="sclZ" min="25" max="300" value="100"><span class="sval" id="valZ">—</span></div>
@@ -127,6 +151,14 @@
   <div class="prow"><span class="plab">SUN ANGLE</span>
     <input type="range" id="sunRange" min="0" max="360" value="128">
     <span id="sunRead" class="sval"></span></div>
+  <div class="prow"><span class="plab">SCHEME</span>
+    <button class="pbtn on" data-theme="noir">NOIR + GOLD</button>
+    <button class="pbtn" data-theme="navy">BLUEPRINT NAVY</button>
+    <button class="pbtn" data-theme="parchment">PARCHMENT SHEET</button>
+    <button class="pbtn" data-theme="filigree">FILIGREE ON BLACK</button></div>
+  <div class="prow"><span class="plab">ANATOMY</span>
+    <button class="pbtn" id="anatBtn">ANATOMY — NUMBERED TOUR</button>
+    <span class="note">Gold numbers from the anatomy plate, pinned to the living building. Tap one.</span></div>
   <div class="prow"><span class="plab">CAMERA</span>
     <button class="pbtn" id="orbitBtn">AUTO-ORBIT</button>
     <button class="pbtn" id="resetBtn">RESET VIEW</button></div>
@@ -136,6 +168,10 @@
   <div class="sheet" id="sheet"></div>
 </div>
 
+<div id="anatomy"></div>
+<div class="dim" id="dimL"></div>
+<div class="dim" id="dimW"></div>
+<div id="hint">★ VIEW → ANATOMY pins the numbered plate to the building · drag parts to move them · BLUEPRINT bends the drawing · tap to dismiss</div>
 <div id="bar">
   <span class="brand">CATHEDRAL ★ SANDBOX</span>
   <button class="tabbtn" data-tab="parts">PARTS</button>
@@ -208,7 +244,8 @@ const MATS = {
   gold: new THREE.MeshStandardMaterial({ color: 0xc9a44d, roughness: 0.3, metalness: 1.0 }),
   noir: new THREE.MeshStandardMaterial({ color: 0x4a3b28, roughness: 0.45, metalness: 0.9 }),
   glass: new THREE.MeshStandardMaterial({ color: 0x86b8ff, emissive: 0x2a4a7f, emissiveIntensity: 0.9, roughness: 0.15, metalness: 0.1, transparent: true, opacity: 0.88 }),
-  dark: new THREE.MeshStandardMaterial({ color: 0x17130c, roughness: 0.95 })
+  dark: new THREE.MeshStandardMaterial({ color: 0x17130c, roughness: 0.95 }),
+  brick: new THREE.MeshStandardMaterial({ color: 0x8a4a38, roughness: 0.9, metalness: 0.02 })
 };
 
 /* ============ GEOMETRY HELPERS ============ */
@@ -421,36 +458,7 @@ document.querySelectorAll('[data-add]').forEach(b => b.addEventListener('click',
 }));
 
 /* ============ PRESETS ============ */
-function presetNotreDame() {
-  clearAll();
-  addItem('floor', 0, 0);
-  const zs = []; for (let z = -56; z <= 56; z += CANON.BAY) zs.push(z);
-  zs.forEach(z => {
-    addItem('pillar', -6, z); addItem('pillar', 6, z);
-    const op = addItem('pillar', -14, z); op.group.scale.y = 0.69;
-    const op2 = addItem('pillar', 14, z); op2.group.scale.y = 0.69;
-    const ca = addItem('arch', 0, z, 0); ca.group.scale.x = 1.5; ca.group.position.y = 26;
-  });
-  for (let i = 0; i < zs.length - 1; i++) {
-    const z = zs[i] + CANON.BAY / 2;
-    const a1 = addItem('arch', -6, z, Math.PI / 2); a1.group.position.y = 26;
-    const a2 = addItem('arch', 6, z, Math.PI / 2); a2.group.position.y = 26;
-    const side = i % 2 === 0 ? 'lancet' : 'wall';
-    const w1 = addItem(side, -21.5, z, Math.PI / 2); if (side === 'lancet') w1.group.position.y = 2;
-    const w2 = addItem(side, 21.5, z, Math.PI / 2); if (side === 'lancet') w2.group.position.y = 2;
-  }
-  zs.forEach((z, i) => { if (i % 2 === 0) {
-    const b1 = addItem('buttress', -14.5, z, Math.PI / 2); b1.group.position.y = 12;
-    const b2 = addItem('buttress', 14.5, z, -Math.PI / 2); b2.group.position.y = 12;
-  } });
-  addItem('tower', -15.5, 58); addItem('tower', 15.5, 58);
-  const rose = addItem('rose', 0, 64.6); rose.group.position.y = 17.2;
-  addItem('portal', -10.5, 64.4); addItem('portal', 0, 64.4); addItem('portal', 10.5, 64.4);
-  const sp = addItem('spire', 0, -6); sp.group.position.y = 0;
-  for (let z = -34; z <= 38; z += 3) { addItem('pew', -3.4, z); addItem('pew', 0, z); addItem('pew', 3.4, z); }
-  select(null);
-  setState('NOTRE DAME CANON — 128 × 43 m · vault 32.5 · towers 69 · spire 96 · rose 9.6');
-}
+function presetNotreDame() { buildCathedral({ LEN: 128, WID: 43, NAVE_W: 12, VAULT_H: 32.5, TOWER_H: 69, SPIRE_H: 96, ROSE_D: 9.6, BAY: 8, note: 'NOTRE DAME CANON — 128 × 43 m · Latin cross · vault 32.5 · towers 69 · spire 96 · rose 9.6' }); }
 const PLAN = {"cols": [{"m": 3, "row": "L", "bay": 0, "appear": 536, "open": 1, "wall": 1}, {"m": 51, "row": "R", "bay": 0, "appear": 612, "open": 2, "wall": 0}, {"m": 5, "row": "L", "bay": 1, "appear": 536, "open": 1, "wall": 2}, {"m": 53, "row": "R", "bay": 1, "appear": 612, "open": 2, "wall": 1}, {"m": 7, "row": "L", "bay": 2, "appear": 588, "open": 2, "wall": 1}, {"m": 55, "row": "R", "bay": 2, "appear": 596, "open": 2, "wall": 1}, {"m": 9, "row": "L", "bay": 3, "appear": 536, "open": 2, "wall": 1}, {"m": 57, "row": "R", "bay": 3, "appear": 612, "open": 2, "wall": 1}, {"m": 11, "row": "L", "bay": 4, "appear": 588, "open": 2, "wall": 1}, {"m": 59, "row": "R", "bay": 4, "appear": 596, "open": 2, "wall": 1}, {"m": 13, "row": "L", "bay": 5, "appear": 588, "open": 2, "wall": 1}, {"m": 61, "row": "R", "bay": 5, "appear": 596, "open": 2, "wall": 1}, {"m": 15, "row": "L", "bay": 6, "appear": 620, "open": 2, "wall": 1}, {"m": 63, "row": "R", "bay": 6, "appear": 564, "open": 2, "wall": 1}, {"m": 17, "row": "L", "bay": 7, "appear": 536, "open": 1, "wall": 2}, {"m": 65, "row": "R", "bay": 7, "appear": 620, "open": 1, "wall": 2}, {"m": 19, "row": "L", "bay": 8, "appear": 588, "open": 2, "wall": 1}, {"m": 67, "row": "R", "bay": 8, "appear": 620, "open": 2, "wall": 1}, {"m": 21, "row": "L", "bay": 9, "appear": 588, "open": 2, "wall": 1}, {"m": 69, "row": "R", "bay": 9, "appear": 620, "open": 2, "wall": 1}, {"m": 23, "row": "L", "bay": 10, "appear": 620, "open": 2, "wall": 1}, {"m": 71, "row": "R", "bay": 10, "appear": 612, "open": 2, "wall": 1}, {"m": 25, "row": "L", "bay": 11, "appear": 588, "open": 2, "wall": 1}, {"m": 73, "row": "R", "bay": 11, "appear": 620, "open": 2, "wall": 1}, {"m": 27, "row": "L", "bay": 12, "appear": 620, "open": 2, "wall": 1}, {"m": 75, "row": "R", "bay": 12, "appear": 612, "open": 2, "wall": 1}, {"m": 29, "row": "L", "bay": 13, "appear": 620, "open": 2, "wall": 1}, {"m": 77, "row": "R", "bay": 13, "appear": 612, "open": 2, "wall": 1}, {"m": 31, "row": "L", "bay": 14, "appear": 648, "open": 2, "wall": 1}, {"m": 79, "row": "R", "bay": 14, "appear": 596, "open": 2, "wall": 1}, {"m": 33, "row": "L", "bay": 15, "appear": 620, "open": 2, "wall": 1}, {"m": 81, "row": "R", "bay": 15, "appear": 620, "open": 2, "wall": 1}, {"m": 35, "row": "L", "bay": 16, "appear": 620, "open": 2, "wall": 1}, {"m": 83, "row": "R", "bay": 16, "appear": 612, "open": 2, "wall": 1}, {"m": 37, "row": "L", "bay": 17, "appear": 620, "open": 2, "wall": 1}, {"m": 85, "row": "R", "bay": 17, "appear": 612, "open": 2, "wall": 1}, {"m": 39, "row": "L", "bay": 18, "appear": 612, "open": 2, "wall": 1}, {"m": 87, "row": "R", "bay": 18, "appear": 596, "open": 2, "wall": 1}, {"m": 41, "row": "L", "bay": 19, "appear": 620, "open": 2, "wall": 1}, {"m": 89, "row": "R", "bay": 19, "appear": 612, "open": 2, "wall": 1}, {"m": 43, "row": "L", "bay": 20, "appear": 612, "open": 2, "wall": 1}, {"m": 91, "row": "R", "bay": 20, "appear": 596, "open": 2, "wall": 1}, {"m": 45, "row": "L", "bay": 21, "appear": 612, "open": 2, "wall": 1}, {"m": 93, "row": "R", "bay": 21, "appear": 596, "open": 2, "wall": 1}, {"m": 47, "row": "L", "bay": 22, "appear": 596, "open": 2, "wall": 1}, {"m": 95, "row": "R", "bay": 22, "appear": 564, "open": 1, "wall": 2}, {"m": 49, "row": "L", "bay": 23, "appear": 620, "open": 1, "wall": 1}, {"m": 97, "row": "R", "bay": 23, "appear": 320, "open": 0, "wall": 2}], "plan": [{"k": "cross", "a": 3, "b": 51, "door": true, "doors": 2, "clean": 0, "wider": 2, "floor": 0, "dist": 2}, {"k": "cross", "a": 5, "b": 53, "door": true, "doors": 2, "clean": 0, "wider": 2, "floor": 0, "dist": 2}, {"k": "cross", "a": 7, "b": 55, "door": true, "doors": 2, "clean": 0, "wider": 2, "floor": 0, "dist": 2}, {"k": "cross", "a": 9, "b": 57, "door": true, "doors": 2, "clean": 0, "wider": 2, "floor": 0, "dist": 2}, {"k": "cross", "a": 11, "b": 59, "door": true, "doors": 2, "clean": 0, "wider": 2, "floor": 0, "dist": 2}, {"k": "cross", "a": 13, "b": 61, "door": true, "doors": 2, "clean": 0, "wider": 2, "floor": 0, "dist": 2}, {"k": "cross", "a": 15, "b": 63, "door": true, "doors": 2, "clean": 0, "wider": 2, "floor": 0, "dist": 2}, {"k": "cross", "a": 17, "b": 65, "door": false}, {"k": "cross", "a": 19, "b": 67, "door": true, "doors": 2, "clean": 1, "wider": 1, "floor": 0, "dist": 2}, {"k": "cross", "a": 21, "b": 69, "door": true, "doors": 2, "clean": 1, "wider": 1, "floor": 0, "dist": 2}, {"k": "cross", "a": 23, "b": 71, "door": true, "doors": 2, "clean": 1, "wider": 1, "floor": 0, "dist": 2}, {"k": "cross", "a": 25, "b": 73, "door": true, "doors": 2, "clean": 1, "wider": 1, "floor": 0, "dist": 2}, {"k": "cross", "a": 27, "b": 75, "door": true, "doors": 2, "clean": 1, "wider": 1, "floor": 0, "dist": 2}, {"k": "cross", "a": 29, "b": 77, "door": true, "doors": 2, "clean": 1, "wider": 1, "floor": 0, "dist": 2}, {"k": "cross", "a": 31, "b": 79, "door": true, "doors": 2, "clean": 1, "wider": 1, "floor": 0, "dist": 2}, {"k": "cross", "a": 33, "b": 81, "door": true, "doors": 4, "clean": 0, "wider": 4, "floor": 0, "dist": 3}, {"k": "cross", "a": 35, "b": 83, "door": true, "doors": 2, "clean": 0, "wider": 2, "floor": 0, "dist": 3}, {"k": "cross", "a": 37, "b": 85, "door": true, "doors": 2, "clean": 0, "wider": 2, "floor": 0, "dist": 3}, {"k": "cross", "a": 39, "b": 87, "door": true, "doors": 2, "clean": 0, "wider": 2, "floor": 0, "dist": 3}, {"k": "cross", "a": 41, "b": 89, "door": true, "doors": 2, "clean": 0, "wider": 2, "floor": 0, "dist": 3}, {"k": "cross", "a": 43, "b": 91, "door": true, "doors": 2, "clean": 0, "wider": 2, "floor": 0, "dist": 3}, {"k": "cross", "a": 45, "b": 93, "door": true, "doors": 2, "clean": 0, "wider": 2, "floor": 0, "dist": 3}, {"k": "cross", "a": 47, "b": 95, "door": true, "doors": 2, "clean": 0, "wider": 2, "floor": 0, "dist": 3}, {"k": "cross", "a": 49, "b": 97, "door": false}, {"k": "longL", "a": 3, "b": 5, "door": false}, {"k": "longR", "a": 51, "b": 53, "door": true, "doors": 2, "clean": 1, "wider": 1, "floor": 0, "dist": 2}, {"k": "longL", "a": 5, "b": 7, "door": false}, {"k": "longR", "a": 53, "b": 55, "door": false}, {"k": "longL", "a": 7, "b": 9, "door": true, "doors": 4, "clean": 0, "wider": 4, "floor": 0, "dist": 3}, {"k": "longR", "a": 55, "b": 57, "door": true, "doors": 6, "clean": 1, "wider": 5, "floor": 0, "dist": 3}, {"k": "longL", "a": 9, "b": 11, "door": false}, {"k": "longR", "a": 57, "b": 59, "door": false}, {"k": "longL", "a": 11, "b": 13, "door": true, "doors": 2, "clean": 1, "wider": 1, "floor": 0, "dist": 2}, {"k": "longR", "a": 59, "b": 61, "door": true, "doors": 2, "clean": 1, "wider": 1, "floor": 0, "dist": 2}, {"k": "longL", "a": 13, "b": 15, "door": false}, {"k": "longR", "a": 61, "b": 63, "door": false}, {"k": "longL", "a": 15, "b": 17, "door": true, "doors": 12, "clean": 0, "wider": 12, "floor": 0, "dist": 4}, {"k": "longR", "a": 63, "b": 65, "door": true, "doors": 32, "clean": 0, "wider": 32, "floor": 0, "dist": 6}, {"k": "longL", "a": 17, "b": 19, "door": false}, {"k": "longR", "a": 65, "b": 67, "door": false}, {"k": "longL", "a": 19, "b": 21, "door": true, "doors": 2, "clean": 1, "wider": 1, "floor": 0, "dist": 2}, {"k": "longR", "a": 67, "b": 69, "door": true, "doors": 2, "clean": 1, "wider": 1, "floor": 0, "dist": 2}, {"k": "longL", "a": 21, "b": 23, "door": false}, {"k": "longR", "a": 69, "b": 71, "door": false}, {"k": "longL", "a": 23, "b": 25, "door": true, "doors": 6, "clean": 1, "wider": 5, "floor": 0, "dist": 3}, {"k": "longR", "a": 71, "b": 73, "door": true, "doors": 6, "clean": 1, "wider": 5, "floor": 0, "dist": 3}, {"k": "longL", "a": 25, "b": 27, "door": false}, {"k": "longR", "a": 73, "b": 75, "door": false}, {"k": "longL", "a": 27, "b": 29, "door": true, "doors": 2, "clean": 1, "wider": 1, "floor": 0, "dist": 2}, {"k": "longR", "a": 75, "b": 77, "door": true, "doors": 2, "clean": 1, "wider": 1, "floor": 0, "dist": 2}, {"k": "longL", "a": 29, "b": 31, "door": false}, {"k": "longR", "a": 77, "b": 79, "door": false}, {"k": "longL", "a": 31, "b": 33, "door": true, "doors": 28, "clean": 0, "wider": 28, "floor": 0, "dist": 5}, {"k": "longR", "a": 79, "b": 81, "door": true, "doors": 14, "clean": 1, "wider": 13, "floor": 0, "dist": 4}, {"k": "longL", "a": 33, "b": 35, "door": false}, {"k": "longR", "a": 81, "b": 83, "door": false}, {"k": "longL", "a": 35, "b": 37, "door": true, "doors": 2, "clean": 1, "wider": 1, "floor": 0, "dist": 2}, {"k": "longR", "a": 83, "b": 85, "door": true, "doors": 2, "clean": 1, "wider": 1, "floor": 0, "dist": 2}, {"k": "longL", "a": 37, "b": 39, "door": false}, {"k": "longR", "a": 85, "b": 87, "door": false}, {"k": "longL", "a": 39, "b": 41, "door": true, "doors": 6, "clean": 1, "wider": 5, "floor": 0, "dist": 3}, {"k": "longR", "a": 87, "b": 89, "door": true, "doors": 6, "clean": 1, "wider": 5, "floor": 0, "dist": 3}, {"k": "longL", "a": 41, "b": 43, "door": false}, {"k": "longR", "a": 89, "b": 91, "door": false}, {"k": "longL", "a": 43, "b": 45, "door": true, "doors": 2, "clean": 1, "wider": 1, "floor": 0, "dist": 2}, {"k": "longR", "a": 91, "b": 93, "door": true, "doors": 2, "clean": 1, "wider": 1, "floor": 0, "dist": 2}, {"k": "longL", "a": 45, "b": 47, "door": false}, {"k": "longR", "a": 93, "b": 95, "door": false}, {"k": "longL", "a": 47, "b": 49, "door": true, "doors": 14, "clean": 1, "wider": 13, "floor": 0, "dist": 4}, {"k": "longR", "a": 95, "b": 97, "door": false}], "L": [3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31, 33, 35, 37, 39, 41, 43, 45, 47, 49], "R": [51, 53, 55, 57, 59, 61, 63, 65, 67, 69, 71, 73, 75, 77, 79, 81, 83, 85, 87, 89, 91, 93, 95, 97]};
 function presetCore() {
   clearAll();
@@ -621,6 +629,7 @@ document.getElementById('resetBtn').addEventListener('click', () => {
 
 /* ============ THE LEDGER — every part counted, every ratio audited ============ */
 let fpsEMA = 60;
+let lastExtents = null;
 function drift(cur, canon) {
   const d = (cur - canon) / canon * 100;
   return Math.abs(d) <= 2.5 ? '<b>✓ CANON</b>' : '<b class="drift">DRIFT ' + (d >= 0 ? '+' : '') + d.toFixed(1) + '%</b>';
@@ -646,6 +655,7 @@ function recount() {
     if (it.type === 'spire') spireTop = Math.max(spireTop, p.y + d.h * s.y);
   });
   const L = items.length ? (maxZ - minZ) : 0, W = items.length ? (maxX - minX) : 0;
+  lastExtents = { minX, maxX, minZ, maxZ };
   const rows = [
     ['Parts on the plot', String(items.length)],
     ['Pillars', String(count('pillar'))],
@@ -705,6 +715,202 @@ window.addEventListener('resize', () => {
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
+
+/* ============ V3 — EXEMPLARS, ANATOMY, DIMENSIONS, DETAIL SHEETS, THEMES ============ */
+function buildCathedral(cfg) {
+  clearAll();
+  const M = cfg.mat || 'stone';
+  const fl = addItem('floor', 0, 0); fl.group.scale.set(cfg.WID / 43, 1, cfg.LEN / 128);
+  const half = cfg.LEN / 2, pilH = (cfg.VAULT_H - 6.5) / 26;
+  const zs = []; for (let z = -(half - 8); z <= half - 8; z += cfg.BAY) zs.push(z);
+  zs.forEach(z => {
+    const p1 = addItem('pillar', -cfg.NAVE_W / 2, z, 0, null, M); p1.group.scale.y = pilH;
+    const p2 = addItem('pillar', cfg.NAVE_W / 2, z, 0, null, M); p2.group.scale.y = pilH;
+    const o1 = addItem('pillar', -(cfg.WID / 2 - 7.5), z, 0, null, M); o1.group.scale.y = pilH * 0.69;
+    const o2 = addItem('pillar', cfg.WID / 2 - 7.5, z, 0, null, M); o2.group.scale.y = pilH * 0.69;
+    const ca = addItem('arch', 0, z, 0, null, M); ca.group.scale.x = cfg.NAVE_W / 8; ca.group.position.y = cfg.VAULT_H - 6.5;
+  });
+  for (let i = 0; i < zs.length - 1; i++) {
+    const z = zs[i] + cfg.BAY / 2;
+    const a1 = addItem('arch', -cfg.NAVE_W / 2, z, Math.PI / 2, null, M); a1.group.position.y = cfg.VAULT_H - 6.5;
+    const a2 = addItem('arch', cfg.NAVE_W / 2, z, Math.PI / 2, null, M); a2.group.position.y = cfg.VAULT_H - 6.5;
+    const side = i % 2 === 0 ? 'lancet' : 'wall';
+    const w1 = addItem(side, -cfg.WID / 2, z, Math.PI / 2, null, M); if (side === 'lancet') w1.group.position.y = 2;
+    const w2 = addItem(side, cfg.WID / 2, z, Math.PI / 2, null, M); if (side === 'lancet') w2.group.position.y = 2;
+  }
+  zs.forEach((z, i) => { if (i % 2 === 0) {
+    const b1 = addItem('buttress', -(cfg.WID / 2 - 7), z, Math.PI / 2, null, M); b1.group.position.y = cfg.VAULT_H * 0.37;
+    const b2 = addItem('buttress', cfg.WID / 2 - 7, z, -Math.PI / 2, null, M); b2.group.position.y = cfg.VAULT_H * 0.37;
+  } });
+  /* transept — the Latin cross gets its arms */
+  const tf = addItem('floor', 0, cfg.BAY); tf.group.rotation.y = Math.PI / 2;
+  tf.group.scale.set(24 / 43, 1, (cfg.WID + 22) / 128);
+  [-1, 1].forEach(sgn => {
+    const ew = addItem('wall', sgn * (cfg.WID / 2 + 11), cfg.BAY, Math.PI / 2, null, M);
+    const tr = addItem('rose', sgn * (cfg.WID / 2 + 11.6), cfg.BAY, sgn * Math.PI / 2, null, M);
+    tr.group.scale.setScalar(6.5 / 9.6); tr.group.position.y = 3.4;
+    const sw1 = addItem('wall', sgn * (cfg.WID / 2 + 5.5), cfg.BAY - 8, 0, null, M);
+    const sw2 = addItem('wall', sgn * (cfg.WID / 2 + 5.5), cfg.BAY + 8, 0, null, M);
+  });
+  /* ambulatory — the east end rounds off */
+  const aw1 = addItem('wall', -(cfg.NAVE_W / 2 + 3.4), -half + 3.2, Math.PI / 4, null, M);
+  const aw2 = addItem('wall', cfg.NAVE_W / 2 + 3.4, -half + 3.2, -Math.PI / 4, null, M);
+  const aw3 = addItem('wall', 0, -half - 0.5, 0, null, M);
+  if (cfg.TOWER_H) {
+    const t1 = addItem('tower', -(cfg.WID / 2 - 6), half - 6, 0, null, M); t1.group.scale.y = cfg.TOWER_H / 69;
+    const t2 = addItem('tower', cfg.WID / 2 - 6, half - 6, 0, null, M); t2.group.scale.y = cfg.TOWER_H / 69;
+  }
+  if (cfg.ROSE_D) {
+    const r = addItem('rose', 0, half + 0.6, 0, null, M);
+    r.group.scale.setScalar(cfg.ROSE_D / 9.6); r.group.position.y = (cfg.TOWER_H || 40) * 0.25;
+  }
+  addItem('portal', -cfg.NAVE_W * 0.85, half + 0.4, 0, null, M);
+  addItem('portal', 0, half + 0.4, 0, null, M);
+  addItem('portal', cfg.NAVE_W * 0.85, half + 0.4, 0, null, M);
+  if (cfg.SPIRE_H) { const sp = addItem('spire', 0, cfg.BAY, 0, null, M); sp.group.scale.y = cfg.SPIRE_H / 96; }
+  if (cfg.CENTRAL) { const ct = addItem('tower', 0, cfg.BAY, 0, null, M); ct.group.scale.set(0.8, cfg.CENTRAL / 69, 0.8); }
+  for (let z = -half + 30; z <= half - 26; z += 3) { addItem('pew', -3.4, z); addItem('pew', 0, z); addItem('pew', 3.4, z); }
+  select(null);
+  setState(cfg.note);
+}
+const EXEMPLARS = {
+  amiens: { LEN: 145, WID: 41, NAVE_W: 12.2, VAULT_H: 42.3, TOWER_H: 42, SPIRE_H: 112, ROSE_D: 11, BAY: 8, note: 'AMIENS — 145 m long, the tallest Gothic vault at 42.3 m (published). The audit still reads against Notre Dame.' },
+  salisbury: { LEN: 135, WID: 33, NAVE_W: 11, VAULT_H: 25.6, TOWER_H: 0, SPIRE_H: 123, ROSE_D: 5, BAY: 8, note: 'SALISBURY — its spire tops 123 m, the tallest in England (published). One scale, as the plate draws them.' },
+  york: { LEN: 160, WID: 42, NAVE_W: 12, VAULT_H: 30, TOWER_H: 60, SPIRE_H: 0, CENTRAL: 72, ROSE_D: 9, BAY: 8, note: 'YORK MINSTER — 160 m, the great northern vessel, twin west towers and a central tower (published).' },
+  lubeck: { LEN: 131, WID: 36, NAVE_W: 11.5, VAULT_H: 38.5, TOWER_H: 125, SPIRE_H: 0, ROSE_D: 8, BAY: 8, mat: 'brick', note: 'MARIENKIRCHE, LÜBECK — brick Gothic; the twin towers rise ≈125 m (published).' }
+};
+document.querySelectorAll('[data-exemplar]').forEach(b => b.addEventListener('click', () => buildCathedral(EXEMPLARS[b.dataset.exemplar])));
+
+/* themes */
+function setAllMats(matName) {
+  items.forEach(it => {
+    const m = matName ? MATS[matName] : MATS[it.mat];
+    it.group.traverse(o => { if (o.isMesh && o.material !== MATS.glass && o.material !== MATS.dark && !o.parent.userData.floorMat) o.material = m; });
+  });
+}
+function applyTheme(name) {
+  document.body.dataset.theme = name;
+  if (name === 'navy') { scene.background.setHex(0x0a1a3a); scene.fog.color.setHex(0x0a1a3a); sun.color.setHex(0xcfe4ff); sun.intensity = 2.2; setAllMats(null); }
+  else if (name === 'parchment') { scene.background.setHex(0xe9e2cf); scene.fog.color.setHex(0xe9e2cf); sun.color.setHex(0xffe0b0); sun.intensity = 2.4; setAllMats(null); }
+  else if (name === 'filigree') { scene.background.setHex(0x000000); scene.fog.color.setHex(0x000000); sun.color.setHex(0xffffff); sun.intensity = 2.0; setAllMats('iwhg'); }
+  else { scene.background.setHex(0x060608); scene.fog.color.setHex(0x060608); sun.color.setHex(0xfff2d8); sun.intensity = 2.6; setAllMats(null); }
+  document.querySelectorAll('[data-theme]').forEach(x => x.classList.toggle('on', x.dataset.theme === name));
+}
+document.querySelectorAll('[data-theme]').forEach(b => b.addEventListener('click', () => applyTheme(b.dataset.theme)));
+
+/* anatomy — the numbered plate, alive */
+const ANATOMY = [
+  { n: 1, label: 'WEST TOWERS', text: 'Twin towers, 69 m at Notre Dame — the iconic façade.', find: () => items.filter(i => i.type === 'tower' && i.group.position.z > 0) },
+  { n: 2, label: 'THE SPIRE', text: 'The flèche above the crossing — 96 m at Notre Dame before the fire.', find: () => items.filter(i => i.type === 'spire') },
+  { n: 3, label: 'ROSE WINDOW', text: 'Thirteenth-century stained glass. The west rose: 9.6 m across.', find: () => items.filter(i => i.type === 'rose') },
+  { n: 4, label: 'FLYING BUTTRESSES', text: 'External arches that carry the roof’s thrust out to the piers — so the walls could become glass.', find: () => items.filter(i => i.type === 'buttress') },
+  { n: 5, label: 'TRANSEPT', text: 'The cross arm — it gives the plan its Latin-cross shape.', find: () => items.filter(i => i.type === 'rose' && Math.abs(i.group.position.x) > 20) },
+  { n: 6, label: 'CHOIR & ALTAR', text: 'The sacred east end, wrapped by the ambulatory.', find: () => items.filter(i => i.type === 'wall' && i.group.position.z < -40) },
+  { n: 7, label: 'THE NAVE', text: 'The central vessel where the congregation gathers — 12 m wide at Notre Dame.', find: () => items.filter(i => i.type === 'pew') },
+  { n: 8, label: 'SIDE AISLES', text: 'Two aisles to either side — structure and walking space.', find: () => items.filter(i => i.type === 'pillar' && Math.abs(i.group.position.x) > 10) },
+  { n: 9, label: 'PILLARS & COLUMNS', text: 'They carry the vaults and set the building’s rhythm — one bay, one beat.', find: () => items.filter(i => i.type === 'pillar' && Math.abs(i.group.position.x) < 10) },
+  { n: 10, label: 'THE VAULT', text: 'Ribbed vaults distribute the weight — 32.5 m over the nave at Notre Dame.', find: () => items.filter(i => i.type === 'arch' && Math.abs(i.group.position.x) < 2) }
+];
+let anatomyOn = false;
+const anatLayer = document.getElementById('anatomy');
+const markerEls = ANATOMY.map(a => {
+  const d = document.createElement('button');
+  d.className = 'marker'; d.textContent = a.n;
+  d.addEventListener('click', () => {
+    const found = a.find();
+    if (found.length) select(found[Math.floor(found.length / 2)]);
+    const ro = document.getElementById('readout');
+    ro.querySelector('.rt').textContent = a.n + ' · ' + a.label;
+    ro.querySelector('.rb').textContent = a.text;
+    ro.style.display = 'block';
+    setTimeout(() => { ro.style.display = 'none'; }, 5200);
+    haptic();
+  });
+  anatLayer.appendChild(d);
+  return d;
+});
+function anchorOf(list) {
+  if (!list.length) return null;
+  const it = list[Math.floor(list.length / 2)], p = it.group.position, d = PARTS[it.type], s = it.group.scale;
+  return new THREE.Vector3(p.x, p.y + d.h * s.y * 0.82 + 1.5, p.z);
+}
+const projV = new THREE.Vector3();
+function projectLabels() {
+  requestAnimationFrame(projectLabels);
+  ANATOMY.forEach((a, i) => {
+    const el = markerEls[i];
+    if (!anatomyOn) { el.style.display = 'none'; return; }
+    const anchor = anchorOf(a.find());
+    if (!anchor) { el.style.display = 'none'; return; }
+    projV.copy(anchor).project(camera);
+    if (projV.z > 1 || projV.z < -1) { el.style.display = 'none'; return; }
+    el.style.display = 'block';
+    el.style.left = ((projV.x * 0.5 + 0.5) * window.innerWidth) + 'px';
+    el.style.top = ((-projV.y * 0.5 + 0.5) * window.innerHeight) + 'px';
+  });
+  const dL = document.getElementById('dimL'), dW = document.getElementById('dimW');
+  if (bpMode && lastExtents) {
+    const mid = (lastExtents.minX + lastExtents.maxX) / 2, midZ = (lastExtents.minZ + lastExtents.maxZ) / 2;
+    [[dL, new THREE.Vector3(mid, 0, lastExtents.maxZ + 6), 'LENGTH ' + (lastExtents.maxZ - lastExtents.minZ).toFixed(1) + ' m'],
+     [dW, new THREE.Vector3(lastExtents.maxX + 6, 0, midZ), 'WIDTH ' + (lastExtents.maxX - lastExtents.minX).toFixed(1) + ' m']].forEach(([el, v, txt]) => {
+      projV.copy(v).project(camera);
+      el.style.display = projV.z < 1 ? 'block' : 'none';
+      el.style.left = ((projV.x * 0.5 + 0.5) * window.innerWidth) + 'px';
+      el.style.top = ((-projV.y * 0.5 + 0.5) * window.innerHeight) + 'px';
+      el.textContent = txt;
+    });
+  } else { dL.style.display = 'none'; dW.style.display = 'none'; }
+}
+projectLabels();
+document.getElementById('anatBtn').addEventListener('click', e => {
+  anatomyOn = !anatomyOn;
+  e.target.classList.toggle('on', anatomyOn);
+  e.target.textContent = anatomyOn ? 'ANATOMY ON — TAP A NUMBER' : 'ANATOMY — NUMBERED TOUR';
+  setState(anatomyOn ? 'the numbered plate, alive — tap any gold number' : 'anatomy off');
+});
+document.getElementById('hint').addEventListener('click', () => document.getElementById('hint').style.display = 'none');
+
+/* detail sheet — the selected part, drawn like the drafting plates */
+function archPathD(W, H) {
+  const spr = H * 0.42;
+  return 'M ' + (-W / 2) + ' ' + H + ' L ' + (-W / 2) + ' ' + spr + ' Q ' + (-W / 2) + ' ' + (H * 0.06) + ' 0 0 Q ' + (W / 2) + ' ' + (H * 0.06) + ' ' + (W / 2) + ' ' + spr + ' L ' + (W / 2) + ' ' + H;
+}
+function detailSVG(it) {
+  const d = PARTS[it.type], s = it.group.scale;
+  const W = d.w * s.x, H = d.h * s.y, D = d.d * s.z;
+  const sc = 92 / Math.max(W, H);
+  const w = Math.max(W * sc, 6), h = Math.max(H * sc, 6);
+  let body = '';
+  const ink = 'fill:none;stroke:currentColor;stroke-width:1.4';
+  if (it.type === 'pillar') body = '<rect x="' + (-w / 2) + '" y="' + (-h + 8) + '" width="' + w + '" height="' + (h - 14) + '" style="' + ink + '"/><path d="M ' + (-w * 0.7) + ' ' + (-h + 8) + ' L ' + (w * 0.7) + ' ' + (-h + 8) + ' L ' + (w * 0.55) + ' ' + (-h) + ' L ' + (-w * 0.55) + ' ' + (-h) + ' Z" style="' + ink + '"/>';
+  else if (it.type === 'arch' || it.type === 'vault') body = '<path d="' + archPathD(w, h) + '" transform="translate(0,' + (-h) + ')" style="' + ink + '"/>';
+  else if (it.type === 'wall' || it.type === 'lancet') body = '<path d="' + archPathD(w, h) + '" transform="translate(0,' + (-h) + ')" style="' + ink + '" fill="currentColor" fill-opacity="0.14"/>';
+  else if (it.type === 'rose') { let spokes = ''; for (let i = 0; i < 12; i++) { const a = i * Math.PI / 6; spokes += '<line x1="0" y1="' + (-h / 2) + '" x2="' + (Math.cos(a) * w / 2).toFixed(1) + '" y2="' + (-h / 2 + Math.sin(a) * w / 2).toFixed(1) + '"/>'; } body = '<g style="' + ink + '"><circle r="' + (w / 2) + '" cy="' + (-h / 2) + '"/><circle r="' + (w / 6) + '" cy="' + (-h / 2) + '"/>' + spokes + '</g>'; }
+  else if (it.type === 'tower') body = '<rect x="' + (-w / 2) + '" y="' + (-h) + '" width="' + w + '" height="' + h + '" style="' + ink + '"/><rect x="-3" y="' + (-h * 0.72) + '" width="6" height="' + (h * 0.2) + '" style="' + ink + '"/><rect x="-3" y="' + (-h * 0.42) + '" width="6" height="' + (h * 0.2) + '" style="' + ink + '"/>';
+  else if (it.type === 'spire') body = '<path d="M 0 ' + (-h) + ' L ' + (w * 0.22) + ' ' + (-h * 0.45) + ' L ' + (-w * 0.22) + ' ' + (-h * 0.45) + ' Z" style="' + ink + '"/><rect x="' + (-w / 2) + '" y="' + (-h * 0.45) + '" width="' + w + '" height="' + (h * 0.14) + '" style="' + ink + '"/>';
+  else if (it.type === 'portal') body = '<path d="' + archPathD(w, h) + '" transform="translate(0,' + (-h) + ')" style="' + ink + '"/><rect x="' + (-w * 0.32) + '" y="' + (-h * 0.82) + '" width="' + (w * 0.64) + '" height="' + (h * 0.82) + '" style="' + ink + '"/>';
+  else if (it.type === 'pew') body = '<path d="M ' + (-w / 2) + ' 0 L ' + (-w / 2) + ' ' + (-h * 0.4) + ' L ' + (w * 0.3) + ' ' + (-h * 0.4) + ' L ' + (w * 0.3) + ' ' + (-h) + ' L ' + (w * 0.48) + ' ' + (-h) + ' L ' + (w * 0.48) + ' 0" style="' + ink + '"/>';
+  else if (it.type === 'buttress') body = '<path d="M ' + (w * 0.4) + ' 0 A ' + (w * 1.1) + ' ' + (w * 1.1) + ' 0 0 0 ' + (-w * 0.4) + ' ' + (-h * 0.55) + '" style="' + ink + '"/><rect x="' + (w * 0.32) + '" y="' + (-h) + '" width="' + (w * 0.18) + '" height="' + h + '" style="' + ink + '"/>';
+  else body = '<rect x="' + (-w / 2) + '" y="' + (-h) + '" width="' + w + '" height="' + h + '" style="' + ink + '"/><line x1="' + (-w / 2) + '" y1="' + (-h / 2) + '" x2="' + (w / 2) + '" y2="' + (-h / 2) + '" style="' + ink + '"/>';
+  return '<svg viewBox="-70 -108 140 122" width="150" height="130" style="color:#c9a44d">' + body +
+    '<line x1="' + (-w / 2) + '" y1="7" x2="' + (w / 2) + '" y2="7" stroke="currentColor" stroke-width="0.7"/>' +
+    '<text x="0" y="16" text-anchor="middle" font-size="7.5" fill="currentColor" font-family="Courier New">' + W.toFixed(1) + ' m</text>' +
+    '<line x1="' + (w / 2 + 5) + '" y1="0" x2="' + (w / 2 + 5) + '" y2="' + (-h) + '" stroke="currentColor" stroke-width="0.7"/>' +
+    '<text x="' + (w / 2 + 9) + '" y="' + (-h / 2) + '" font-size="7.5" fill="currentColor" font-family="Courier New">' + H.toFixed(1) + ' m</text></svg>';
+}
+let lastDetailFor = null;
+setInterval(() => {
+  const box = document.getElementById('detailCard');
+  if (!box) return;
+  if (selected && selected !== lastDetailFor) {
+    lastDetailFor = selected;
+    box.innerHTML = '<div style="font-family:\'Courier New\',monospace;font-size:10px;letter-spacing:.18em;color:#8f8875;margin-bottom:4px">DETAIL SHEET — FRONT ELEVATION</div>' + detailSVG(selected);
+  } else if (!selected && lastDetailFor) { lastDetailFor = null; box.innerHTML = ''; }
+  else if (selected && lastDetailFor === selected) { /* live-update while sliders move */
+    if (box.dataset.s !== selected.group.scale.toArray().join(',')) { box.dataset.s = selected.group.scale.toArray().join(','); box.innerHTML = '<div style="font-family:\'Courier New\',monospace;font-size:10px;letter-spacing:.18em;color:#8f8875;margin-bottom:4px">DETAIL SHEET — FRONT ELEVATION</div>' + detailSVG(selected); }
+  }
+}, 350);
+
 </script>
 </body>
 </html>
