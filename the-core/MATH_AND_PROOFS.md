@@ -6,7 +6,7 @@ _Every figure shown in the exhibit at [snowphamtom.github.io/hall-looks/the-core
 
 **The suites.** `core_engine.py` — the engine, 34/34 checks. `core_full.py` — the full battery, 37/37. `h14_verify.py` — 8/8. `never_pairs_verify.py` — 7/7. `gems2_verify.py` — 6/6. `starting_line_verify.py` — ALL PASS. `doors_generate.py` — regenerates the 7,140 from scratch. A Rust mirror of the engine agrees on every headline number.
 
-**The system in one paragraph.** The nodes are 48 masks. For a pair (a, b), write x = a XOR b and o = a AND b. A *door* is a quadruple (a, b, c, d) where c and d redistribute the differing bits: c = o | u and d = o | (x XOR u) for some submask u of x, with both c and d inside the window. Pair distance is popcount(x)/2, running 1 to 6. Everything below is arithmetic on that definition.
+**The system in one paragraph.** The nodes are 48 masks. For a pair (a, b), write x = a XOR b and o = a AND b. A *door* is a quadruple (a, b, c, d) where c and d redistribute the differing bits: c = o | u and d = o | (x XOR u) for some submask u of x, with both c and d inside the window. Pair distance is the Hamming distance popcount(a XOR b), running 1 to 6; doors live at distances 2-6. Everything below is arithmetic on that definition.
 
 ---
 
@@ -57,7 +57,7 @@ _Every figure shown in the exhibit at [snowphamtom.github.io/hall-looks/the-core
 - **Status:** VERIFIED (Gem 08).
 
 ### Distance census — D2 488 · D3 1,696 · D4 2,548 · D5 1,864 · D6 544
-- **Derivation:** doors grouped by their pair's distance popcount(a XOR b)/2; pair counts per distance are 124 / 282 / 352 / 253 / 100 / 17, door-weighted to the figures shown. Sum: 488 + 1,696 + 2,548 + 1,864 + 544 = 7,140.
+- **Derivation:** doors grouped by their pair's Hamming distance popcount(a XOR b); pair counts per distance are 124 / 282 / 352 / 253 / 100 / 17, door-weighted to the figures shown. Sum: 488 + 1,696 + 2,548 + 1,864 + 544 = 7,140.
 - **Proof:** `core_engine.py`; also printed identically on the independent sink-metrics plate (see Exhibit 03).
 - **Status:** VERIFIED.
 
@@ -67,7 +67,7 @@ _Every figure shown in the exhibit at [snowphamtom.github.io/hall-looks/the-core
 - **Status:** VERIFIED.
 
 ### No distance-1 doors — the gap
-- **Derivation:** a distance-1 pair differs in exactly 2 bits (one H₇ step); its only redistributions are self-splits, which are not doors. All 124 distance-1 pairs are never pairs.
+- **Derivation:** a distance-1 pair differs in exactly one bit; its only redistributions are self-splits (c in {a, b}), which are not doors. All 124 distance-1 pairs are never pairs.
 - **Proof:** `never_pairs_verify.py` — 7/7 (see The Never Pairs, Explained).
 - **Status:** VERIFIED.
 
@@ -188,3 +188,24 @@ Each gem was derived from the operators, then verified by `gems2_verify.py` (6/6
 - **The manifold's own figures** (its on-screen deck and HUD) are generated from `core_compact.json`: nodes[48], pairs[944], never[184], spectrumW[48], midpoints 83; the system has 83 distinct pair-sums, spanning 16…184 — cross-checked against the engine before every build.
 
 > Measure what is left over after an interaction; admit only what fits inside that leftover; otherwise refuse and record the refusal.
+
+---
+
+## Addendum — the living exhibits (added Oct 11, 2026)
+
+### The Door (in-page checker)
+- The exhibit page carries the filed predicate itself, ported line for line from `doors_generate.py` + `never_pairs_verify.py` into JavaScript: masks = the odd numbers 3..97; splits c = o | u, d = o | (x XOR u) for u a submask of x = a XOR b around o = a AND b; verdicts SELF / IS_1 / HIGH / EQ / OK exactly as in the Python.
+- **Proof of the port:** before publication the JavaScript was run headlessly against the record — census identical on every figure: 7,140 doors, 944 door pairs, 184 never (124 self-only + 45 top-only + 15 bottom-only), piles 360 / 3,584 / 3,196, distance bins 488 / 1,696 / 2,548 / 1,864 / 544; (3,3,3,3) refused at the pair gate. The page re-runs this census in the visitor's browser on load and prints the result.
+- Door classes in the checker: CLEAN when c = a AND b; FLOOR when a AND b = 1 (the two masks share only bit 0); WIDER otherwise — the generator's definitions.
+
+### Exhibit 04 — The Refusals
+- Its figures are Gems 15 and 16 and the H₁₄ triple limit, already on this menu; the room exists so the refusals hang together. The kept/refused bar (3,780 / 3,360) is drawn to scale: 3,780 / 7,140 = 52.9%.
+
+### The Evidence (downloads)
+- `core_compact.json` — the data the manifold and the map are drawn from (nodes[48], pairs[944], never[184], spectra, flow, midpoints 83).
+- `doors_generate.py` — the generator: the three stated constraints, of which the weight identity is proven redundant by `never_pairs_verify.py`.
+- The suites: `core_engine.py` (34/34), `h14_verify.py` (8/8), `never_pairs_verify.py` (7/7), `gems2_verify.py` (6/6). Run them; the seals are reproducible, not rhetorical.
+
+### Exhibit 06 — The Map
+- The 2D spatial measurement graph (`SPATIAL_MEASUREMENT_GRAPH_2026-10-11.html`): all 1,128 pair-lines drawn from the same `core_compact.json`; its builder asserts the totals, the two sink counts, the tollbooth, Kirchhoff at all 48, and both censuses before it renders. Its hub gearing (12:1) is a design choice of that page and is labeled as such there — it is not one of this system's figures.
+
