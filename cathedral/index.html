@@ -2,7 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#060608">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Cathedral ★">
+<meta name="format-detection" content="telephone=no">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>The Cathedral Engine — Notre Dame Sandbox</title>
 <meta name="description" content="A cathedral design sandbox measured against Notre Dame: pre-loaded parts that snap together, a blueprint you can stretch and warp, and a ledger that accounts for every pillar, arch, window, tile and seat.">
 <meta property="og:title" content="The Cathedral Engine — Notre Dame Sandbox">
@@ -68,6 +75,27 @@
   body[data-theme="parchment"] .note, body[data-theme="parchment"] .plab, body[data-theme="parchment"] #state { color:#6a6046; }
   body[data-theme="parchment"] .sheet .srow { color:#2e2a20; border-color:#c9bc96; }
   body[data-theme="filigree"] .pbtn.on, body[data-theme="filigree"] .tabbtn.on { border-color:#fff; color:#fff; }
+
+  /* ===== iPhone pack ===== */
+  html, body { overscroll-behavior: none; -webkit-text-size-adjust: 100%; }
+  * { -webkit-tap-highlight-color: transparent; }
+  button, .panel, #bar, #readout, #hint { touch-action: manipulation; -webkit-touch-callout: none; }
+  .panel, #bar, #readout, #hint, .sheet { user-select: none; -webkit-user-select: none; }
+  #bar { padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
+  .panel { bottom: calc(53px + env(safe-area-inset-bottom)); max-height: 54dvh; overscroll-behavior: contain; }
+  #readout { bottom: calc(66px + env(safe-area-inset-bottom)); }
+  #hint { top: calc(12px + env(safe-area-inset-top)); }
+  .tabbtn, .pbtn { min-height: 42px; padding: 10px 15px; }
+  .marker { width: 42px; height: 42px; margin: -21px 0 0 -21px; font-size: 16px; }
+  input[type=range] { height: 34px; }
+  @media (max-width: 620px) {
+    #bar .brand { display: none; }
+    #state { font-size: 10px; }
+    .tabbtn { padding: 10px 11px; letter-spacing: .08em; }
+    #boot .t { letter-spacing: .3em; }
+    .sheet .srow { font-size: .88rem; }
+  }
+  @media (max-height: 430px) { .panel { max-height: 72dvh; } }
 </style>
 <script type="importmap">
 { "imports": {
@@ -85,6 +113,14 @@
   <div class="s">MEASURING NOTRE DAME…</div>
 </div>
 
+<script>
+setTimeout(function () {
+  if (!window.__cathBooted) {
+    var s = document.querySelector('#boot .s');
+    if (s) s.textContent = 'THIS EXPERIENCE NEEDS A CURRENT BROWSER — iOS 16.4+ / SAFARI. IF YOU ARE INSIDE AN APP, OPEN THIS PAGE IN SAFARI.';
+  }
+}, 7000);
+</script>
 <div id="readout"><div class="rt"></div><div class="rb"></div></div>
 
 <div class="panel" id="panel-parts">
@@ -161,6 +197,7 @@
     <span class="note">Gold numbers from the anatomy plate, pinned to the living building. Tap one.</span></div>
   <div class="prow"><span class="plab">CAMERA</span>
     <button class="pbtn" id="orbitBtn">AUTO-ORBIT</button>
+    <button class="pbtn on" id="hapBtn">HAPTICS ON</button>
     <button class="pbtn" id="resetBtn">RESET VIEW</button></div>
 </div>
 
@@ -221,6 +258,7 @@ sun.shadow.mapSize.set(2048, 2048);
 sun.shadow.camera.left = -80; sun.shadow.camera.right = 80;
 sun.shadow.camera.top = 80; sun.shadow.camera.bottom = -80;
 sun.shadow.camera.far = 320; sun.shadow.bias = -0.0006;
+if (window.matchMedia && matchMedia('(pointer: coarse)').matches) sun.shadow.mapSize.set(1024, 1024);
 scene.add(sun); scene.add(sun.target); sun.target.position.set(0, 0, 0);
 scene.add(new THREE.HemisphereLight(0x39406b, 0x0a0a0c, 0.55));
 let sunAngle = 128;
@@ -367,7 +405,12 @@ const world = new THREE.Group(); scene.add(world);
 let items = [], selected = null, nextId = 1;
 const stateEl = document.getElementById('state');
 function setState(t) { stateEl.textContent = t; }
+let hapOn = true, lastHap = 0;
 function haptic() {
+  if (!hapOn) return;
+  const now = performance.now();
+  if (now - lastHap < 90) return;
+  lastHap = now;
   const l = document.getElementById('hapLabel');
   if (l) { try { l.click(); } catch (e) {} }
   if (navigator.vibrate) { try { navigator.vibrate(10); } catch (e) {} }
@@ -450,7 +493,7 @@ document.getElementById('dupBtn').addEventListener('click', () => {
   const it = addItem(selected.type, snap(p.x + 4), snap(p.z), selected.group.rotation.y, [s.x, s.y, s.z], selected.mat);
   select(it); setState('duplicated — snapped 4 m east');
 });
-document.getElementById('delBtn').addEventListener('click', () => { if (selected) { setState(PARTS[selected.type].name + ' removed'); removeItem(selected); } });
+document.getElementById('delBtn').addEventListener('click', () => { if (selected) { setState(PARTS[selected.type].name + ' removed'); removeItem(selected); haptic(); } });
 document.querySelectorAll('[data-add]').forEach(b => b.addEventListener('click', () => {
   const it = addItem(b.dataset.add, 0, 0);
   select(it);
@@ -536,7 +579,7 @@ canvas.addEventListener('pointerdown', e => {
   if (bpMode && bpTool === 'warp') {
     if (!gp) return;
     lastWarpSnap = items.map(i => ({ i, x: i.group.position.x, z: i.group.position.z }));
-    drag = { kind: 'warp', start: gp.clone() };
+    drag = { kind: 'warp', start: gp.clone(), pid: e.pointerId };
     controls.enabled = false;
     return;
   }
@@ -544,15 +587,15 @@ canvas.addEventListener('pointerdown', e => {
   if (it) {
     select(it);
     if (bpMode && bpTool === 'stretch') {
-      drag = { kind: 'stretch', it, start: gp ? gp.clone() : null, sx: it.group.scale.x, sz: it.group.scale.z };
+      drag = { kind: 'stretch', it, start: gp ? gp.clone() : null, sx: it.group.scale.x, sz: it.group.scale.z, pid: e.pointerId };
     } else {
-      drag = { kind: 'move', it };
+      drag = { kind: 'move', it, pid: e.pointerId };
     }
     controls.enabled = false;
   }
 });
 canvas.addEventListener('pointermove', e => {
-  if (!drag) return;
+  if (!drag || e.pointerId !== drag.pid) return;
   const gp = groundPoint(e); if (!gp) return;
   if (drag.kind === 'move') {
     drag.it.group.position.x = snap(gp.x); drag.it.group.position.z = snap(gp.z);
@@ -573,8 +616,8 @@ canvas.addEventListener('pointermove', e => {
     if (selBox) selBox.update();
   }
 });
-window.addEventListener('pointerup', () => {
-  if (drag) { drag = null; controls.enabled = true; recount(); }
+window.addEventListener('pointerup', e => {
+  if (drag && e.pointerId === drag.pid) { const wasWarp = drag.kind === 'warp'; drag = null; controls.enabled = true; if (wasWarp) haptic(); recount(); }
 });
 document.getElementById('warpUndo').addEventListener('click', () => {
   if (lastWarpSnap) { lastWarpSnap.forEach(s => { s.i.group.position.x = s.x; s.i.group.position.z = s.z; }); recount(); setState('warp undone — the drawing relaxes'); }
@@ -589,7 +632,7 @@ document.querySelectorAll('[data-bptool]').forEach(b => b.addEventListener('clic
 const bpMat = new THREE.MeshBasicMaterial({ color: 0x9fc4ff, wireframe: true });
 const bpBtn = document.getElementById('bpToggle');
 bpBtn.addEventListener('click', () => {
-  bpMode = !bpMode;
+  bpMode = !bpMode; haptic();
   bpBtn.textContent = bpMode ? 'LEAVE BLUEPRINT' : 'ENTER BLUEPRINT';
   bpBtn.classList.toggle('on', bpMode);
   if (bpMode) {
@@ -708,6 +751,7 @@ function animate() {
   controls.update();
   renderer.render(scene, camera);
 }
+window.__cathBooted = true;
 animate();
 setTimeout(() => document.getElementById('boot').classList.add('gone'), 900);
 window.addEventListener('resize', () => {
@@ -716,6 +760,12 @@ window.addEventListener('resize', () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
+document.getElementById('hapBtn').addEventListener('click', e => {
+  hapOn = !hapOn;
+  e.target.classList.toggle('on', hapOn);
+  e.target.textContent = hapOn ? 'HAPTICS ON' : 'HAPTICS OFF';
+  if (hapOn) haptic();
+});
 /* ============ V3 — EXEMPLARS, ANATOMY, DIMENSIONS, DETAIL SHEETS, THEMES ============ */
 function buildCathedral(cfg) {
   clearAll();
