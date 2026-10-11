@@ -8,6 +8,10 @@
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: #060608; color: #e8e4da; font-family: Georgia, 'Times New Roman', serif; line-height: 1.7; }
+  body::before { content: ""; position: fixed; inset: 0; z-index: -1; background: url('img/tapestry_bg.jpg') center top / cover no-repeat; opacity: 0.55; }
+  .piece img, .hero img { border-color: #4a3f2a; }
+  .scene { font-style: italic; color: #9a937f; margin-bottom: 22px; }
+  .spk { color: #d8c690; letter-spacing: 0.14em; font-size: 0.82rem; text-transform: uppercase; }
   header { text-align: center; padding: 72px 24px 40px; }
   header h1 { font-size: clamp(2.4rem, 6vw, 4.2rem); letter-spacing: 0.18em; font-weight: 400; color: #f5f0e1; }
   header p.sub { margin-top: 12px; letter-spacing: 0.22em; font-size: 0.85rem; color: #9a937f; text-transform: uppercase; }
@@ -92,10 +96,31 @@
 </section>
 
 <section class="text">
-  <h2>The Story</h2>
-  <p>The train is a thought that refused to stay still. It runs on rails of light through tunnels of chrome wire, and every station it passes is a dream it has already had.</p>
-  <p>Nothing here is solid. The walls are striations, the floor is marbled weather, the cities fold into rings and spin slowly against the clouds. The train travels one way — toward you, or left to right — the way a thought travels when it finally decides to arrive.</p>
-  <p>Nine pictures, one journey — arrival, the run, the vortex, the tilt, the teal, the pause, the ring, the synthesis, the whole journey. It should be what dreams dream: a machine for imagining, drawn at the speed of sleep.</p>
+  <h2>The Story — a dialogue</h2>
+  <p class="scene">Dreamers: the Conductor, the Traveler. Scene: a platform of combed light.</p>
+  <p><span class="spk">Conductor:</span> Ticket.</p>
+  <p><span class="spk">Traveler:</span> I haven't one. I have a memory of one.</p>
+  <p><span class="spk">Conductor:</span> Then let us examine what you hold. Is a memory of a ticket a ticket?</p>
+  <p><span class="spk">Traveler:</span> It is not. A ticket is punched, and admits you. A memory only describes the admitting.</p>
+  <p><span class="spk">Conductor:</span> And yet you are standing on my platform, and the train has come for you. So tell me — which of the two admitted you: the paper, or the memory of the paper?</p>
+  <p><span class="spk">Traveler:</span> I… came by remembering the way.</p>
+  <p><span class="spk">Conductor:</span> Then a memory may do the work of the thing it remembers. Remember this conclusion; we will need it when the floor changes its mind.</p>
+  <p><span class="spk">Traveler:</span> The floor?</p>
+  <p><span class="spk">Conductor:</span> It was rose when you arrived. What is it now?</p>
+  <p><span class="spk">Traveler:</span> Teal. It changed while I was answering you.</p>
+  <p><span class="spk">Conductor:</span> And is it the same floor?</p>
+  <p><span class="spk">Traveler:</span> It must be. I have not moved.</p>
+  <p><span class="spk">Conductor:</span> Then a thing may change everything about itself and remain itself — provided someone stands on it and does not move. Hold still, then, in more ways than one. What do you see in the train's window?</p>
+  <p><span class="spk">Traveler:</span> A small pink dusk. And inside the dusk, another train, arriving.</p>
+  <p><span class="spk">Conductor:</span> And inside that one?</p>
+  <p><span class="spk">Traveler:</span> I cannot see. It is too far and too near at once.</p>
+  <p><span class="spk">Conductor:</span> Good. You have described every thought you have ever had. Now look down the platform, and tell me what stands at the last doorway.</p>
+  <p><span class="spk">Traveler:</span> Nothing. An empty hall. No train, no light — the pause holds its breath.</p>
+  <p><span class="spk">Conductor:</span> And is the nothing a station?</p>
+  <p><span class="spk">Traveler:</span> If the train stops there, it is a station.</p>
+  <p><span class="spk">Conductor:</span> The train stops there. Every journey on this line includes one stop where nothing happens — and the nothing, my friend, is load-bearing. Remove it, and the arrival arrives nowhere. Now, one warning, which I give as myth because the truth of it will not fit in an argument: at Ring City the world folds into a ring and spins, and thoughts fall out of open hands. So tell me before we depart — the thought you are riding, the one that brought you here by memory — are you holding it, or is it holding you?</p>
+  <p><span class="spk">Traveler:</span> I don't know.</p>
+  <p><span class="spk">Conductor:</span> Excellent. Then you may board. Nobody rides this train who thinks they know.</p>
 </section>
 
 <section class="text specs">
