@@ -340,7 +340,8 @@ setTimeout(function () {
     <button class="pbtn on" data-bptool="move">MOVE</button>
     <button class="pbtn" data-bptool="stretch">STRETCH</button>
     <button class="pbtn" data-bptool="warp">WARP</button>
-    <button class="pbtn" id="warpUndo">UNDO WARP</button></div>
+    <button class="pbtn" id="warpUndo">UNDO WARP</button>
+    <button class="pbtn" id="relBtn">SHAPE POLES</button></div>
   <div class="prow"><span class="note">STRETCH: drag a part sideways or lengthwise and it extends on that axis. WARP: press on the ground and drag — every part within 16 m leans with your hand, by falloff. The ledger re-measures after every bend, and the canon audit shows the drift.</span></div>
 </div>
 
@@ -3628,6 +3629,119 @@ if (chSub) chSub.textContent += ' · WOOD FRAME CARRIES 94% OF NEW US HOMES (NAH
 /* ---- init ---- */
 document.getElementById('buildStamp').innerHTML = 'BUILD <b>v24</b> · LIVE — RECONCILED TO THE SOURCES';
 setState('RECONCILED — every template re-measured against the construction record: the median house, the garden apartment, the true warehouse scale, the office floor-to-floor, the hotel prototype');
+
+
+/* ============ V25 — SHAPE POLES: pull the frame, the building follows ============ */
+let relOn = true, relDrag = null;
+const handleGroup = new THREE.Group();
+world.add(handleGroup);
+const handleMeshes = [];
+const poleMat = new THREE.LineBasicMaterial({ color: 0xd8b76a, transparent: true, opacity: 0.7 });
+let poleLines = null;
+function refreshHandles() {
+  if (relDrag || !lastExtents || !items.length) { handleGroup.visible = false; return; }
+  handleGroup.visible = relOn;
+  if (!relOn) return;
+  handleMeshes.forEach(m => handleGroup.remove(m));
+  handleMeshes.length = 0;
+  const mk = (axis, x, y, z) => {
+    const m = new THREE.Mesh(new THREE.SphereGeometry(1.05, 18, 14), MATS.gold);
+    m.position.set(x, y, z);
+    m.userData.rel = axis;
+    handleGroup.add(m); handleMeshes.push(m);
+    return m;
+  };
+  mk('x', lastExtents.maxX + 3, 1.4, hubC.z);
+  mk('z', hubC.x, 1.4, lastExtents.maxZ + 3);
+  mk('y', hubC.x, boxMaxY() + 3.2, hubC.z);
+  if (poleLines) { handleGroup.remove(poleLines); poleLines.geometry.dispose(); }
+  const pts = [
+    new THREE.Vector3(lastExtents.maxX + 3, 0, hubC.z), new THREE.Vector3(lastExtents.maxX + 3, 1.4, hubC.z),
+    new THREE.Vector3(hubC.x, 0, lastExtents.maxZ + 3), new THREE.Vector3(hubC.x, 1.4, lastExtents.maxZ + 3),
+    new THREE.Vector3(hubC.x, 0, hubC.z), new THREE.Vector3(hubC.x, boxMaxY() + 3.2, hubC.z)
+  ];
+  poleLines = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts), poleMat);
+  handleGroup.add(poleLines);
+}
+setInterval(refreshHandles, 700);
+function applyRel(fx, fz, fy) {
+  if (!relDrag) return;
+  items.forEach(it => {
+    const b = relDrag.base.get(it.id);
+    if (!b) return;
+    it.group.position.x = relDrag.cx + (b.x - relDrag.cx) * fx;
+    it.group.position.z = relDrag.cz + (b.z - relDrag.cz) * fz;
+    it.group.position.y = b.y * fy;
+    it.scale = [b.sx * fx, b.sy * fy, b.sz * fz];
+    it.group.scale.set(it.scale[0], it.scale[1], it.scale[2]);
+  });
+}
+renderer.domElement.parentElement.addEventListener('pointerdown', e => {
+  if (!relOn || walkMode) return;
+  refreshHandles();
+  setRay(e);
+  const hits = raycaster.intersectObjects(handleMeshes, false);
+  if (!hits.length) return;
+  e.stopPropagation();
+  controls.enabled = false;
+  const base = new Map();
+  items.forEach(it => base.set(it.id, { x: it.group.position.x, z: it.group.position.z, y: it.group.position.y, sx: it.scale[0], sy: it.scale[1], sz: it.scale[2] }));
+  relDrag = { axis: hits[0].object.userData.rel, base, cx: hubC.x, cz: hubC.z,
+              hx: lastExtents.maxX + 3, hz: lastExtents.maxZ + 3, hy: boxMaxY(), y0: e.clientY, f: 1 };
+  handleGroup.visible = true;
+  setState('PULL THE POLE — the whole space re-derives around your hand');
+  haptic(12);
+}, true);
+window.addEventListener('pointermove', e => {
+  if (!relDrag) return;
+  let f = relDrag.f;
+  if (relDrag.axis === 'x') {
+    const gp = groundPoint(e);
+    if (gp) f = THREE.MathUtils.clamp((gp.x - relDrag.cx) / (relDrag.hx - relDrag.cx), 0.4, 2.5);
+    applyRel(f, 1, 1);
+  } else if (relDrag.axis === 'z') {
+    const gp = groundPoint(e);
+    if (gp) f = THREE.MathUtils.clamp((gp.z - relDrag.cz) / (relDrag.hz - relDrag.cz), 0.4, 2.5);
+    applyRel(1, f, 1);
+  } else {
+    setRay(e);
+    const n = new THREE.Vector3(); camera.getWorldDirection(n); n.y = 0; n.normalize();
+    const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(n, new THREE.Vector3(hubC.x, 0, hubC.z));
+    const pt = new THREE.Vector3();
+    if (raycaster.ray.intersectPlane(plane, pt))
+      f = THREE.MathUtils.clamp(pt.y / Math.max(1, relDrag.hy), 0.4, 2.5);
+    applyRel(1, 1, f);
+  }
+  if (Math.abs(f - relDrag.f) > 0.05) { relDrag.f = f; haptic(5); }
+});
+window.addEventListener('pointerup', () => {
+  if (!relDrag) return;
+  relDrag = null;
+  controls.enabled = true;
+  refreshExtents();
+  if (typeof pushHistory === 'function') pushHistory();
+  haptic([10, 40, 10]);
+  const s = dimsOf();
+  setState('THE SPACE, RESHAPED BY TOUCH — ' + s.txt + ' · bays still equal, columns still plumb, every figure re-measured from the stone itself');
+});
+document.querySelectorAll('[data-skel]').forEach(b => b.addEventListener('click', () => {
+  if (!relOn) document.getElementById('relBtn').click();
+}));
+document.getElementById('relBtn').addEventListener('click', () => {
+  relOn = !relOn;
+  document.getElementById('relBtn').classList.toggle('on', relOn);
+  document.getElementById('relBtn').textContent = relOn ? 'SHAPE POLES — ON' : 'SHAPE POLES';
+  refreshHandles();
+  setState(relOn ? 'SHAPE POLES LIVE — pull the gold poles: width, depth, height. Everything else follows in relation.' : 'shape poles folded away');
+  haptic();
+});
+
+/* ---- init ---- */
+document.getElementById('relBtn').classList.add('on');
+document.getElementById('relBtn').textContent = 'SHAPE POLES — ON';
+document.getElementById('buildStamp').innerHTML = 'BUILD <b>v25</b> · LIVE — SHAPE POLES';
+setState('SHAPE POLES — from the wire frame, just pull: width, depth, height by touch, and every figure re-derives in relation. Mathematical certainty is the thing being maintained.');
+refreshHandles();
 
 </script>
 </body>
