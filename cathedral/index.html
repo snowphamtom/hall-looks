@@ -381,6 +381,10 @@ setTimeout(function () {
 <div class="prow"><span class="plab">AXES + BOX</span>
     <button class="pbtn on" id="axesBtn">AXES + BOX ON</button>
     <span class="wnote">The XYZ frame of the space — shown while you frame, hidden while you work inside it.</span></div>
+<div class="prow"><span class="plab">THE PLATES</span>
+    <button class="pbtn" id="geoBtn">CONSTRUCTION</button>
+    <button class="pbtn" id="perspBtn">PERSPECTIVE FLOOR</button>
+    <span class="wnote">Cesariano's geometry over the section, and the perspective masters' triangulated floor.</span></div>
 <div class="prow"><span class="plab">PHASES</span>
     <input type="range" id="phaseRange" min="0" max="9" step="1" value="9">
     <span class="sval" id="phaseVal">THE FURNISHING — THE WHOLE CATHEDRAL</span></div>
@@ -3227,6 +3231,166 @@ fitIso(false);
 prevSnap = snapDesign(); lastSig = designSig();
 document.getElementById('buildStamp').innerHTML = 'BUILD <b>v20</b> · LIVE — THE DESIGN GAME';
 setState('A BLANK FLOOR. What are you building?');
+
+
+/* ============ V21 — FROM THE PLATES: CONSTRUCTION, VAULTS, PERSPECTIVE ============ */
+/* the vaulting plate, as parts */
+PARTS.barrel = {
+  name: 'Barrel Vault', w: 8, h: 4, d: 12, seats: 0, glass: 0, vol: 55,
+  build(mat) {
+    const g = new THREE.Group();
+    const geo = new THREE.CylinderGeometry(6, 6, 8, 20, 1, true, 0, Math.PI);
+    geo.rotateZ(Math.PI / 2); geo.rotateY(Math.PI / 2);
+    const m = new THREE.Mesh(geo, mat);
+    m.castShadow = true;
+    g.add(m);
+    return g;
+  }
+};
+PARTS.groin = {
+  name: 'Groin Vault', w: 8, h: 4, d: 8, seats: 0, glass: 0, vol: 48,
+  build(mat) {
+    const g = new THREE.Group();
+    [0, Math.PI / 2].forEach(r => {
+      const geo = new THREE.CylinderGeometry(4.6, 4.6, 8, 18, 1, true, 0, Math.PI);
+      geo.rotateZ(Math.PI / 2); geo.rotateY(Math.PI / 2 + r);
+      const m = new THREE.Mesh(geo, mat);
+      m.castShadow = true;
+      g.add(m);
+    });
+    return g;
+  }
+};
+PARTS.shell = {
+  name: 'Shell Vault', w: 8, h: 3, d: 12, seats: 0, glass: 0, vol: 40,
+  build(mat) {
+    const g = new THREE.Group();
+    const geo = new THREE.SphereGeometry(9, 20, 10, 0, Math.PI * 2, 0, Math.PI / 3.4);
+    geo.scale(0.72, 0.5, 1.05);
+    const m = new THREE.Mesh(geo, mat);
+    m.castShadow = true;
+    g.add(m);
+    return g;
+  }
+};
+SECTIONS.arches.types.push('barrel', 'groin', 'shell');
+Object.assign(PHASE_RANK, { barrel: 5, groin: 5, shell: 5 });
+TYPE_ACTS.barrel = [ { act: 'row3', label: 'RUN OF 3 BAYS' }, { act: 'raise125', label: 'RAISE THE CROWN ×1.25' } ];
+TYPE_ACTS.groin = [ { act: 'row3', label: 'RUN OF 3 BAYS' } ];
+TYPE_ACTS.shell = [ { act: 'sizeUp', label: 'WIDER +' } ];
+(function () {
+  const archBtn = document.querySelector('[data-place="arch"]');
+  if (!archBtn) return;
+  const prow = archBtn.parentElement;
+  [['barrel', 'BARREL VAULT'], ['groin', 'GROIN VAULT'], ['shell', 'SHELL VAULT']].forEach(([t, label]) => {
+    const b = document.createElement('button');
+    b.className = 'pbtn'; b.dataset.place = t; b.textContent = label;
+    b.addEventListener('click', () => {
+      armedType = t;
+      document.querySelectorAll('[data-place]').forEach(x => x.classList.toggle('on', x === b));
+      buildGhost();
+      placeNote.textContent = PARTS[t].name + ' armed — press the ground and drag. Release, and it stands.';
+      haptic();
+    });
+    prow.appendChild(b);
+  });
+})();
+
+/* Cesariano's move: the construction that generates the section, drawn over the building */
+let geoGroup = null, geoOn = false;
+function buildGeometry() {
+  if (geoGroup) { world.remove(geoGroup); geoGroup.geometry.dispose(); geoGroup = null; }
+  if (!lastExtents || !items.length) return;
+  const cx = (lastExtents.minX + lastExtents.maxX) / 2;
+  const cz = (lastExtents.minZ + lastExtents.maxZ) / 2;
+  const hw = (lastExtents.maxX - lastExtents.minX) / 2;
+  const H = boxMaxY();
+  const pts = [];
+  const seg = (a, b) => pts.push(a, b);
+  const V = (x, y, z) => new THREE.Vector3(x, y, z);
+  const zF = lastExtents.maxZ + 0.3;
+  /* the governing triangle — base corners to the apex (ad triangulum) */
+  seg(V(cx - hw, 0, zF), V(cx, H, zF)); seg(V(cx + hw, 0, zF), V(cx, H, zF));
+  seg(V(cx - hw, 0, zF), V(cx + hw, 0, zF));
+  seg(V(cx, 0, zF), V(cx, H, zF));
+  /* the governing circle — center at the base point, through both base corners */
+  const NP = 72;
+  for (let i = 0; i < NP; i++) {
+    const a1 = (i / NP) * Math.PI, a2 = ((i + 1) / NP) * Math.PI;
+    seg(V(cx + hw * Math.cos(a1), hw * Math.sin(a1), zF), V(cx + hw * Math.cos(a2), hw * Math.sin(a2), zF));
+  }
+  /* the square and its turned twin (ad quadratum) at the section */
+  const sq = [[cx - hw, 0], [cx + hw, 0], [cx + hw, hw], [cx - hw, hw]];
+  for (let i = 0; i < 4; i++) seg(V(sq[i][0], sq[i][1], zF), V(sq[(i + 1) % 4][0], sq[(i + 1) % 4][1], zF));
+  const ccx = cx, ccy = hw / 2, rr = hw * Math.SQRT1_2;
+  for (let i = 0; i < 4; i++) {
+    const a1 = Math.PI / 4 + i * Math.PI / 2, a2 = Math.PI / 4 + (i + 1) * Math.PI / 2;
+    seg(V(ccx + rr * Math.cos(a1), ccy + rr * Math.sin(a1), zF), V(ccx + rr * Math.cos(a2), ccy + rr * Math.sin(a2), zF));
+  }
+  /* the compass arcs — swung from the base corners, striking the center line */
+  [cx - hw, cx + hw].forEach(bx => {
+    for (let i = 0; i < 40; i++) {
+      const a1 = (i / 40) * Math.PI * 0.62, a2 = ((i + 1) / 40) * Math.PI * 0.62;
+      const r = hw * 2;
+      const sx = bx < cx ? 1 : -1;
+      seg(V(bx + sx * r * Math.sin(a1) * 0.999, r * (1 - Math.cos(a1)) * 0.62, zF), V(bx + sx * r * Math.sin(a2) * 0.999, r * (1 - Math.cos(a2)) * 0.62, zF));
+    }
+  });
+  /* the plan's geometry — the same circle + square on the floor */
+  const NP2 = 72;
+  for (let i = 0; i < NP2; i++) {
+    const a1 = (i / NP2) * Math.PI * 2, a2 = ((i + 1) / NP2) * Math.PI * 2;
+    seg(V(cx + hw * Math.cos(a1), 0.06, cz + hw * Math.sin(a1)), V(cx + hw * Math.cos(a2), 0.06, cz + hw * Math.sin(a2)));
+  }
+  geoGroup = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts),
+    new THREE.LineBasicMaterial({ color: 0xf5f2e8, transparent: true, opacity: 0.55 }));
+  geoGroup.visible = geoOn;
+  world.add(geoGroup);
+}
+document.getElementById('geoBtn').addEventListener('click', () => {
+  geoOn = !geoOn;
+  if (geoOn) buildGeometry();
+  if (geoGroup) geoGroup.visible = geoOn;
+  document.getElementById('geoBtn').classList.toggle('on', geoOn);
+  document.getElementById('geoBtn').textContent = geoOn ? 'CONSTRUCTION — ON' : 'CONSTRUCTION';
+  setState(geoOn ? 'THE CONSTRUCTION — circle, triangle, square and arcs: the figures the building was drawn from' : 'construction folded away');
+  haptic();
+});
+
+/* the perspective plate's floor: the grid, triangulated */
+let perspOn = false, perspGroup = null;
+function buildPerspFloor() {
+  if (perspGroup) { scene.remove(perspGroup); perspGroup.geometry.dispose(); perspGroup = null; }
+  if (!lastExtents) return;
+  const { minX, maxX, minZ, maxZ } = lastExtents, pts = [];
+  const step = 4;
+  for (let x = Math.floor(minX / step) * step; x <= maxX; x += step)
+    for (let z = Math.floor(minZ / step) * step; z <= maxZ - step + 0.01; z += step) {
+      pts.push(new THREE.Vector3(x, 0.05, z), new THREE.Vector3(x + step, 0.05, z + step));
+      pts.push(new THREE.Vector3(x + step, 0.05, z), new THREE.Vector3(x, 0.05, z + step));
+    }
+  perspGroup = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts),
+    new THREE.LineBasicMaterial({ color: 0x8a7a4a, transparent: true, opacity: 0.5 }));
+  perspGroup.visible = perspOn;
+  scene.add(perspGroup);
+}
+setInterval(() => { if (perspOn) buildPerspFloor(); }, 2500);
+document.getElementById('perspBtn').addEventListener('click', () => {
+  perspOn = !perspOn;
+  buildPerspFloor();
+  document.getElementById('perspBtn').classList.toggle('on', perspOn);
+  document.getElementById('perspBtn').textContent = perspOn ? 'PERSPECTIVE FLOOR — ON' : 'PERSPECTIVE FLOOR';
+  setState(perspOn ? 'THE FLOOR, TRIANGULATED — every square cut by its diagonals, as the perspective masters drew it' : 'perspective floor folded away');
+  haptic();
+});
+
+/* open shells must read from inside — the stone carries two faces, deliberately */
+MATS.stone.side = THREE.DoubleSide;
+MATS.stone.needsUpdate = true;
+
+/* ---- init ---- */
+document.getElementById('buildStamp').innerHTML = 'BUILD <b>v21</b> · LIVE — FROM THE PLATES';
+setState('FROM THE PLATES — the construction drawn, three true vaults in the catalog, the floor triangulated · ' + items.length + ' figures standing');
 
 </script>
 </body>
