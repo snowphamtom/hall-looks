@@ -327,7 +327,10 @@ setTimeout(function () {
   <div class="prow"><span class="wnote" id="mulNote"></span></div>
   <div class="prow"><span class="plab">MIRROR</span>
     <button class="pbtn" id="mirXBtn">ACROSS NAVE AXIS</button>
-    <button class="pbtn" id="mirZBtn">ACROSS CROSSING AXIS</button></div>
+    <button class="pbtn" id="mirZBtn">ACROSS CROSSING AXIS</button>
+    <button class="pbtn" id="kal4Btn">KALEIDOSCOPE ×4</button>
+    <button class="pbtn" id="kal8Btn">KALEIDOSCOPE ×8</button>
+    <button class="pbtn" id="mirRowBtn">MIRROR ROW — 5 STATIONS</button></div>
   <div class="prow"><span class="plab">RATIO</span><span class="wnote" id="ratioNote"></span></div>
 
 </div>
@@ -3742,6 +3745,136 @@ document.getElementById('relBtn').textContent = 'SHAPE POLES — ON';
 document.getElementById('buildStamp').innerHTML = 'BUILD <b>v25</b> · LIVE — SHAPE POLES';
 setState('SHAPE POLES — from the wire frame, just pull: width, depth, height by touch, and every figure re-derives in relation. Mathematical certainty is the thing being maintained.');
 refreshHandles();
+
+
+/* ============ V26 — MIRROR, MULTIPLIED + THE REULEAUX PYRAMIDS ============ */
+function reuleauxPyramid(concave) {
+  const s = 8, apexY = 6.2, N = 14;
+  const verts = [];
+  for (let k = 0; k < 3; k++) {
+    const a = Math.PI / 2 + k * 2 * Math.PI / 3;
+    verts.push(new THREE.Vector2(s / Math.sqrt(3) * Math.cos(a), s / Math.sqrt(3) * Math.sin(a)));
+  }
+  const ring = [];
+  for (let k = 0; k < 3; k++) {
+    const A = verts[k], B = verts[(k + 1) % 3], C = verts[(k + 2) % 3];
+    for (let i = 0; i < N; i++) {
+      const t = i / N;
+      let p;
+      if (!concave) {
+        const a0 = Math.atan2(A.y - C.y, A.x - C.x), a1 = Math.atan2(B.y - C.y, B.x - C.x);
+        let da = a1 - a0;
+        while (da > Math.PI) da -= 2 * Math.PI;
+        while (da < -Math.PI) da += 2 * Math.PI;
+        const a = a0 + da * t;
+        p = new THREE.Vector2(C.x + s * Math.cos(a), C.y + s * Math.sin(a));
+      } else {
+        const mid = new THREE.Vector2((A.x + B.x) / 2, (A.y + B.y) / 2);
+        const r = Math.hypot(mid.x - C.x, mid.y - C.y);
+        const a0 = Math.atan2(A.y - C.y, A.x - C.x), a1 = Math.atan2(B.y - C.y, B.x - C.x);
+        let da = a1 - a0;
+        while (da > Math.PI) da -= 2 * Math.PI;
+        while (da < -Math.PI) da += 2 * Math.PI;
+        const a = a0 + da * t;
+        p = new THREE.Vector2(C.x + r * Math.cos(a), C.y + r * Math.sin(a));
+      }
+      ring.push(p);
+    }
+  }
+  const pos = [];
+  const apex = [0, apexY, 0];
+  const M = ring.length;
+  for (let i = 0; i < M; i++) {
+    const p = ring[i], q = ring[(i + 1) % M];
+    pos.push(p.x, 0, p.y, q.x, 0, q.y, apex[0], apex[1], apex[2]);
+    pos.push(0, 0, 0, q.x, 0, q.y, p.x, 0, p.y);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.computeVertexNormals();
+  return geo;
+}
+PARTS.reulx = {
+  name: 'Reuleaux Pyramid', w: 8, h: 6.2, d: 8, seats: 0, glass: 0, vol: 120,
+  build(mat) { const m = new THREE.Mesh(reuleauxPyramid(false), mat); m.castShadow = true; const g = new THREE.Group(); g.add(m); return g; }
+};
+PARTS.reulxc = {
+  name: 'Reuleaux Concave Pyramid', w: 8, h: 6.2, d: 8, seats: 0, glass: 0, vol: 96,
+  build(mat) { const m = new THREE.Mesh(reuleauxPyramid(true), mat); m.castShadow = true; const g = new THREE.Group(); g.add(m); return g; }
+};
+SECTIONS.body.types.push('reulx', 'reulxc');
+Object.assign(PHASE_RANK, { reulx: 7, reulxc: 7 });
+TYPE_ACTS.reulx = [ { act: 'crown', label: 'CROWN THE CROSSING' }, { act: 'kal8', label: 'KALEIDOSCOPE ×8' } ];
+TYPE_ACTS.reulxc = [ { act: 'crown', label: 'CROWN THE CROSSING' }, { act: 'kal8', label: 'KALEIDOSCOPE ×8' } ];
+(function () {
+  const roofBtn = document.querySelector('[data-place="roof"]');
+  if (!roofBtn) return;
+  const prow = roofBtn.parentElement;
+  [['reulx', 'REULEAUX PYRAMID'], ['reulxc', 'REULEAUX CONCAVE']].forEach(([t, label]) => {
+    const b = document.createElement('button');
+    b.className = 'pbtn'; b.dataset.place = t; b.textContent = label;
+    b.addEventListener('click', () => {
+      armedType = t;
+      document.querySelectorAll('[data-place]').forEach(x => x.classList.toggle('on', x === b));
+      buildGhost();
+      placeNote.textContent = PARTS[t].name + ' armed — press the ground and drag. Release, and it stands.';
+      haptic();
+    });
+    prow.appendChild(b);
+  });
+})();
+
+/* mirrors, multiplied — reflection across any plane through the pin */
+function reflectClone(it, theta) {
+  const p = it.group.position;
+  const dx = p.x - hubC.x, dz = p.z - hubC.z;
+  const ux = Math.cos(theta), uz = Math.sin(theta);
+  const dot = dx * ux + dz * uz;
+  const rx = 2 * dot * ux - dx, rz = 2 * dot * uz - dz;
+  const hy = it.group.rotation.y;
+  const hx = Math.sin(hy), hz = Math.cos(hy);
+  const hdot = hx * ux + hz * uz;
+  const rhx = 2 * hdot * ux - hx, rhz = 2 * hdot * uz - hz;
+  const rot = Math.atan2(-rhx, -rhz);
+  return cloneAt(it, hubC.x + rx, hubC.z + rz, rot);
+}
+function kaleidoscope(n) {
+  if (!selected) { setState('KALEIDOSCOPE — select a figure first'); return; }
+  if (items.length + n - 1 > 400) { setState('REFUSED — the kaleidoscope would break the 400-figure budget. The refusal is recorded in the count.'); haptic([30, 40, 30]); return; }
+  const it = selected;
+  const planes = n === 4 ? [0, Math.PI / 2] : [0, Math.PI / 4, Math.PI / 2, 3 * Math.PI / 4];
+  const made = [];
+  planes.forEach(th => { const c = reflectClone(it, th); if (c) made.push(c); });
+  if (n === 8) [Math.PI / 2, Math.PI, 3 * Math.PI / 2].forEach(a => {
+    const p = it.group.position, dx = p.x - hubC.x, dz = p.z - hubC.z;
+    const c = cloneAt(it, hubC.x + dx * Math.cos(a) - dz * Math.sin(a), hubC.z + dx * Math.sin(a) + dz * Math.cos(a), it.group.rotation.y + a);
+    if (c) made.push(c);
+  });
+  recount();
+  setState('KALEIDOSCOPE ×' + n + ' — ' + made.length + ' reflections of ' + PARTS[it.type].name + ' stand around the pin, each one measured, none of them approximate');
+  haptic();
+}
+document.getElementById('kal4Btn').addEventListener('click', () => kaleidoscope(4));
+document.getElementById('kal8Btn').addEventListener('click', () => kaleidoscope(8));
+document.getElementById('mirRowBtn').addEventListener('click', () => {
+  if (!selected) { setState('MIRROR ROW — select a figure first'); return; }
+  const it = selected, p = it.group.position;
+  const stations = [-16, -8, 8, 16];
+  if (items.length + stations.length * 2 > 400) { setState('REFUSED — the row would break the 400-figure budget. The refusal is recorded in the count.'); haptic([30, 40, 30]); return; }
+  let n = 0;
+  stations.forEach(dz => {
+    const a = cloneAt(it, p.x, p.z + dz, it.group.rotation.y);
+    const b = a ? cloneAt(a, -a.group.position.x, a.group.position.z, -a.group.rotation.y) : null;
+    if (a) n++; if (b) n++;
+  });
+  recount();
+  setState('MIRROR ROW — the figure and its twin now stand at ' + (stations.length + 1) + ' stations down the axis, mirrored at every one');
+  haptic();
+});
+
+/* ---- init ---- */
+document.getElementById('buildStamp').innerHTML = 'BUILD <b>v26</b> · LIVE — MIRRORS MULTIPLIED + REULEAUX';
+setState('MIRRORS MULTIPLIED — kaleidoscope ×4 and ×8 about the pin, rows of twins down the axis. And two new crowns: the Reuleaux pyramid, constant-width at its base, and its concave twin.');
 
 </script>
 </body>
