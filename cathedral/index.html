@@ -3465,6 +3465,106 @@ document.getElementById('standBtn').addEventListener('click', () => {
 document.getElementById('buildStamp').innerHTML = 'BUILD <b>v22</b> · LIVE — YOUR PERSPECTIVE';
 setState('YOUR PERSPECTIVE — the drawing re-draws itself from wherever you stand · ' + items.length + ' figures standing');
 
+
+/* ============ V23 — THE MOST-BUILT, IN THE CHOOSER ============ */
+PARTS.garage = {
+  name: 'Garage', w: 6.5, h: 2.7, d: 6.5, seats: 0, glass: 0, vol: 30,
+  build(mat) {
+    const g = new THREE.Group();
+    const M = (geo, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; g.add(m); return m; };
+    M(new THREE.BoxGeometry(6.5, 0.25, 6.5), 0, 2.82, 0);
+    M(new THREE.BoxGeometry(6.5, 2.7, 0.22), 0, 1.35, -3.14);
+    M(new THREE.BoxGeometry(0.22, 2.7, 6.5), -3.14, 1.35, 0);
+    M(new THREE.BoxGeometry(0.22, 2.7, 6.5), 3.14, 1.35, 0);
+    M(new THREE.BoxGeometry(1.1, 2.7, 0.22), -2.7, 1.35, 3.14);
+    M(new THREE.BoxGeometry(1.1, 2.7, 0.22), 2.7, 1.35, 3.14);
+    const door = new THREE.Mesh(new THREE.BoxGeometry(4.3, 2.15, 0.1), MATS.gold);
+    door.position.set(0, 1.08, 3.16); door.castShadow = true;
+    g.add(door);
+    return g;
+  }
+};
+SECTIONS.skin.types.push('garage');
+TYPE_ACTS.garage = [ { act: 'dup', label: 'SECOND BAY — DUPLICATE' } ];
+(function () {
+  const gableBtn = document.querySelector('[data-place="gable"]');
+  if (!gableBtn) return;
+  const b = document.createElement('button');
+  b.className = 'pbtn'; b.dataset.place = 'garage'; b.textContent = 'GARAGE';
+  b.addEventListener('click', () => {
+    armedType = 'garage';
+    document.querySelectorAll('[data-place]').forEach(x => x.classList.toggle('on', x === b));
+    buildGhost();
+    placeNote.textContent = 'Garage armed — press the ground and drag. Release, and it stands.';
+    haptic();
+  });
+  gableBtn.after(b);
+})();
+
+function genWarehouse() {
+  const r = genFrame({ colsX: 3, colsZ: 2, bayX: 18, bayZ: 18, floors: 1, storey: 10, skin: false });
+  const add = (t, x, z, rot, sc, y) => { const it = addItem(t, x, z, rot || 0, sc || null, 'stone'); if (y) it.group.position.y = y; return it; };
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++)
+    add('slab', -18 + 18 * i, -9 + 18 * j, 0, [18 / 8, 0.6, 18 / 8], 10);
+  for (let i = 0; i < 3; i++) {
+    add('gdoor', -18 + 18 * i, 18, 0, [18 / 4 * 0.9, 10 / 3.2, 1], 0);
+    add('panel', -18 + 18 * i, -18, Math.PI, [18 / 4, 10 / 3.2, 1], 0);
+  }
+  for (let j = 0; j < 2; j++) {
+    add('panel', -27, -9 + 18 * j, Math.PI / 2, [18 / 4, 10 / 3.2, 1], 0);
+    add('panel', 27, -9 + 18 * j, Math.PI / 2, [18 / 4, 10 / 3.2, 1], 0);
+  }
+  select(null);
+  return r;
+}
+
+FRAMES.warehouse = { label: 'WAREHOUSE', frames: [
+  { key: 'distbox', name: 'DISTRIBUTION BOX', gen: genWarehouse },
+  { key: 'smallbay', name: 'SMALL-BAY INDUSTRIAL', gen: () => genFrame({ colsX: 4, colsZ: 2, bayX: 12, bayZ: 12, floors: 1, storey: 7.5, skin: true }) }
+]};
+FRAMES.retail = { label: 'RETAIL', frames: [
+  { key: 'strip', name: 'STRIP CENTER', gen: () => genFrame({ colsX: 5, colsZ: 1, bayX: 8, bayZ: 12, floors: 1, storey: 4.2, skin: true }) },
+  { key: 'bigbox', name: 'BIG-BOX STORE', gen: () => genFrame({ colsX: 4, colsZ: 3, bayX: 15, bayZ: 15, floors: 1, storey: 6.5, skin: true }) }
+]};
+FRAMES.school = { label: 'SCHOOL', frames: [
+  { key: 'courtschool', name: 'COURTYARD SCHOOL', gen: () => genFrame({ colsX: 4, colsZ: 3, bayX: 8, bayZ: 8, floors: 2, storey: 3.6, skin: true, hole: [1, 3, 1, 2], stairs: true }) }
+]};
+FRAMES.hotel = { label: 'HOTEL', frames: [
+  { key: 'hotelslab', name: 'DOUBLE-LOADED SLAB', gen: () => genFrame({ colsX: 5, colsZ: 2, bayX: 7.5, bayZ: 8, floors: 6, storey: 3.3, skin: true, stairs: true }) }
+]};
+FRAMES.house.frames.push({ key: 'ranchgarage', name: 'RANCH + GARAGE', gen: () => { const r = FRAMES.house.frames[0].gen(); addItem('garage', 15.5, 4, -Math.PI / 2, null, 'stone'); return r; } });
+
+/* reality order in the chooser: most-built first */
+(function () {
+  const order = ['house', 'apartment', 'warehouse', 'office', 'retail', 'school', 'hotel', 'cathedral'];
+  const copy = {};
+  order.forEach(k => { if (FRAMES[k]) copy[k] = FRAMES[k]; });
+  Object.keys(FRAMES).forEach(k => { if (!copy[k]) copy[k] = FRAMES[k]; });
+  Object.keys(FRAMES).forEach(k => delete FRAMES[k]);
+  Object.assign(FRAMES, copy);
+})();
+
+/* plan drawings with the new footprints */
+planSVG = function (f) {
+  const dims = { ranch: [24, 16], twostory: [21, 14], courthouse: [28, 21], ranchgarage: [24, 16],
+    gridtower: [24, 24], slabblock: [40, 18], atrium: [32, 32], pointtower: [16, 16], walkup: [32, 16], courtblock: [32, 24],
+    distbox: [54, 36], smallbay: [48, 24], strip: [40, 12], bigbox: [60, 45], courtschool: [32, 24], hotelslab: [37.5, 16],
+    ndfull: [43, 128], core: [43, 128], skel: [43, 128] }[f.key] || [24, 16];
+  const w = dims[0], d = dims[1], sc = 92 / Math.max(w, d);
+  const W = Math.max(30, w * sc), H = Math.max(30, d * sc);
+  const ox = (100 - W) / 2, oy = (100 - H) / 2;
+  let inner = '';
+  const cols = Math.max(2, Math.round(w / 8)), rows = Math.max(2, Math.round(d / 8));
+  for (let i = 1; i < cols; i++) inner += '<line x1="' + (ox + W * i / cols) + '" y1="' + oy + '" x2="' + (ox + W * i / cols) + '" y2="' + (oy + H) + '"/>';
+  for (let j = 1; j < rows; j++) inner += '<line x1="' + ox + '" y1="' + (oy + H * j / rows) + '" x2="' + (ox + W) + '" y2="' + (oy + H * j / rows) + '"/>';
+  return '<svg viewBox="0 0 100 100"><rect x="' + ox + '" y="' + oy + '" width="' + W + '" height="' + H + '" fill="none" stroke="#ffd977" stroke-width="2"/><g stroke="#6b5d3f" stroke-width="0.7">' + inner + '</g><text x="50" y="96" fill="#bdb395" font-size="7" text-anchor="middle" font-family="Courier New">' + w + ' × ' + d + ' m</text></svg>';
+};
+renderChooser();
+
+/* ---- init ---- */
+document.getElementById('buildStamp').innerHTML = 'BUILD <b>v23</b> · LIVE — THE MOST-BUILT';
+setState('THE MOST-BUILT — the chooser now opens with what the world actually builds: houses, apartments, warehouses, offices, retail, schools, hotels — and the cathedral among them');
+
 </script>
 </body>
 </html>
