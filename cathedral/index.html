@@ -4155,6 +4155,102 @@ if (gn) gn.textContent = 'A guide in a South African voice — three short track
 document.getElementById('buildStamp').innerHTML = 'BUILD <b>v30</b> · LIVE — THE COMPANION';
 _setState('THE COMPANION — he walks with you now: every screen explained, every touch read aloud, every refusal announced. Mute him top-right when you know the place. (Live voice: your device\u2019s South African voice; the three recorded tracks keep the studio voice.)');
 
+
+/* ============ V31 — LIVE PAIRING: WIRED TO THE OPTIONS ON YOUR SCREEN ============ */
+const PAIR = { screen: null, lastScanAt: 0, toggleMap: new Map(), lastPlaceNote: '', lastSolv: '' };
+function activePanel() {
+  const ps = [...document.querySelectorAll('.panel')];
+  return ps.find(p => p.offsetParent !== null) || null;
+}
+function scanOptions(panel) {
+  if (!panel) return '';
+  const seen = new Set(), opts = [], ons = [];
+  panel.querySelectorAll('button').forEach(b => {
+    if (b.offsetParent === null || b.disabled) return;
+    const t = cleanSpeech(b.textContent).replace(/\s+/g, ' ').trim();
+    if (!t || t.length > 40 || seen.has(t)) return;
+    seen.add(t); opts.push(t);
+    if (b.classList.contains('on')) ons.push(t.replace(/\s*—\s*ON$/, ''));
+  });
+  const sliders = [];
+  panel.querySelectorAll('input[type="range"]').forEach(r => {
+    const prow = r.closest('.prow');
+    const lab = prow && prow.querySelector('.plab') ? cleanSpeech(prow.querySelector('.plab').textContent) : '';
+    if (lab) sliders.push(lab + ' at ' + r.value);
+  });
+  let out = '';
+  if (opts.length) out += 'Options on this screen right now: ' + opts.slice(0, 9).join(', ') + (opts.length > 9 ? ', and ' + (opts.length - 9) + ' more' : '') + '. ';
+  if (ons.length) out += 'Switched on: ' + ons.slice(0, 4).join(', ') + '. ';
+  if (sliders.length) out += sliders.slice(0, 3).join('. ') + '.';
+  return out.trim();
+}
+function announceScreen(tab) {
+  const panel = document.getElementById('panel-' + tab);
+  if (!panel) return;
+  PAIR.screen = tab;
+  setTimeout(() => {
+    if (GUIDE.muted || !GUIDE.unlocked) return;
+    if (speechSynthesis.speaking) { setTimeout(() => announceScreen(tab), 2200); return; }
+    const s = scanOptions(panel);
+    if (s) say(s + ' ' + pairStatus());
+    PAIR.lastScanAt = performance.now();
+    snapshotToggles(panel);
+  }, 400);
+}
+function snapshotToggles(panel) {
+  PAIR.toggleMap.clear();
+  panel.querySelectorAll('button').forEach(b => {
+    const t = cleanSpeech(b.textContent).replace(/\s+/g, ' ').trim();
+    if (t) PAIR.toggleMap.set(t, b.classList.contains('on'));
+  });
+}
+document.querySelectorAll('.tabbtn').forEach(b => b.addEventListener('click', () => announceScreen(b.dataset.tab)));
+
+/* live diffs inside the screen you are on — flips are announced as they happen */
+const pairObserver = new MutationObserver(() => {
+  const panel = activePanel();
+  if (!panel || GUIDE.muted || !GUIDE.unlocked) return;
+  const flips = [];
+  panel.querySelectorAll('button').forEach(b => {
+    if (b.offsetParent === null) return;
+    const t = cleanSpeech(b.textContent).replace(/\s+/g, ' ').trim();
+    if (!t || !PAIR.toggleMap.has(t)) return;
+    const was = PAIR.toggleMap.get(t), now = b.classList.contains('on');
+    if (was !== now) { flips.push(t.replace(/\s*—\s*(ON|OFF)$/, '') + (now ? ' is now on' : ' is now off')); PAIR.toggleMap.set(t, now); }
+  });
+  if (flips.length && performance.now() - PAIR.lastScanAt > 1500) say(flips.slice(0, 2).join('. ') + '.');
+});
+setInterval(() => {
+  const panel = activePanel();
+  if (panel) { pairObserver.disconnect(); pairObserver.observe(panel, { subtree: true, attributes: true, attributeFilter: ['class'] }); }
+}, 2000);
+
+/* the place instructions, read as they change — that IS the current option */
+setInterval(() => {
+  const pn = document.getElementById('placeNote');
+  if (pn && pn.textContent !== PAIR.lastPlaceNote) {
+    const fresh = PAIR.lastPlaceNote !== '';
+    PAIR.lastPlaceNote = pn.textContent;
+    if (fresh && PAIR.screen === 'place') say(pn.textContent);
+  }
+  const sv = document.getElementById('solvLine');
+  if (sv && sv.textContent !== PAIR.lastSolv) {
+    const wasClean = !/OVERCLAIMED/.test(PAIR.lastSolv);
+    PAIR.lastSolv = sv.textContent;
+    if (/OVERCLAIMED/.test(sv.textContent) && wasClean) say(sv.textContent, true);
+  }
+}, 900);
+
+/* the pairing, stated: where you are, what stands, what it costs */
+function pairStatus() {
+  const n = items.length;
+  return n + ' of 400 figures standing' + (selected ? ', ' + PARTS[selected.type].name + ' in hand' : '') + (bpMode ? ', blueprint open' : '') + (walkMode ? ', on foot inside' : '') + '.';
+}
+
+/* ---- init ---- */
+document.getElementById('buildStamp').innerHTML = 'BUILD <b>v31</b> · LIVE — PAIRED TO YOUR SCREEN';
+_setState('PAIRED LIVE — the guide now reads the options off the screen you are actually on, as they stand, and calls out every change the moment it happens. Screens, toggles, sliders, instructions: wired, not scripted.');
+
 </script>
 </body>
 </html>
