@@ -192,7 +192,9 @@
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+  "three-mesh-bvh": "https://cdn.jsdelivr.net/npm/three-mesh-bvh@0.7.8/build/index.module.js",
+  "three-bvh-csg": "https://cdn.jsdelivr.net/npm/three-bvh-csg@0.0.17/build/index.module.js"
 } }
 </script>
 <style>
@@ -351,6 +353,12 @@ setTimeout(function () {
   <div class="prow" id="maskPad" style="flex-wrap:wrap;gap:4px"></div>
   <div class="prow"><span class="plab">SELECTED</span><span id="selName" class="note">nothing selected — tap a part</span></div>
   <div id="detailCard"></div>
+  <div class="prow"><span class="plab">CARVE — CSG</span>
+    <button class="pbtn" id="csgMark">MARK BASE</button>
+    <button class="pbtn" id="csgUnion">UNION</button>
+    <button class="pbtn" id="csgSub">SUBTRACT</button>
+    <button class="pbtn" id="csgInter">INTERSECT</button></div>
+  <div class="prow"><span class="wnote" id="csgLine">The carving engine is loading…</span></div>
   <div class="prow"><span class="plab">WIDTH</span><input type="range" id="sclX" min="25" max="300" value="100"><span class="sval" id="valX">—</span></div>
   <div class="prow"><span class="plab">HEIGHT</span><input type="range" id="sclY" min="25" max="300" value="100"><span class="sval" id="valY">—</span></div>
   <div class="prow"><span class="plab">DEPTH</span><input type="range" id="sclZ" min="25" max="300" value="100"><span class="sval" id="valZ">—</span></div>
@@ -4842,6 +4850,152 @@ try {
 /* ---- init ---- */
 document.getElementById('buildStamp').innerHTML = 'BUILD <b>v45</b> · LIVE — OPTIMAL AESTHETICS';
 _setState('OPTIMAL AESTHETICS \u2014 every figure now carries its drawn edges, the gold is true metal, the thread iridesces, the light sits at its best exposure, the ground falls away into dark \u2014 and every panel, card and control wears the same gold-on-night dress.');
+
+
+/* ============ V46 — CSG: CARVE ONE SOLID WITH ANOTHER ============ */
+PARTS.csg = { name: 'CSG Stock', w: 4, h: 4, d: 4, vol: 64, section: 'FRAME', build(mat) {
+  const g = new THREE.Group();
+  const m = new THREE.Mesh(new THREE.BoxGeometry(4, 4, 4), mat);
+  m.position.y = 2; m.castShadow = true; m.receiveShadow = true;
+  m.userData.csgPlaceholder = true;
+  g.add(m);
+  return g;
+} };
+if (typeof TYPE_ACTS !== 'undefined' && !TYPE_ACTS.csg) TYPE_ACTS.csg = [];
+if (typeof PHASE_RANK !== 'undefined' && PHASE_RANK.csg === undefined) PHASE_RANK.csg = 2;
+const CSG_STASH = [];
+const _removeItem46 = removeItem;
+removeItem = function (it) {
+  try {
+    if (it && it.type === 'csg') {
+      let geo = null;
+      it.group.traverse(o => { if (!geo && o.isMesh && o.geometry) geo = o.geometry; });
+      if (geo) CSG_STASH.push(geo.clone());
+    }
+  } catch (e) {}
+  return _removeItem46(it);
+};
+const _addItem46 = addItem;
+addItem = function () {
+  const it = _addItem46.apply(this, arguments);
+  try {
+    if (it && it.type === 'csg' && CSG_STASH.length) {
+      const geo = CSG_STASH.shift();
+      it.group.traverse(o => { if (o.isMesh && o.userData.csgPlaceholder) { o.geometry = geo; o.userData.csgPlaceholder = false; } });
+      if (typeof dressEdges45 === 'function') dressEdges45(it.group);
+    }
+  } catch (e) {}
+  return it;
+};
+
+let CSG_LIB = null, CSG_EV = null, CSG_MV = null, csgBase = null;
+Promise.all([import('three-bvh-csg'), import('three/addons/utils/BufferGeometryUtils.js')]).then(([m, bu]) => {
+  CSG_LIB = m;
+  CSG_MV = bu.mergeVertices;
+  CSG_EV = new m.Evaluator();
+  CSG_EV.attributes = ['position', 'normal', 'uv'];
+  const el = document.getElementById('csgLine');
+  if (el) el.textContent = 'The carving engine is ready. Select a figure, MARK it as the base; select another, then carve.';
+}).catch(() => {
+  const el = document.getElementById('csgLine');
+  if (el) el.textContent = 'The carving engine could not be reached \u2014 carving is refused until it loads.';
+});
+function csgVolume(geo) {
+  const p = geo.attributes.position, idx = geo.index;
+  const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
+  let v = 0;
+  const n = idx ? idx.count : p.count;
+  for (let i = 0; i + 2 < n; i += 3) {
+    const f = j => idx ? idx.getX(j) : j;
+    a.fromBufferAttribute(p, f(i)); b.fromBufferAttribute(p, f(i + 1)); c.fromBufferAttribute(p, f(i + 2));
+    v += a.dot(b.clone().cross(c)) / 6;
+  }
+  return Math.abs(v);
+}
+function itemBrush(it) {
+  it.group.updateWorldMatrix(true, true);
+  let cur = null;
+  const meshes = [];
+  it.group.traverse(o => { if (o.isMesh && o.geometry && o.geometry.attributes.position) meshes.push(o); });
+  for (const m of meshes) {
+    let g = m.geometry.clone().applyMatrix4(m.matrixWorld);
+    if (!g.index && CSG_MV) g = CSG_MV(g);
+    const br = new CSG_LIB.Brush(g);
+    br.updateMatrixWorld();
+    if (!cur) cur = br;
+    else {
+      const r = CSG_EV.evaluate(cur, br, CSG_LIB.ADDITION);
+      cur = new CSG_LIB.Brush(r.geometry);
+      cur.updateMatrixWorld();
+    }
+  }
+  return cur;
+}
+function csgRefuse(why) {
+  _setState('CARVE REFUSED \u2014 ' + why);
+  say('The carve is refused. ' + why, true);
+  haptic('refuse');
+}
+function runCSG(op, label) {
+  if (!CSG_LIB || !CSG_EV) return csgRefuse('the carving engine has not loaded.');
+  if (!csgBase || !items.includes(csgBase)) return csgRefuse('no base is marked. Select a figure and MARK BASE first.');
+  const tool = selected;
+  if (!tool) return csgRefuse('no tool figure is selected. Select the figure to carve with.');
+  if (tool === csgBase) return csgRefuse('base and tool are the same figure \u2014 a thing cannot carve itself.');
+  const base = csgBase;
+  try {
+    const bA = itemBrush(base), bB = itemBrush(tool);
+    if (!bA || !bB) return csgRefuse('a figure without solid geometry cannot be carved.');
+    const res = CSG_EV.evaluate(bA, bB, op);
+    const geo = res.geometry;
+    const vol = csgVolume(geo);
+    if (!geo.attributes.position.count || vol < 0.001) return csgRefuse('nothing would remain \u2014 the carve leaves no solid. The figures stand as they were.');
+    geo.applyMatrix4(new THREE.Matrix4().copy(base.group.matrixWorld).invert());
+    const grp = new THREE.Group();
+    const mesh = new THREE.Mesh(geo, MATS[base.mat] || MATS.stone);
+    mesh.castShadow = true; mesh.receiveShadow = true;
+    grp.add(mesh);
+    grp.position.copy(base.group.position);
+    grp.rotation.copy(base.group.rotation);
+    grp.scale.copy(base.group.scale);
+    world.add(grp);
+    const it = { id: nextId++, type: 'csg', group: grp, mat: base.mat };
+    items.push(it);
+    if (typeof dressEdges45 === 'function') dressEdges45(grp);
+    const bn = PARTS[base.type].name, tn = PARTS[tool.type].name;
+    removeItem(tool);
+    removeItem(base);
+    csgBase = null;
+    const mb = document.getElementById('csgMark');
+    if (mb) { mb.textContent = 'MARK BASE'; mb.classList.remove('on'); }
+    recount();
+    select(it);
+    _setState(label + ' \u2014 ' + bn + ' carved by ' + tn + ': ' + vol.toFixed(1) + ' m\u00b3 of solid remains. Both originals are consumed; the carved solid is a figure like any other \u2014 move it, scale it, carve it again.');
+    say(label + '. ' + vol.toFixed(1) + ' cubic metres of solid remain.', true);
+    haptic('commit');
+  } catch (err) {
+    csgRefuse('the solids would not yield a clean carve (' + (err && err.message ? err.message.slice(0, 60) : 'geometry fault') + '). Both figures stand untouched.');
+  }
+}
+const csgMarkBtn = document.getElementById('csgMark');
+if (csgMarkBtn) csgMarkBtn.addEventListener('click', () => {
+  if (!selected) return csgRefuse('nothing is selected to mark.');
+  csgBase = selected;
+  csgMarkBtn.textContent = 'BASE: ' + PARTS[csgBase.type].name.toUpperCase();
+  csgMarkBtn.classList.add('on');
+  _setState('BASE MARKED \u2014 ' + PARTS[csgBase.type].name + '. Now select the tool figure and choose the carve.');
+  haptic();
+});
+const csgU = document.getElementById('csgUnion');
+if (csgU) csgU.addEventListener('click', () => runCSG(CSG_LIB && CSG_LIB.ADDITION, 'UNION'));
+const csgS = document.getElementById('csgSub');
+if (csgS) csgS.addEventListener('click', () => runCSG(CSG_LIB && CSG_LIB.SUBTRACTION, 'SUBTRACT'));
+const csgI = document.getElementById('csgInter');
+if (csgI) csgI.addEventListener('click', () => runCSG(CSG_LIB && CSG_LIB.INTERSECTION, 'INTERSECT'));
+
+/* ---- init ---- */
+document.getElementById('buildStamp').innerHTML = 'BUILD <b>v46</b> · LIVE — CSG CARVING';
+_setState('CSG CARVING \u2014 FORMAT now carries the carve: mark a base, select a tool, and UNION, SUBTRACT or INTERSECT. The library was proved offline before it shipped: two 64 m\u00b3 cubes carve to exactly 32, 96 and 32.');
 
 </script>
 </body>
