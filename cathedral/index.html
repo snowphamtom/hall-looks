@@ -384,7 +384,9 @@ setTimeout(function () {
 <div class="prow"><span class="plab">THE PLATES</span>
     <button class="pbtn" id="geoBtn">CONSTRUCTION</button>
     <button class="pbtn" id="perspBtn">PERSPECTIVE FLOOR</button>
+    <button class="pbtn" id="eyeBtn">YOUR PERSPECTIVE</button>
     <span class="wnote">Cesariano's geometry over the section, and the perspective masters' triangulated floor.</span></div>
+  <div class="prow"><span class="wnote" id="eyeRead">Your perspective, drawn from your own eye — horizon, vanishing point, distance points, all of it moving as you move.</span></div>
 <div class="prow"><span class="plab">PHASES</span>
     <input type="range" id="phaseRange" min="0" max="9" step="1" value="9">
     <span class="sval" id="phaseVal">THE FURNISHING — THE WHOLE CATHEDRAL</span></div>
@@ -3391,6 +3393,77 @@ MATS.stone.needsUpdate = true;
 /* ---- init ---- */
 document.getElementById('buildStamp').innerHTML = 'BUILD <b>v21</b> · LIVE — FROM THE PLATES';
 setState('FROM THE PLATES — the construction drawn, three true vaults in the catalog, the floor triangulated · ' + items.length + ' figures standing');
+
+
+/* ============ V22 — YOUR PERSPECTIVE, FROM WHERE YOU STAND ============ */
+let eyeGroup = null, eyeOn = false;
+const eyeRead = document.getElementById('eyeRead');
+function buildEye() {
+  if (eyeGroup) { scene.remove(eyeGroup); eyeGroup.geometry.dispose(); eyeGroup = null; }
+  if (!eyeOn) return;
+  const eye = camera.position.clone();
+  const fwd = new THREE.Vector3();
+  camera.getWorldDirection(fwd);
+  const right = new THREE.Vector3().crossVectors(fwd, new THREE.Vector3(0, 1, 0)).normalize();
+  let t = new THREE.Vector3(hubC.x - eye.x, 0, hubC.z - eye.z).dot(new THREE.Vector3(fwd.x, 0, fwd.z).normalize());
+  t = Math.max(6, Math.min(300, t || 40));
+  const VP = eye.clone().add(fwd.clone().multiplyScalar(t));
+  VP.y = eye.y;
+  const pts = [];
+  const seg = (a, b) => pts.push(a, b);
+  const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
+  /* the horizon — a line at your eye's height, through the vanishing point */
+  seg(VP.clone().add(right.clone().multiplyScalar(-t * 1.8)), VP.clone().add(right.clone().multiplyScalar(t * 1.8)));
+  /* the vanishing point, marked */
+  seg(VP.clone().add(right.clone().multiplyScalar(-1.4)), VP.clone().add(right.clone().multiplyScalar(1.4)));
+  seg(VP.x, VP.y - 1.4, VP.z, VP.x, VP.y + 1.4, VP.z);
+  /* the distance points — as far from the vanishing point as your eye is from the picture */
+  const DPL = VP.clone().add(right.clone().multiplyScalar(-t));
+  const DPR = VP.clone().add(right.clone().multiplyScalar(t));
+  [DPL, DPR].forEach(dp => {
+    seg(dp.clone().add(right.clone().multiplyScalar(-0.9)), dp.clone().add(right.clone().multiplyScalar(0.9)));
+    seg(dp.x, dp.y - 0.9, dp.z, dp.x, dp.y + 0.9, dp.z);
+  });
+  /* the construction rays — vanishing point and distance points to the floor's corners */
+  if (lastExtents) {
+    const { minX, maxX, minZ, maxZ } = lastExtents;
+    const corners = [V3(minX, 0.06, minZ), V3(maxX, 0.06, minZ), V3(minX, 0.06, maxZ), V3(maxX, 0.06, maxZ),
+                     V3((minX + maxX) / 2, 0.06, minZ), V3((minX + maxX) / 2, 0.06, maxZ)];
+    corners.forEach(c => { seg(VP, c); seg(DPL, c); seg(DPR, c); });
+  }
+  eyeGroup = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts),
+    new THREE.LineBasicMaterial({ color: 0xffd977, transparent: true, opacity: 0.6 }));
+  scene.add(eyeGroup);
+  /* the readout — your perspective, in numbers, from where you stand */
+  const dx = hubC.x - eye.x, dz = hubC.z - eye.z;
+  const dist = Math.hypot(dx, dz);
+  const f2 = new THREE.Vector3(fwd.x, 0, fwd.z).normalize();
+  const toPin = new THREE.Vector3(dx, 0, dz).normalize();
+  const cross = f2.x * toPin.z - f2.z * toPin.x;
+  const bear = Math.asin(Math.max(-1, Math.min(1, cross))) * 180 / Math.PI;
+  const apex = Math.atan2(boxMaxY() - eye.y, Math.max(1, dist)) * 180 / Math.PI;
+  eyeRead.textContent = 'YOUR PERSPECTIVE — eye ' + eye.y.toFixed(1) + ' m · the ★ is ' + dist.toFixed(1) + ' m ahead, ' +
+    Math.abs(bear).toFixed(0) + '° to your ' + (bear >= 0 ? 'left' : 'right') + ' · the apex rides ' + apex.toFixed(1) +
+    '° above your horizon · the vanishing point sits on your eye line, ' + t.toFixed(0) + ' m out. Move — it all re-draws from where you stand.';
+}
+setInterval(buildEye, 250);
+document.getElementById('eyeBtn').addEventListener('click', () => {
+  eyeOn = !eyeOn;
+  document.getElementById('eyeBtn').classList.toggle('on', eyeOn);
+  document.getElementById('eyeBtn').textContent = eyeOn ? 'YOUR PERSPECTIVE — ON' : 'YOUR PERSPECTIVE';
+  if (!eyeOn && eyeGroup) { scene.remove(eyeGroup); eyeGroup = null; eyeRead.textContent = 'Your perspective, drawn from your own eye — horizon, vanishing point, distance points, all of it moving as you move.'; }
+  setState(eyeOn ? 'YOUR PERSPECTIVE — drawn from your eye, live' : 'perspective folded away');
+  haptic();
+});
+/* on foot, you look at the vanishing point: the altar, down the nave */
+document.getElementById('standBtn').addEventListener('click', () => {
+  if (walkMode) controls.target.set(hubC.x, 6, hubC.z);
+  if (walkMode && !eyeOn) document.getElementById('eyeBtn').click();
+});
+
+/* ---- init ---- */
+document.getElementById('buildStamp').innerHTML = 'BUILD <b>v22</b> · LIVE — YOUR PERSPECTIVE';
+setState('YOUR PERSPECTIVE — the drawing re-draws itself from wherever you stand · ' + items.length + ' figures standing');
 
 </script>
 </body>
