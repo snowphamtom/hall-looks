@@ -4292,6 +4292,128 @@ if (localStorage.getItem('cathIntroHeard') === '1') introEl.style.display = 'non
 document.getElementById('buildStamp').innerHTML = 'BUILD <b>v32</b> · LIVE — YOUR OPTIONS, SPOKEN';
 _setState('BEFORE YOU BEGIN — one short introduction, in the guide\u2019s voice: every option you have, spoken plainly. It also lives at VIEW → AUDIO GUIDE, track zero, whenever you want it again.');
 
+
+/* ============ V33 — THE ARBITER OF THE WORLD ============ */
+pickGuideVoice = function () {
+  const vs = speechSynthesis.getVoices();
+  if (!vs.length) return;
+  GUIDE.voice = vs.find(v => /en[-_]GB/i.test(v.lang) && /daniel|arthur|george/i.test(v.name))
+    || vs.find(v => /en[-_]GB/i.test(v.lang))
+    || vs.find(v => /^en/i.test(v.lang)) || vs[0];
+};
+pickGuideVoice();
+say = function (text, priority) {
+  if (GUIDE.muted || !GUIDE.unlocked || !('speechSynthesis' in window)) return;
+  const t = cleanSpeech(text);
+  if (!t || t.length > 320) return;
+  const now = performance.now();
+  if (!priority) {
+    if (t === GUIDE.lastText || now - GUIDE.lastSay < 2400) return;
+    if (speechSynthesis.speaking) return;
+  }
+  if (priority) speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(t);
+  if (GUIDE.voice) u.voice = GUIDE.voice;
+  u.lang = GUIDE.voice ? GUIDE.voice.lang : 'en-GB';
+  u.rate = 0.94; u.pitch = 0.75;
+  GUIDE.lastSay = now; GUIDE.lastText = t;
+  speechSynthesis.speak(u);
+};
+PANEL_BLURBS.parts = 'Parts. The instruments of construction: pillars, arches, towers, vaults, and the braid taken from the Drive. Choose a skeleton, set the measures, and the building is re-derived. So ordered.';
+PANEL_BLURBS.place = 'Place. Arm a figure. Set it upon the ground. Size it. Count it. Mirror it upon both sides. Each placement is entered into the record.';
+PANEL_BLURBS.format = 'Format. The operations: extend, multiply, mirror across the nave, mirror across the crossing, kaleidoscope around the pin. The poles also stand ready: draw the frame, and the space obeys.';
+PANEL_BLURBS.blueprint = 'Blueprint. Draw upon the building directly: move, stretch, warp. Every change remains measured. What displeases you may be undone. The record keeps both.';
+PANEL_BLURBS.view = 'View. The camera. The construction lines. Your perspective, drawn from your own eye. And the recorded pronouncements, kept under Audio Guide.';
+PANEL_BLURBS.forge = 'The Forge. Touch a figure and take hold of it: rotate, scale, duplicate, set down. The grid snap and rotation snap preserve the law.';
+PANEL_BLURBS.measure = 'Measure. Dimensions. The canon audit. Your brief, graded. And the ledger: claimed shall not exceed interior. Excess is refused. There is no appeal.';
+window.addEventListener('pointerdown', () => {
+  if (GUIDE.unlocked) return;
+  GUIDE.unlocked = true;
+  if (!GUIDE.muted) setTimeout(() => say('I am the Arbiter. I will state the options of each screen as you come to it, and I will read what you touch. If you would have silence, the guide button grants it. The record stands.', true), 350);
+}, true);
+const gtOld = document.getElementById('guideToggle');
+if (gtOld) {
+  const gtNew = gtOld.cloneNode(true);
+  gtOld.replaceWith(gtNew);
+  const paint = () => { gtNew.textContent = GUIDE.muted ? '🔇 GUIDE — MUTED' : '🔊 GUIDE'; gtNew.classList.toggle('on', !GUIDE.muted); };
+  gtNew.addEventListener('click', () => {
+    GUIDE.muted = !GUIDE.muted;
+    localStorage.setItem('cathGuideMuted', GUIDE.muted ? '1' : '0');
+    if (GUIDE.muted && 'speechSynthesis' in window) speechSynthesis.cancel();
+    paint();
+    if (!GUIDE.muted) { GUIDE.unlocked = true; say('The Arbiter resumes.', true); }
+    haptic();
+  });
+  paint();
+}
+
+/* ---- init ---- */
+const gnA = document.getElementById('guideNote');
+if (gnA) gnA.textContent = 'The Arbiter speaks — four pronouncements: your options, the blueprint, your hands, the ledger.';
+document.getElementById('buildStamp').innerHTML = 'BUILD <b>v33</b> · LIVE — THE ARBITER';
+_setState('THE ARBITER OF THE WORLD — the voice is changed utterly. No companion walks with you now, but a judge: slower, lower, final. He states your options, reads your touch, and pronounces every refusal.');
+
+
+/* ============ V34 — THE NARRATOR (anime inspiration) ============ */
+pickGuideVoice = function () {
+  const vs = speechSynthesis.getVoices();
+  if (!vs.length) return;
+  GUIDE.voice = vs.find(v => /en[-_]US/i.test(v.lang) && /aaron|guy|christopher/i.test(v.name))
+    || vs.find(v => /en[-_]US/i.test(v.lang))
+    || vs.find(v => /^en/i.test(v.lang)) || vs[0];
+};
+pickGuideVoice();
+say = function (text, priority) {
+  if (GUIDE.muted || !GUIDE.unlocked || !('speechSynthesis' in window)) return;
+  const t = cleanSpeech(text);
+  if (!t || t.length > 320) return;
+  const now = performance.now();
+  if (!priority) {
+    if (t === GUIDE.lastText || now - GUIDE.lastSay < 2400) return;
+    if (speechSynthesis.speaking) return;
+  }
+  if (priority) speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(t);
+  if (GUIDE.voice) u.voice = GUIDE.voice;
+  u.lang = GUIDE.voice ? GUIDE.voice.lang : 'en-US';
+  u.rate = 1.07; u.pitch = 1.08;
+  GUIDE.lastSay = now; GUIDE.lastText = t;
+  speechSynthesis.speak(u);
+};
+PANEL_BLURBS.parts = 'Parts! Your full arsenal: pillars, arches, towers, vaults — plus the secret weapon, the hourglass braid from the Drive! Pick a skeleton, dial the stats, and the whole building re-derives itself!';
+PANEL_BLURBS.place = 'Place! Arm your figure and deploy it onto the field! Size it up, stack the count, mirror it on both sides! Every move goes in the record!';
+PANEL_BLURBS.format = 'Format — the technique menu! Extend! Multiply! Mirror across the nave! Mirror across the crossing! And the ultimate technique: KALEIDOSCOPE, eightfold! Plus the poles — grab the frame itself and the space transforms with you!';
+PANEL_BLURBS.blueprint = 'Blueprint mode! Draw right on the building: move it, stretch it, warp it! Every change stays measured — and undo is your time rewind if a move goes wrong!';
+PANEL_BLURBS.view = 'View! Camera angles, construction lines, your own perspective pulled from your very eye — plus the recorded episodes under Audio Guide! And you can walk inside it. INSIDE it!';
+PANEL_BLURBS.forge = 'The Forge! Grab any figure: rotate it, scale it, duplicate it, set it down! Grid snap and rotation snap keep every move clean and true!';
+PANEL_BLURBS.measure = 'Measure! The truth arena! Dimensions, the canon audit, your brief graded live — and the final boss ledger: claim more than the building carries and you are refused! On the record!';
+window.addEventListener('pointerdown', () => {
+  if (GUIDE.unlocked) return;
+  GUIDE.unlocked = true;
+  if (!GUIDE.muted) setTimeout(() => say("Yo! I'm your narrator! I'll call out the options on every screen, read whatever you touch, and announce every refusal like it matters — because it does! Don't need a narrator? The guide button, top right, ends my arc. Let's start the episode!", true), 350);
+}, true);
+const gtOld34 = document.getElementById('guideToggle');
+if (gtOld34) {
+  const gtNew = gtOld34.cloneNode(true);
+  gtOld34.replaceWith(gtNew);
+  const paint = () => { gtNew.textContent = GUIDE.muted ? '🔇 GUIDE — MUTED' : '🔊 GUIDE'; gtNew.classList.toggle('on', !GUIDE.muted); };
+  gtNew.addEventListener('click', () => {
+    GUIDE.muted = !GUIDE.muted;
+    localStorage.setItem('cathGuideMuted', GUIDE.muted ? '1' : '0');
+    if (GUIDE.muted && 'speechSynthesis' in window) speechSynthesis.cancel();
+    paint();
+    if (!GUIDE.muted) { GUIDE.unlocked = true; say("The narrator is BACK! Where were we? Oh right — everywhere!", true); }
+    haptic();
+  });
+  paint();
+}
+
+/* ---- init ---- */
+const gnN = document.getElementById('guideNote');
+if (gnN) gnN.textContent = 'Your narrator speaks — four episodes: your options, the blueprint, your hands, the ledger.';
+document.getElementById('buildStamp').innerHTML = 'BUILD <b>v34</b> · LIVE — THE NARRATOR';
+_setState('THE NARRATOR — new voice, new arc! Anime inspiration: your guide is the narrator of this story now — heroic, loud-hearted, calling every technique by name. The law, however, remains undefeated.');
+
 </script>
 </body>
 </html>
