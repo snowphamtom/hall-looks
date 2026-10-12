@@ -261,6 +261,7 @@ setTimeout(function () {
     <button class="pbtn" id="gyroBtn">ENABLE GYRO</button><span class="sval" id="gyroState">OFF</span></div>
   <div class="prow"><span class="wnote">The gold hub floats at the measured center of the frame, wired to its corners and feet. Drag the hub to turn the whole cathedral; tilt leans it. A building tap settles it level — no measurement is ever taken on a tilt.</span></div>
   <div class="prow"><span class="plab">THE PIN</span><span class="wnote" id="pinRead">—</span></div>
+  <div class="prow"><span class="plab">THE BOX</span><span class="wnote" id="boxRead">—</span></div>
   <div class="prow"><span class="plab">WIRED NOTES</span>
     <button class="pbtn on" id="notesBtn">NOTES ON</button></div>
   <div class="prow"><span class="plab">FRAME RATIO</span>
@@ -272,6 +273,9 @@ setTimeout(function () {
     <button class="pbtn" data-fratio="2">2 : 1</button>
     <button class="pbtn" id="frApply">APPLY TO FRAME</button></div>
   <div class="prow"><span class="wnote" id="frNote">Ratio φ armed — APPLY rescales every figure and every coordinate about the pinned node, then the ledger re-measures.</span></div>
+<div class="prow"><span class="plab">AXES + BOX</span>
+    <button class="pbtn on" id="axesBtn">AXES + BOX ON</button>
+    <span class="wnote">The XYZ frame of the space — shown while you frame, hidden while you work inside it.</span></div>
 <div class="prow"><span class="plab">CAMERA</span>
     <button class="pbtn" id="orbitBtn">AUTO-ORBIT</button>
     <button class="pbtn on" id="hapBtn">HAPTICS ON</button>
@@ -1577,6 +1581,90 @@ setInterval(() => {
     'THE PIN — node fixed at the measured center: X ' + hubC.x.toFixed(2) + ' · Y ' + hubC.y.toFixed(2) + ' (half the measured height) · Z ' + hubC.z.toFixed(2) +
     '. Gyro, hub-drag and rescaling all turn the frame about this point; the pin itself never moves.';
 }, 700);
+
+
+/* ============ V10 — THE XYZ BOX · 000 AT THE CENTER · ONLY WHAT'S NEEDED, VISIBLE ============ */
+const rig = new THREE.Group(); scene.add(rig);
+let rigMats = [], rigGrid = null, rigLabels = null, rigSig = '', axesOn = true, rigOpacity = 0;
+
+const boxLines = new THREE.LineSegments(
+  new THREE.EdgesGeometry(new THREE.BoxGeometry(1, 1, 1)),
+  new THREE.LineBasicMaterial({ color: 0xffd977, transparent: true, opacity: 0 }));
+rig.add(boxLines);
+function axisLine(pts, color) {
+  const g = new THREE.BufferGeometry().setFromPoints(pts);
+  const m = new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0 });
+  const l = new THREE.Line(g, m); rig.add(l); return l;
+}
+const axX = axisLine([new THREE.Vector3(-0.5, 0, 0), new THREE.Vector3(0.5, 0, 0)], 0xffd977);
+const axZ = axisLine([new THREE.Vector3(0, 0, -0.5), new THREE.Vector3(0, 0, 0.5)], 0x7fa8c9);
+const axY = axisLine([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 1, 0)], 0xf5f2e8);
+function textSprite(txt, color, w) {
+  const cv = document.createElement('canvas'); cv.width = 256; cv.height = 128;
+  const cx = cv.getContext('2d');
+  cx.font = 'bold 62px Courier New'; cx.textAlign = 'center'; cx.textBaseline = 'middle';
+  cx.shadowColor = 'rgba(0,0,0,0.95)'; cx.shadowBlur = 12;
+  cx.fillStyle = color; cx.fillText(txt, 128, 66);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, depthTest: false, opacity: 0 }));
+  sp.scale.set(w, w / 2, 1); sp.renderOrder = 20;
+  return sp;
+}
+function rigRebuild(sx, sz, maxY, cx, cz) {
+  if (rigGrid) { rig.remove(rigGrid); rigGrid.geometry.dispose(); }
+  if (rigLabels) { rig.remove(rigLabels); }
+  const size = Math.ceil(Math.max(sx, sz) / 10) * 10 + 20;
+  rigGrid = new THREE.GridHelper(size, size / 2, 0x8a7a45, 0x2a2517);
+  rigGrid.material.transparent = true; rigGrid.material.opacity = 0;
+  rigGrid.position.y = 0.01;
+  rig.add(rigGrid);
+  rigLabels = new THREE.Group();
+  const lx = textSprite('X', '#ffd977', 7); lx.position.set(sx / 2 + 7, 2, 0);
+  const lz = textSprite('Z', '#7fa8c9', 7); lz.position.set(0, 2, sz / 2 + 7);
+  const ly = textSprite('Y', '#f5f2e8', 7); ly.position.set(0, maxY + 7, 0);
+  const l0 = textSprite('000', '#ffd977', 6); l0.position.set(4.6, 1.6, 4.6);
+  rigLabels.add(lx, lz, ly, l0);
+  rig.add(rigLabels);
+  rigMats = [rigGrid.material, boxLines.material, axX.material, axZ.material, axY.material,
+             lx.material, lz.material, ly.material, l0.material];
+}
+const boxRead = document.getElementById('boxRead');
+setInterval(() => {
+  if (!lastExtents || !items.length) { rig.visible = false; return; }
+  rig.visible = true;
+  const sx = lastExtents.maxX - lastExtents.minX, sz = lastExtents.maxZ - lastExtents.minZ;
+  const cx = (lastExtents.minX + lastExtents.maxX) / 2, cz = (lastExtents.minZ + lastExtents.maxZ) / 2;
+  let maxY = 0;
+  const sig = items.length + '|' + items.reduce((a, i) => a + i.group.scale.y, 0).toFixed(2) + '|' + sx.toFixed(1) + '|' + sz.toFixed(1) + '|' + cx.toFixed(1) + '|' + cz.toFixed(1);
+  if (sig !== rigSig) {
+    rigSig = sig;
+    items.forEach(i => { const b = new THREE.Box3().setFromObject(i.group); if (b.max.y > maxY) maxY = b.max.y; });
+    rig.userData.maxY = maxY;
+    rigRebuild(sx, sz, maxY, cx, cz);
+  } else maxY = rig.userData.maxY || 0;
+  rig.position.set(cx, 0, cz);
+  boxLines.scale.set(sx, Math.max(1, maxY), sz);
+  boxLines.position.set(0, maxY / 2, 0);
+  axX.scale.set(sx + 16, 1, 1); axX.position.y = 0.02;
+  axZ.scale.set(1, 1, sz + 16); axZ.position.y = 0.02;
+  axY.scale.set(1, maxY + 8, 1);
+  if (boxRead) boxRead.textContent =
+    'THE BOX — X ' + sx.toFixed(2) + ' m · Y ' + maxY.toFixed(2) + ' m · Z ' + sz.toFixed(2) + ' m, drawn about 000 at X ' + cx.toFixed(1) + ' · Z ' + cz.toFixed(1) +
+    '. The floor is the X axis plane (Y = 0); every figure stands on it. Grid cells 2 m — the snap module.';
+  /* visible only when it is needed: framing distances and blueprint — never inside the work */
+  const dist = camera.position.distanceTo(controls.target);
+  const show = axesOn && (bpMode || dist / fitDistance() > 0.45);
+  rigOpacity += ((show ? 1 : 0) - rigOpacity) * 0.18;
+  const o = rigOpacity * 0.9;
+  rigMats.forEach(m => { m.opacity = o; });
+  boxLines.material.opacity = rigOpacity * 0.5;
+  rig.visible = rigOpacity > 0.02;
+}, 250);
+document.getElementById('axesBtn').addEventListener('click', () => {
+  axesOn = !axesOn;
+  document.getElementById('axesBtn').classList.toggle('on', axesOn);
+  document.getElementById('axesBtn').textContent = axesOn ? 'AXES + BOX ON' : 'AXES + BOX OFF';
+  haptic();
+});
 
 </script>
 </body>
