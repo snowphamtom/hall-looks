@@ -377,7 +377,7 @@ setTimeout(function () {
 </div>
 <div id="notePin"></div>
 <div id="navHud">—</div>
-<div id="buildStamp">BUILD <b>v13</b> · LIVE — PLACE + FIGURE SHEETS</div>
+<div id="buildStamp">BUILD <b>v14</b> · LIVE — ISO OPENING, WIRE FRAME</div>
 <div id="navCluster">
   <button id="navOver">⌖<span class="cap">OVERHEAD</span></button>
   <button id="navIn">+</button>
@@ -1978,6 +1978,51 @@ fsBody.addEventListener('click', e => {
   if (selBox) selBox.update();
   recount(); renderSheet(); haptic();
 });
+
+
+/* ============ V14 — THE OPENING: THE PLATE'S VIEW, IN WIRE ============ */
+const ISO_AZ = 45, ISO_EL = 50;
+function boxMaxY() {
+  let y = 0;
+  items.forEach(i => { const b = new THREE.Box3().setFromObject(i.group); if (b.max.y > y) y = b.max.y; });
+  return y;
+}
+/* exact fit: the measured box's eight corners, projected onto the camera's own axes */
+function fitIso(animate) {
+  if (!lastExtents || !items.length) return;
+  const cx = (lastExtents.minX + lastExtents.maxX) / 2, cz = (lastExtents.minZ + lastExtents.maxZ) / 2;
+  const sx = lastExtents.maxX - lastExtents.minX, sz = lastExtents.maxZ - lastExtents.minZ;
+  const sy = Math.max(1, boxMaxY());
+  const az = THREE.MathUtils.degToRad(ISO_AZ), el = THREE.MathUtils.degToRad(ISO_EL);
+  const dir = new THREE.Vector3(Math.sin(az) * Math.cos(el), Math.sin(el), Math.cos(az) * Math.cos(el));
+  const fwd = dir.clone().negate();
+  const right = new THREE.Vector3().crossVectors(fwd, new THREE.Vector3(0, 1, 0)).normalize();
+  const upv = new THREE.Vector3().crossVectors(right, fwd).normalize();
+  const target = new THREE.Vector3(cx, sy * 0.36, cz);
+  let hW = 0, hH = 0, hD = 0;
+  for (const dx of [-sx / 2, sx / 2]) for (const dy of [0, sy]) for (const dz of [-sz / 2, sz / 2]) {
+    const c = new THREE.Vector3(cx + dx, dy, cz + dz).sub(target);
+    hW = Math.max(hW, Math.abs(c.dot(right)));
+    hH = Math.max(hH, Math.abs(c.dot(upv)));
+    hD = Math.max(hD, Math.abs(c.dot(fwd)));
+  }
+  const vF = THREE.MathUtils.degToRad(camera.fov) / 2;
+  const hF = Math.atan(Math.tan(vF) * camera.aspect);
+  const dist = Math.min(255, Math.max(hW / Math.tan(hF), hH / Math.tan(vF)) * 1.06 + hD);
+  const tp = target.clone().add(dir.clone().multiplyScalar(dist));
+  if (!animate) { camera.position.copy(tp); controls.target.copy(target); controls.update(); return; }
+  navAnim = { t0: performance.now(), dur: 1100, fp: camera.position.clone(), tp, ft: controls.target.clone(), tt: target };
+}
+/* the nav cluster's home button now flies the plate's view */
+const navOverBtn = document.getElementById('navOver');
+navOverBtn.addEventListener('click', () => fitIso(true));
+const navCap = navOverBtn.querySelector('.cap');
+if (navCap) navCap.textContent = 'ISO VIEW';
+/* every skeleton start reframes to the plate's view */
+const _skel14 = skeletonStart;
+skeletonStart = function (k) { _skel14(k); fitIso(true); };
+fitIso(false);
+setState('THE CATHEDRAL — the plate\u2019s view: isometric, whole frame, see-through wire · drag to turn · pinch to dive');
 
 </script>
 </body>
