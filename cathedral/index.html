@@ -4621,6 +4621,65 @@ say = function (text, priority) {
 document.getElementById('buildStamp').innerHTML = 'BUILD <b>v38</b> · LIVE — SNOW, OF GEAR AND GLAMOUR';
 _setState('SNOW, OF GEAR AND GLAMOUR — his recorded voice is now what he is: an artifact\u2019s voice, obviously mechanical — ring-struck, gear-timed — and magically enhanced: a pitched ghost of himself singing a shimmer above every word. (The live voice approximates him through your device; the four tracks carry his true sound.)');
 
+
+/* ============ V39 — SNOW, THE INFORMANT (ethereal, unisex, pleasant) ============ */
+pickGuideVoice = function () {
+  const vs = speechSynthesis.getVoices();
+  if (!vs.length) return;
+  GUIDE.voice = vs.find(v => /^en/i.test(v.lang)) || vs[0];
+};
+pickGuideVoice();
+say = function (text, priority) {
+  if (GUIDE.muted || !GUIDE.unlocked || !('speechSynthesis' in window)) return;
+  const t = cleanSpeech(text);
+  if (!t || t.length > 320) return;
+  const now = performance.now();
+  if (!priority) {
+    if (t === GUIDE.lastText || now - GUIDE.lastSay < 2400) return;
+    if (speechSynthesis.speaking) return;
+  }
+  if (priority) speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(t);
+  if (GUIDE.voice) u.voice = GUIDE.voice;
+  u.lang = GUIDE.voice ? GUIDE.voice.lang : 'en-US';
+  u.rate = 0.98; u.pitch = 1.0;
+  GUIDE.lastSay = now; GUIDE.lastText = t;
+  speechSynthesis.speak(u);
+};
+PANEL_BLURBS.parts = 'Parts. Here are the pieces the building is made of: pillars, arches, towers, vaults, and a braided column kept from the Drive. Choose a skeleton start, adjust the measures, and the building is re-derived from them.';
+PANEL_BLURBS.place = 'Place. Arm a figure, then set it on the ground where you wish. You may size it, set its count, and mirror it on both sides. Each placement is recorded.';
+PANEL_BLURBS.format = 'Format. The operations are these: extend, multiply, mirror across the nave, mirror across the crossing, and kaleidoscope, eightfold around the pin. The shape poles are here as well: draw the frame, and the space follows in relation.';
+PANEL_BLURBS.blueprint = 'Blueprint. You may draw upon the building directly: move, stretch, and warp its figures. Every change remains measured, and anything may be undone.';
+PANEL_BLURBS.view = 'View. Camera positions, the construction lines, and your perspective drawn from your own eye. The recorded introductions are kept under Audio Guide, and you may also stand inside the building.';
+PANEL_BLURBS.forge = 'The Forge. Touch a figure to take hold of it: rotate it, scale it, duplicate it, and set it down. Grid snap and rotation snap keep each change true.';
+PANEL_BLURBS.measure = 'Measure. Dimensions, the canon audit, and your brief, graded as you build. And the ledger, which holds one rule: what is claimed must never exceed what is interior. I will inform you if it is ever otherwise.';
+window.addEventListener('pointerdown', () => {
+  if (GUIDE.unlocked) return;
+  GUIDE.unlocked = true;
+  if (!GUIDE.muted) setTimeout(() => say('Welcome. I am Snow. I keep this place, and I will inform you of the options on each screen as you arrive, and read whatever you touch. If you prefer quiet, the Snow button, top right, will still my voice.', true), 350);
+}, true);
+const gtOld39 = document.getElementById('guideToggle');
+if (gtOld39) {
+  const gtNew = gtOld39.cloneNode(true);
+  gtOld39.replaceWith(gtNew);
+  const paint = () => { gtNew.textContent = GUIDE.muted ? '🔇 SNOW — QUIET' : '🔊 SNOW'; gtNew.classList.toggle('on', !GUIDE.muted); };
+  gtNew.addEventListener('click', () => {
+    GUIDE.muted = !GUIDE.muted;
+    localStorage.setItem('cathGuideMuted', GUIDE.muted ? '1' : '0');
+    if (GUIDE.muted && 'speechSynthesis' in window) speechSynthesis.cancel();
+    paint();
+    if (!GUIDE.muted) { GUIDE.unlocked = true; say('I am here. Let us continue.', true); }
+    haptic();
+  });
+  paint();
+}
+
+/* ---- init ---- */
+const gnE = document.getElementById('guideNote');
+if (gnE) gnE.textContent = 'Snow, the informant, speaks — four recordings: your options, the blueprint, your hands, the ledger.';
+document.getElementById('buildStamp').innerHTML = 'BUILD <b>v39</b> · LIVE — SNOW, THE INFORMANT';
+_setState('SNOW, THE INFORMANT — the accent is gone completely. What remains is an ethereal, unisex voice, pleasant and even, whose whole purpose is to inform: your options, your touch, your record. (The live voice is your device\u2019s own, kept neutral; the four recordings carry his true sound.)');
+
 </script>
 </body>
 </html>
