@@ -188,6 +188,10 @@ setTimeout(function () {
     <button class="pbtn" id="skelFull">FULL BUILD</button>
     <button class="pbtn" data-skel="frame">EMPTY FRAME</button></div>
   <div class="prow"><span class="note">Whole-cathedral skeletons, standing in wire. Pick one, then change it — every tool works on the skeleton. Slide MATERIALIZE in VIEW to flesh it into stone.</span></div>
+  <div class="prow"><span class="plab">YOUR DESIGNS</span>
+    <button class="pbtn" id="saveBtn">SAVE DESIGN</button>
+    <button class="pbtn" id="shareBtn">SHARE LINK</button></div>
+  <div class="prow" id="saveList"></div>
 <div class="prow"><span class="plab">ADD A PART</span>
     <button class="pbtn" data-add="pillar">PILLAR</button>
     <button class="pbtn" data-add="arch">ARCH</button>
@@ -331,6 +335,10 @@ setTimeout(function () {
 <div class="prow"><span class="plab">AXES + BOX</span>
     <button class="pbtn on" id="axesBtn">AXES + BOX ON</button>
     <span class="wnote">The XYZ frame of the space — shown while you frame, hidden while you work inside it.</span></div>
+<div class="prow"><span class="plab">HISTORY</span>
+    <button class="pbtn" id="undoBtn">⟲ UNDO</button>
+    <button class="pbtn" id="redoBtn">REDO ⟳</button>
+    <span class="wnote">Every change is kept — sixty steps back.</span></div>
 <div class="prow"><span class="plab">CAMERA</span>
     <button class="pbtn" id="orbitBtn">AUTO-ORBIT</button>
     <button class="pbtn on" id="hapBtn">HAPTICS ON</button>
@@ -1254,9 +1262,9 @@ setInterval(updBudget, 900);
 let matV = 0;
 const skelMat = new THREE.MeshBasicMaterial({ color: 0xf5f2e8, wireframe: true });
 function applyRenderMode() {
-  if (bpMode) { scene.overrideMaterial = bpMat; return; }
-  if (matV < 0.04) { scene.overrideMaterial = skelMat; scene.background.setHex(0x000000); scene.fog.color.setHex(0x000000); }
-  else scene.overrideMaterial = null;
+  if (bpMode) { scene.overrideMaterial = bpMat; setSkeleton(false); return; }
+  if (matV < 0.04) { scene.overrideMaterial = null; scene.background.setHex(0x000000); scene.fog.color.setHex(0x000000); setSkeleton(true); }
+  else { scene.overrideMaterial = null; setSkeleton(false); }
 }
 function skeletonStart(kind) {
   const mr = document.getElementById('matRange');
@@ -1520,8 +1528,10 @@ document.getElementById('notesBtn').addEventListener('click', () => {
 function notePinLoop() {
   requestAnimationFrame(notePinLoop);
   if (!notesOn || !selected) { notePin.style.display = 'none'; return; }
-  const m = measure(selected), p = selected.group.position;
+  const p = selected.group.position;
   const sig = selected.id + '|' + p.x.toFixed(1) + '|' + p.z.toFixed(1) + '|' + selected.group.scale.x.toFixed(2) + '|' + Math.round(THREE.MathUtils.radToDeg(selected.group.rotation.y));
+  const m = (sig === lastSelSig && window.__lastM) ? window.__lastM : measure(selected);
+  window.__lastM = m;
   if (sig !== lastSelSig) {
     lastSelSig = sig;
     notePin.innerHTML = '<b>' + PARTS[selected.type].name.toUpperCase() + '</b> · ' + m.w.toFixed(2) + ' × ' + m.h.toFixed(2) + ' × ' + m.d.toFixed(2) + ' m<br>ratio ' + ratioStr(m.w, m.h, m.d) + ' · X ' + p.x.toFixed(1) + ' · Z ' + p.z.toFixed(1);
@@ -2104,6 +2114,172 @@ applySection('all');
 fitIso(false);
 document.getElementById('buildStamp').innerHTML = 'BUILD <b>v15</b> · LIVE — FULL BUILD';
 setState('FULL BUILD — the entire cathedral complete: ' + items.length + ' figures · roofs, clerestory, every bay glazed · the plate\u2019s view, in wire');
+
+
+/* ============ V16 — EDGES · HISTORY · DESIGNS · SHARED GEOMETRY ============ */
+const edgeMat = new THREE.LineBasicMaterial({ color: 0xf5f2e8, transparent: true, opacity: 0.96 });
+const edgeCache = new WeakMap();
+const NO_RAY = function () {};
+let skelOn = false;
+function dressItem(it) {
+  const meshes = [];
+  it.group.traverse(o => { if (o.isMesh) meshes.push(o); });
+  meshes.forEach(o => {
+    let e = o.parent ? o.parent.children.find(c => c.userData.isEdge && c.userData.forMesh === o.uuid) : null;
+    if (!e) {
+      let eg = edgeCache.get(o.geometry);
+      if (!eg) { eg = new THREE.EdgesGeometry(o.geometry, 18); edgeCache.set(o.geometry, eg); }
+      e = new THREE.LineSegments(eg, edgeMat);
+      e.position.copy(o.position); e.rotation.copy(o.rotation); e.scale.copy(o.scale);
+      e.userData.isEdge = true; e.userData.forMesh = o.uuid;
+      o.parent.add(e);
+    }
+    e.raycast = NO_RAY;
+    e.visible = skelOn;
+    o.visible = !skelOn;
+  });
+}
+function setSkeleton(on) {
+  if (!window.__v16Ready) { window.__pendSkel = on; return; }
+  skelOn = on;
+  items.forEach(dressItem);
+  if (scene.fog) scene.fog.density = on ? 0.0042 : 0.0028;
+}
+
+/* shared geometry: one pristine build per type; every later figure is a clone of it */
+const templates = {};
+const _addItemOrig = addItem;
+addItem = function (type, x, z, rotY = 0, scl = null, matName = 'stone') {
+  let grp;
+  const tpl = templates[type];
+  if (tpl) {
+    grp = tpl.grp.clone(true);
+    if (matName !== tpl.mat) grp.traverse(o => { if (o.isMesh) o.material = MATS[matName] || MATS.stone; });
+  } else {
+    grp = PARTS[type].build(MATS[matName] || MATS.stone);
+    templates[type] = { grp: grp.clone(true), mat: matName };
+  }
+  grp.position.set(x, 0, z); grp.rotation.y = rotY;
+  if (scl) grp.scale.set(scl[0], scl[1], scl[2]);
+  grp.userData.itemId = nextId;
+  world.add(grp);
+  const it = { id: nextId++, type, group: grp, mat: matName };
+  items.push(it);
+  dressItem(it);
+  recount();
+  return it;
+};
+
+/* ---- designs: snapshot, history, saves, share ---- */
+function snapDesign() {
+  return items.map(it => ({
+    t: it.type,
+    x: +it.group.position.x.toFixed(2), y: +it.group.position.y.toFixed(2), z: +it.group.position.z.toFixed(2),
+    r: +it.group.rotation.y.toFixed(3),
+    s: it.group.scale.toArray().map(v => +v.toFixed(3)),
+    m: it.mat,
+    tw: it.twinId != null ? items.findIndex(i => i.id === it.twinId) : undefined
+  }));
+}
+let restoring = false;
+function restoreDesign(snap) {
+  restoring = true;
+  [...items].forEach(removeItem);
+  const created = snap.map(d => {
+    const it = addItem(d.t, d.x, d.z, d.r, d.s, d.m || 'stone');
+    it.group.position.y = d.y || 0;
+    return it;
+  });
+  snap.forEach((d, i) => { if (d.tw != null && created[d.tw]) created[i].twinId = created[d.tw].id; });
+  select(null);
+  applySection(secFilter);
+  recount();
+  restoring = false;
+}
+let undoStack = [], redoStack = [], prevSnap = null, lastSig = '';
+function designSig() {
+  return items.length + '|' + items.reduce((a, i) => a + i.group.position.x + i.group.position.z * 3 + i.group.scale.y * 7 + i.group.rotation.y * 13, 0).toFixed(1);
+}
+setInterval(() => {
+  if (restoring || prevSnap === null) return;
+  const sg = designSig();
+  if (sg !== lastSig) {
+    undoStack.push(prevSnap);
+    if (undoStack.length > 60) undoStack.shift();
+    redoStack = [];
+    prevSnap = snapDesign();
+    lastSig = sg;
+  }
+}, 600);
+document.getElementById('undoBtn').addEventListener('click', () => {
+  if (!undoStack.length) { setState('UNDO — nothing behind us'); return; }
+  redoStack.push(snapDesign());
+  restoreDesign(undoStack.pop());
+  prevSnap = snapDesign(); lastSig = designSig();
+  setState('UNDO — one step back · ' + undoStack.length + ' more behind'); haptic();
+});
+document.getElementById('redoBtn').addEventListener('click', () => {
+  if (!redoStack.length) { setState('REDO — nothing ahead'); return; }
+  undoStack.push(snapDesign());
+  restoreDesign(redoStack.pop());
+  prevSnap = snapDesign(); lastSig = designSig();
+  setState('REDO — one step forward'); haptic();
+});
+function renderSaveList() {
+  const box = document.getElementById('saveList');
+  if (!box) return;
+  let all = {};
+  try { all = JSON.parse(localStorage.getItem('cathSaves') || '{}'); } catch (e) {}
+  const names = Object.keys(all);
+  box.innerHTML = names.length
+    ? names.map(n => '<button class="pbtn" data-load="' + n.replace(/"/g, '') + '">' + n + ' · ' + all[n].length + '</button>').join('')
+    : '<span class="note">no saved designs yet — SAVE DESIGN keeps this one on the device</span>';
+}
+document.getElementById('saveBtn').addEventListener('click', () => {
+  const name = prompt('Name this design:');
+  if (!name) return;
+  let all = {};
+  try { all = JSON.parse(localStorage.getItem('cathSaves') || '{}'); } catch (e) {}
+  all[name] = snapDesign();
+  try { localStorage.setItem('cathSaves', JSON.stringify(all)); } catch (e) { setState('SAVE FAILED — device storage full'); return; }
+  renderSaveList();
+  setState('SAVED — "' + name + '" · ' + items.length + ' figures, kept on this device'); haptic();
+});
+document.getElementById('saveList').addEventListener('click', e => {
+  const b = e.target.closest('[data-load]');
+  if (!b) return;
+  let all = {};
+  try { all = JSON.parse(localStorage.getItem('cathSaves') || '{}'); } catch (e) {}
+  const snap = all[b.dataset.load];
+  if (!snap) return;
+  restoreDesign(snap);
+  prevSnap = snapDesign(); lastSig = designSig();
+  fitIso(true);
+  setState('LOADED — "' + b.dataset.load + '" · ' + snap.length + ' figures'); haptic();
+});
+document.getElementById('shareBtn').addEventListener('click', async () => {
+  const raw = JSON.stringify(snapDesign());
+  const enc = btoa(unescape(encodeURIComponent(raw))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const url = location.origin + location.pathname + '#d=' + enc;
+  try { await navigator.clipboard.writeText(url); setState('LINK COPIED — the whole design rides in it (' + url.length.toLocaleString('en-US') + ' characters)'); }
+  catch (e) { prompt('Copy your design link:', url); }
+  haptic();
+});
+
+/* ---- init: dress the standing build, open the skeleton state, history zero ---- */
+items.forEach(dressItem);
+window.__v16Ready = true;
+setSkeleton(window.__pendSkel != null ? window.__pendSkel : (matV < 0.04 && !bpMode));
+if (location.hash.indexOf('#d=') === 0) {
+  try {
+    const snap = JSON.parse(decodeURIComponent(escape(atob(location.hash.slice(3).replace(/-/g, '+').replace(/_/g, '/')))));
+    restoreDesign(snap);
+    setState('SHARED DESIGN — loaded from the link · ' + snap.length + ' figures');
+  } catch (e) { setState('THAT DESIGN LINK WOULD NOT READ — the full build stands instead'); }
+}
+prevSnap = snapDesign(); lastSig = designSig();
+renderSaveList();
+document.getElementById('buildStamp').innerHTML = 'BUILD <b>v16</b> · LIVE — EDGES · UNDO · DESIGNS';
 
 </script>
 </body>
