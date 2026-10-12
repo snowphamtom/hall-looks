@@ -148,6 +148,18 @@
     color:#8f8875; font-family:'Courier New',monospace; font-size:9.5px; letter-spacing:.16em;
     background:rgba(6,7,11,.8); border:1px solid #2e2716; padding:4px 8px; pointer-events:none; }
   #buildStamp b { color:#ffd977; }
+
+  /* ===== v18: plate overlay, walk pad, brief inputs ===== */
+  #plateOverlay { position:fixed; inset:0; z-index:40; background:rgba(2,2,4,.94); display:none;
+    flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:18px; }
+  #plateImg { max-width:94vw; max-height:78vh; border:1px solid #c9a227; }
+  #plateClose { background:none; border:1px solid #c9a227; color:#ffd977; border-radius:50%; width:42px; height:42px; font-size:16px; cursor:pointer; }
+  .plate-cap { color:#bdb395; font-family:'Courier New',monospace; font-size:11px; letter-spacing:.14em; }
+  #walkPad { position:fixed; left:50%; transform:translateX(-50%); bottom:calc(128px + env(safe-area-inset-bottom)); z-index:11;
+    display:none; gap:8px; }
+  #walkPad .pbtn { min-height:46px; padding:10px 18px; background:rgba(8,9,14,.94); }
+  .briefIn { width:76px; min-height:38px; background:#0e1017; border:1px solid #3a332a; color:#ffd977;
+    font-family:'Courier New',monospace; font-size:13px; padding:4px 7px; }
 </style>
 <script type="importmap">
 { "imports": {
@@ -340,9 +352,16 @@ setTimeout(function () {
 <div class="prow"><span class="plab">AXES + BOX</span>
     <button class="pbtn on" id="axesBtn">AXES + BOX ON</button>
     <span class="wnote">The XYZ frame of the space — shown while you frame, hidden while you work inside it.</span></div>
+<div class="prow"><span class="plab">PHASES</span>
+    <input type="range" id="phaseRange" min="0" max="9" step="1" value="9">
+    <span class="sval" id="phaseVal">THE FURNISHING — THE WHOLE CATHEDRAL</span></div>
+  <div class="prow"><span class="wnote">Raise it in phases — slide back and the cathedral unmakes itself in reverse order: furnishing, towers, roofs, flyers, vault, glass, triforium, arcade, piers, foundation.</span></div>
 <div class="prow"><span class="plab">FORCES</span>
     <button class="pbtn" id="thrustBtn">THRUST LINES</button>
     <span class="wnote">Vault → flyer → pier → ground, at every bay.</span></div>
+  <div class="prow"><span class="plab">THE GUARD</span>
+    <button class="pbtn" id="guardBtn">STRUCTURAL GUARD</button></div>
+  <div class="prow"><span class="wnote" id="guardNote">The guard sleeps. Turn it on and the building answers for its own structure.</span></div>
   <div class="prow"><span class="plab">SECTION</span>
     <button class="pbtn" id="secOff">WHOLE</button>
     <input type="range" id="secRange" min="-64" max="64" step="8" value="0">
@@ -362,7 +381,9 @@ setTimeout(function () {
 <div class="prow"><span class="plab">CAMERA</span>
     <button class="pbtn" id="orbitBtn">AUTO-ORBIT</button>
     <button class="pbtn on" id="hapBtn">HAPTICS ON</button>
-    <button class="pbtn" id="resetBtn">RESET VIEW</button></div>
+    <button class="pbtn" id="resetBtn">RESET VIEW</button>
+    <button class="pbtn" id="plateBtn">CAPTURE PLATE</button>
+    <button class="pbtn" id="standBtn">STAND INSIDE</button></div>
 </div>
 
 <div class="panel" id="panel-forge">
@@ -381,6 +402,11 @@ setTimeout(function () {
 
 <div class="panel" id="panel-measure">
   <div class="sheet" id="sheet"></div>
+  <div class="prow"><span class="plab">YOUR BRIEF</span>
+    <input class="briefIn" type="number" id="briefSeats" placeholder="SEATS" min="0">
+    <input class="briefIn" type="number" id="briefVault" placeholder="VAULT m" min="0">
+    <input class="briefIn" type="number" id="briefStone" placeholder="STONE m³" min="0"></div>
+  <div class="prow"><span class="wnote" id="briefNote">Set your own targets above — the sheet grades the standing building against your brief, live.</span></div>
 </div>
 
 <div id="forgeCard">
@@ -406,6 +432,16 @@ setTimeout(function () {
 </div>
 <div id="notePin"></div>
 <div id="navHud">—</div>
+<div id="plateOverlay">
+  <img id="plateImg" alt="The Cathedral Plate">
+  <div class="plate-cap">LONG-PRESS THE PLATE TO KEEP IT</div>
+  <button id="plateClose">✕</button>
+</div>
+<div id="walkPad">
+  <button class="pbtn" id="stepBack">◂ BACK</button>
+  <button class="pbtn" id="stepFwd">STEP ▸</button>
+  <button class="pbtn" id="walkExit">LEAVE</button>
+</div>
 <div id="buildStamp">BUILD <b>v14</b> · LIVE — ISO OPENING, WIRE FRAME</div>
 <div id="navCluster">
   <button id="navOver">⌖<span class="cap">OVERHEAD</span></button>
@@ -2536,6 +2572,210 @@ sunStudy();
 prevSnap = snapDesign(); lastSig = designSig();
 document.getElementById('buildStamp').innerHTML = 'BUILD <b>v17</b> · LIVE — THE ARCHITECT\u2019S SET';
 setState('THE ARCHITECT\u2019S SET — one module, true flyers, the triforium, alternating piers, thrust drawn, the sun computed · ' + items.length + ' figures');
+
+
+/* ============ V18 — PLATES · ON FOOT · PHASES · THE GUARD · THE BRIEF · BAKED DRESSING ============ */
+/* bake the dressing into the hosts: a pinnacle is part of its pier now, not an item */
+const _buttBuild = PARTS.buttress.build;
+PARTS.buttress.build = function (mat) {
+  const g = _buttBuild(mat);
+  const pin = PARTS.spire.build(mat);
+  pin.scale.set(0.075, 0.13, 0.075);
+  pin.position.set(0, PARTS.buttress.h - 0.5, 0);
+  g.add(pin);
+  return g;
+};
+const _towerBuild = PARTS.tower.build;
+PARTS.tower.build = function (mat) {
+  const g = _towerBuild(mat);
+  [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(([sx, sz]) => {
+    const pin = PARTS.spire.build(mat);
+    pin.scale.set(0.08, 0.15, 0.08);
+    pin.position.set(sx * PARTS.tower.w / 2 * 0.74, PARTS.tower.h - 0.5, sz * PARTS.tower.d / 2 * 0.74);
+    g.add(pin);
+  });
+  return g;
+};
+function stripDressingPinnacles() {
+  [...items].filter(i => i.type === 'spire' && i.group.scale.x < 0.2).forEach(removeItem);
+}
+const _fb18 = fullBuild;
+fullBuild = function (k) { _fb18(k); stripDressingPinnacles(); };
+/* thrust tops read the pier's catalog height now that its crown is baked in */
+buildThrust = function () {
+  if (thrustGroup) { world.remove(thrustGroup); thrustGroup.geometry.dispose(); thrustGroup = null; }
+  const k = window.__modK || 1, pts = [];
+  items.filter(i => i.type === 'buttress').forEach(b => {
+    const p = b.group.position, s = Math.sign(p.x) || 1, z = p.z;
+    const topY = p.y + PARTS.buttress.h * b.group.scale.y;
+    pts.push(new THREE.Vector3(s * 6 * k, 26 * k, z), new THREE.Vector3(s * 15 * k, 25 * k, z));
+    pts.push(new THREE.Vector3(s * 15 * k, 25 * k, z), new THREE.Vector3(p.x, topY, z));
+    pts.push(new THREE.Vector3(p.x, topY, z), new THREE.Vector3(p.x + s * 2.5 * k, 0, z));
+  });
+  thrustGroup = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts),
+    new THREE.LineBasicMaterial({ color: 0xff9d5c, transparent: true, opacity: 0.9 }));
+  thrustGroup.visible = thrustOn;
+  world.add(thrustGroup);
+};
+
+/* ---- 1 · PLATE CAPTURE ---- */
+document.getElementById('plateBtn').addEventListener('click', () => {
+  renderer.render(scene, camera);
+  const src = renderer.domElement, W = src.width, H = src.height, band = Math.round(H * 0.13);
+  const c = document.createElement('canvas');
+  c.width = W; c.height = H + band;
+  const g = c.getContext('2d');
+  g.fillStyle = bpMode ? '#0a1a3a' : '#0b0b0e';
+  g.fillRect(0, 0, W, H + band);
+  g.drawImage(src, 0, 0);
+  g.strokeStyle = '#c9a227'; g.lineWidth = Math.max(2, W * 0.002);
+  g.strokeRect(g.lineWidth * 1.5, g.lineWidth * 1.5, W - g.lineWidth * 3, H + band - g.lineWidth * 3);
+  g.textAlign = 'center';
+  g.fillStyle = '#e8d9a0';
+  g.font = '600 ' + Math.round(band * 0.32) + 'px Georgia, serif';
+  g.fillText('THE CATHEDRAL PLATE', W / 2, H + band * 0.4);
+  g.font = Math.round(band * 0.19) + "px 'Courier New', monospace";
+  g.fillStyle = '#bdb395';
+  const fx = lastExtents ? (lastExtents.maxX - lastExtents.minX).toFixed(1) : '—';
+  const fz = lastExtents ? (lastExtents.maxZ - lastExtents.minZ).toFixed(1) : '—';
+  g.fillText(items.length + ' figures · module M = ' + (8 * (window.__modK || 1)).toFixed(2) + ' m · footprint ' + fx + ' × ' + fz + ' m · height ' + boxMaxY().toFixed(1) + ' m', W / 2, H + band * 0.66);
+  g.fillText(new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }), W / 2, H + band * 0.87);
+  document.getElementById('plateImg').src = c.toDataURL('image/png');
+  document.getElementById('plateOverlay').style.display = 'flex';
+  setState('THE PLATE IS STRUCK — long-press it to keep it'); haptic();
+});
+document.getElementById('plateClose').addEventListener('click', () => {
+  document.getElementById('plateOverlay').style.display = 'none';
+});
+
+/* ---- 2 · STAND INSIDE ---- */
+let walkMode = false;
+const walkPad = document.getElementById('walkPad'), standBtn = document.getElementById('standBtn');
+function exitWalk() {
+  walkMode = false;
+  controls.enablePan = true;
+  walkPad.style.display = 'none';
+  standBtn.textContent = 'STAND INSIDE';
+  fitIso(true);
+}
+standBtn.addEventListener('click', () => {
+  if (walkMode) { exitWalk(); return; }
+  if (gyroOn) document.getElementById('gyroBtn').click();
+  navAnim = null;
+  const topZ = lastExtents ? lastExtents.maxZ : 64;
+  camera.position.set(hubC.x, 1.7, topZ - 4);
+  controls.target.set(hubC.x, 2.3, topZ - 7);
+  controls.enablePan = false;
+  walkMode = true;
+  walkPad.style.display = 'flex';
+  standBtn.textContent = 'LEAVE THE NAVE';
+  setState('ON FOOT — drag to look · step along the nave · the altar ★ ahead');
+  haptic();
+});
+function walkStep(dir) {
+  const d = controls.target.clone().sub(camera.position);
+  d.y = 0;
+  if (d.lengthSq() < 0.01) return;
+  d.normalize().multiplyScalar(2.5 * dir);
+  const nx = camera.position.x + d.x, nz = camera.position.z + d.z;
+  if (lastExtents && (nx < lastExtents.minX + 1.5 || nx > lastExtents.maxX - 1.5 || nz < lastExtents.minZ + 1.5 || nz > lastExtents.maxZ - 1.5)) {
+    setState('THE WALL — the building ends here'); haptic('err'); return;
+  }
+  camera.position.add(d); controls.target.add(d);
+  haptic();
+}
+document.getElementById('stepFwd').addEventListener('click', () => walkStep(1));
+document.getElementById('stepBack').addEventListener('click', () => walkStep(-1));
+document.getElementById('walkExit').addEventListener('click', exitWalk);
+
+/* ---- 3 · RAISE IN PHASES ---- */
+const PHASE_RANK = { floor: 0, pillar: 1, arch: 2, wall: 2, triforium: 3, lancet: 4, portal: 4, rose: 4, vault: 5, buttress: 6, roof: 7, tower: 8, spire: 8, pew: 9 };
+const PHASE_NAMES = ['THE FOUNDATION', 'THE PIERS', 'THE ARCADE', 'THE TRIFORIUM', 'THE GLASS', 'THE VAULT', 'THE FLYERS', 'THE ROOFS', 'THE TOWERS + FLÈCHE', 'THE FURNISHING — THE WHOLE CATHEDRAL'];
+let phaseVal = 9;
+const phaseRange = document.getElementById('phaseRange'), phaseValEl = document.getElementById('phaseVal');
+phaseRange.addEventListener('input', () => {
+  phaseVal = parseInt(phaseRange.value, 10);
+  phaseValEl.textContent = PHASE_NAMES[phaseVal];
+});
+setInterval(() => {
+  items.forEach(it => {
+    const secOK = secFilter === 'all' || sectionOf(it.type) === secFilter;
+    it.group.visible = secOK && (PHASE_RANK[it.type] || 0) <= phaseVal;
+  });
+}, 400);
+
+/* ---- 4 · THE STRUCTURAL GUARD ---- */
+let guardOn = false, guardGroup = null, lastUnpathed = -1;
+const guardNote = document.getElementById('guardNote');
+document.getElementById('guardBtn').addEventListener('click', () => {
+  guardOn = !guardOn;
+  document.getElementById('guardBtn').classList.toggle('on', guardOn);
+  document.getElementById('guardBtn').textContent = guardOn ? 'STRUCTURAL GUARD — ON' : 'STRUCTURAL GUARD';
+  if (!guardOn) {
+    if (guardGroup) guardGroup.visible = false;
+    guardNote.textContent = 'The guard sleeps. Turn it on and the building answers for its own structure.';
+    lastUnpathed = -1;
+  }
+  haptic();
+});
+setInterval(() => {
+  if (!guardOn) return;
+  const k = window.__modK || 1;
+  const bayZs = [...new Set(items.filter(i => i.type === 'pillar' && Math.abs(i.group.position.x) < 8 * k).map(i => Math.round(i.group.position.z)))];
+  const unpathed = [];
+  bayZs.forEach(z => [-1, 1].forEach(sd => {
+    const ok = items.some(i => i.type === 'buttress' && Math.sign(i.group.position.x) === sd && Math.abs(i.group.position.z - z) < 4 * k + 0.5);
+    if (!ok) unpathed.push({ z, sd });
+  }));
+  if (guardGroup) { world.remove(guardGroup); guardGroup.geometry.dispose(); }
+  const pts = [];
+  unpathed.forEach(u => {
+    pts.push(new THREE.Vector3(u.sd * 6 * k, 26 * k, u.z), new THREE.Vector3(u.sd * 21 * k, 8 * k, u.z));
+    pts.push(new THREE.Vector3(u.sd * 21 * k, 8 * k, u.z), new THREE.Vector3(u.sd * 21 * k, 0, u.z));
+  });
+  guardGroup = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts),
+    new THREE.LineBasicMaterial({ color: 0xff5340, transparent: true, opacity: 0.95 }));
+  world.add(guardGroup);
+  guardNote.textContent = unpathed.length
+    ? '⚠ GUARD — ' + unpathed.length + ' bay-side' + (unpathed.length > 1 ? 's' : '') + ' UNPATHED: the thrust falls down the wall with no road to ground.'
+    : 'GUARD — every bay pathed · the thrust reaches ground on both sides.';
+  if (unpathed.length !== lastUnpathed) {
+    lastUnpathed = unpathed.length;
+    if (unpathed.length) setState('⚠ THE GUARD OBJECTS — ' + unpathed.length + ' unpathed: the building refuses to call itself sound');
+  }
+}, 900);
+
+/* ---- 5 · THE DESIGN BRIEF ---- */
+const briefSeats = document.getElementById('briefSeats'), briefVault = document.getElementById('briefVault'), briefStone = document.getElementById('briefStone'), briefNote = document.getElementById('briefNote');
+try {
+  const saved = JSON.parse(localStorage.getItem('cathBrief') || '{}');
+  if (saved.s) briefSeats.value = saved.s;
+  if (saved.v) briefVault.value = saved.v;
+  if (saved.st) briefStone.value = saved.st;
+} catch (e) {}
+[briefSeats, briefVault, briefStone].forEach(inp => inp.addEventListener('change', () => {
+  try { localStorage.setItem('cathBrief', JSON.stringify({ s: briefSeats.value, v: briefVault.value, st: briefStone.value })); } catch (e) {}
+}));
+setInterval(() => {
+  const seats = items.filter(i => i.type === 'pew').length * PARTS.pew.seats;
+  let vaultTop = 0;
+  items.filter(i => i.type === 'vault').forEach(i => { const b = new THREE.Box3().setFromObject(i.group); if (b.max.y > vaultTop) vaultTop = b.max.y; });
+  const stone = items.reduce((a, i) => a + PARTS[i.type].vol * i.group.scale.x * i.group.scale.y * i.group.scale.z, 0);
+  const parts = [];
+  const ts = parseFloat(briefSeats.value), tv = parseFloat(briefVault.value), tst = parseFloat(briefStone.value);
+  if (ts > 0) parts.push((seats >= ts ? '✓' : '✗') + ' SEATS ' + seats + ' / ' + ts);
+  if (tv > 0) parts.push((vaultTop >= tv ? '✓' : '✗') + ' VAULT ' + vaultTop.toFixed(1) + ' / ' + tv + ' m');
+  if (tst > 0) parts.push((stone <= tst ? '✓' : '✗') + ' STONE ' + Math.round(stone).toLocaleString('en-US') + ' / ' + Number(tst).toLocaleString('en-US') + ' m³');
+  briefNote.textContent = parts.length ? 'YOUR BRIEF — ' + parts.join(' · ') : 'Set your own targets above — the sheet grades the standing building against your brief, live.';
+}, 1200);
+
+/* ---- init ---- */
+clearAll();
+fullBuild(1);
+applySection('all');
+prevSnap = snapDesign(); lastSig = designSig();
+document.getElementById('buildStamp').innerHTML = 'BUILD <b>v18</b> · LIVE — PLATES · ON FOOT · THE GUARD';
+setState('SIX MORE — plates struck, feet on the floor, phases of raising, a guard on the structure, your own brief, the dressing baked in · ' + items.length + ' figures standing');
 
 </script>
 </body>
