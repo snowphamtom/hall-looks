@@ -143,6 +143,11 @@
   .fs-note { color:#bdb395; font-size:.74rem; margin:5px 0 9px; font-family:'Courier New',monospace; line-height:1.5; }
   .fs-body { display:flex; flex-wrap:wrap; gap:6px; }
   .fs-body .pbtn { min-height:40px; }
+
+  #buildStamp { position:fixed; left:10px; bottom:calc(58px + 62px + env(safe-area-inset-bottom)); z-index:7;
+    color:#8f8875; font-family:'Courier New',monospace; font-size:9.5px; letter-spacing:.16em;
+    background:rgba(6,7,11,.8); border:1px solid #2e2716; padding:4px 8px; pointer-events:none; }
+  #buildStamp b { color:#ffd977; }
 </style>
 <script type="importmap">
 { "imports": {
@@ -372,6 +377,7 @@ setTimeout(function () {
 </div>
 <div id="notePin"></div>
 <div id="navHud">—</div>
+<div id="buildStamp">BUILD <b>v13</b> · LIVE — PLACE + FIGURE SHEETS</div>
 <div id="navCluster">
   <button id="navOver">⌖<span class="cap">OVERHEAD</span></button>
   <button id="navIn">+</button>
