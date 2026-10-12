@@ -165,6 +165,29 @@
   #hotbar .slot { position:relative; }
   #hotbar .bdg { position:absolute; top:2px; right:5px; font-size:9px; color:#ffd977;
     font-family:'Courier New',monospace; letter-spacing:.05em; }
+
+  /* ===== v20: the chooser ===== */
+  #chooser { position:fixed; inset:0; z-index:38; background:rgba(3,3,6,.9); display:none;
+    flex-direction:column; align-items:center; justify-content:center; gap:14px; padding:20px; overflow-y:auto; }
+  .ch-title { color:#ffd977; font-family:Georgia,serif; font-size:clamp(20px,4.5vw,30px); letter-spacing:.22em; text-align:center; }
+  .ch-sub { color:#bdb395; font-family:'Courier New',monospace; font-size:11px; letter-spacing:.16em; text-align:center; }
+  #chTypes { display:flex; gap:8px; flex-wrap:wrap; justify-content:center; }
+  .ch-type { background:#0e1017; border:1px solid #6b5d3f; color:#efe9dc; padding:13px 20px; min-height:52px;
+    font-family:'Courier New',monospace; letter-spacing:.14em; font-size:13px; cursor:pointer; }
+  .ch-type.on { border-color:#ffd977; color:#ffd977; box-shadow:0 0 0 1px #ffd977 inset; }
+  #chFrames { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; max-width:760px; }
+  .ch-frame { background:#0e1017; border:1px solid #3a332a; color:#efe9dc; width:118px; padding:8px 6px 10px;
+    display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer;
+    font-family:'Courier New',monospace; font-size:10px; letter-spacing:.1em; }
+  .ch-frame svg { width:100px; height:100px; }
+  .ch-frame:active { border-color:#ffd977; }
+  .ch-blank { justify-content:center; min-height:142px; }
+  .ch-blank-x { font-size:34px; color:#ffd977; }
+  .ch-hint { color:#bdb395; font-family:'Courier New',monospace; font-size:11.5px; text-align:center; max-width:420px; line-height:1.7; }
+  #chPlan { background:none; border:1px solid #6b5d3f; color:#efe9dc; padding:11px 18px; min-height:46px;
+    font-family:'Courier New',monospace; letter-spacing:.12em; font-size:11px; cursor:pointer; }
+  #chPlan.on { border-color:#ffd977; color:#ffd977; }
+  #chClose { background:none; border:1px solid #3a332a; color:#bdb395; border-radius:50%; width:42px; height:42px; cursor:pointer; }
 </style>
 <script type="importmap">
 { "imports": {
@@ -448,6 +471,14 @@ setTimeout(function () {
   <button class="pbtn" id="stepBack">◂ BACK</button>
   <button class="pbtn" id="stepFwd">STEP ▸</button>
   <button class="pbtn" id="walkExit">LEAVE</button>
+</div>
+<div id="chooser">
+  <div class="ch-title">WHAT ARE YOU BUILDING?</div>
+  <div class="ch-sub">A DESIGN GAME BASED ON REALITY — REAL MEASURES, REAL SUN, REAL THRUST</div>
+  <div id="chTypes"></div>
+  <div id="chFrames"></div>
+  <button id="chPlan">START FROM THE FLOORPLAN</button>
+  <button id="chClose">✕</button>
 </div>
 <div id="buildStamp">BUILD <b>v14</b> · LIVE — ISO OPENING, WIRE FRAME</div>
 <div id="navCluster">
@@ -2993,6 +3024,209 @@ if (mrSync) mrSync.addEventListener('change', () => { PARAMS.module = parseFloat
 renderParams();
 document.getElementById('buildStamp').innerHTML = 'BUILD <b>v19</b> · LIVE — THE LIVING GRAPH';
 setState('THE LIVING GRAPH — real light in a real room, parameters that re-derive the stone, the model exportable · ' + items.length + ' figures standing');
+
+
+/* ============ V20 — THE DESIGN GAME: ANY BUILDING, FROM A BLANK FLOOR ============ */
+const M4 = (geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; return m; };
+PARTS.slab = { name: 'Floor Slab', w: 8, h: 0.4, d: 8, seats: 0, glass: 0, vol: 26, build(mat) { const g = new THREE.Group(); g.add(M4(new THREE.BoxGeometry(8, 0.4, 8), mat, 0, 0.2, 0)); return g; } };
+PARTS.column = { name: 'Column', w: 0.45, h: 3.2, d: 0.45, seats: 0, glass: 0, vol: 0.7, build(mat) { const g = new THREE.Group(); g.add(M4(new THREE.BoxGeometry(0.45, 3.2, 0.45), mat, 0, 1.6, 0)); g.add(M4(new THREE.BoxGeometry(0.7, 0.18, 0.7), mat, 0, 3.29, 0)); g.add(M4(new THREE.BoxGeometry(0.7, 0.18, 0.7), mat, 0, 0.09, 0)); return g; } };
+PARTS.beam = { name: 'Beam', w: 8, h: 0.5, d: 0.35, seats: 0, glass: 0, vol: 1.4, build(mat) { const g = new THREE.Group(); g.add(M4(new THREE.BoxGeometry(8, 0.5, 0.35), mat, 0, 0.25, 0)); return g; } };
+PARTS.panel = { name: 'Wall Panel', w: 4, h: 3.2, d: 0.25, seats: 0, glass: 0, vol: 3.2, build(mat) { const g = new THREE.Group(); g.add(M4(new THREE.BoxGeometry(4, 3.2, 0.25), mat, 0, 1.6, 0)); return g; } };
+PARTS.gwin = { name: 'Glass Panel', w: 4, h: 3.2, d: 0.18, seats: 0, glass: 12.8, vol: 1.1, build(mat) { const g = new THREE.Group(); g.add(M4(new THREE.BoxGeometry(4, 0.25, 0.22), mat, 0, 3.07, 0)); g.add(M4(new THREE.BoxGeometry(4, 0.25, 0.22), mat, 0, 0.13, 0)); g.add(M4(new THREE.BoxGeometry(0.25, 3.2, 0.22), mat, -1.87, 1.6, 0)); g.add(M4(new THREE.BoxGeometry(0.25, 3.2, 0.22), mat, 1.87, 1.6, 0)); const gl = M4(new THREE.BoxGeometry(3.5, 2.7, 0.05), MATS.iwhg, 0, 1.6, 0); g.add(gl); return g; } };
+PARTS.gdoor = { name: 'Door Panel', w: 4, h: 3.2, d: 0.25, seats: 0, glass: 0, vol: 2.6, build(mat) { const g = new THREE.Group(); g.add(M4(new THREE.BoxGeometry(1.4, 3.2, 0.25), mat, -1.3, 1.6, 0)); g.add(M4(new THREE.BoxGeometry(1.4, 3.2, 0.25), mat, 1.3, 1.6, 0)); g.add(M4(new THREE.BoxGeometry(1.2, 0.9, 0.25), mat, 0, 2.75, 0)); g.add(M4(new THREE.BoxGeometry(1.1, 2.3, 0.12), MATS.gold, 0, 1.15, 0)); return g; } };
+PARTS.stair = { name: 'Stair Flight', w: 1.2, h: 3.2, d: 4.8, seats: 0, glass: 0, vol: 4.4, build(mat) { const g = new THREE.Group(); for (let i = 0; i < 8; i++) g.add(M4(new THREE.BoxGeometry(1.2, 0.4, 0.6), mat, 0, 0.2 + i * 0.4, -2.1 + i * 0.6)); return g; } };
+PARTS.gable = { name: 'Gable Roof', w: 8, h: 3, d: 10, seats: 0, glass: 0, vol: 60, build(mat) { const g = new THREE.Group(); const sh = new THREE.Shape(); sh.moveTo(-5, 0); sh.lineTo(5, 0); sh.lineTo(0, 3); sh.closePath(); const geo = new THREE.ExtrudeGeometry(sh, { depth: 8, bevelEnabled: false }); geo.translate(0, 0, -4); g.add(M4(geo, mat, 0, 0, 0)); return g; } };
+SECTIONS.frame = { label: 'FRAME', types: ['slab', 'column', 'beam'] };
+SECTIONS.skin = { label: 'SKIN', types: ['panel', 'gwin', 'gdoor', 'stair', 'gable'] };
+Object.assign(PHASE_RANK, { slab: 0, column: 1, beam: 2, panel: 3, gwin: 4, gdoor: 4, gable: 7, stair: 9 });
+TYPE_ACTS.column = [ { act: 'row5', label: 'COLONNADE — ROW OF 5' }, { act: 'raise125', label: 'RAISE ×1.25' } ];
+TYPE_ACTS.slab = [ { act: 'centerIt', label: 'CENTER ON 000' }, { act: 'sizeUp', label: 'WIDER +' } ];
+TYPE_ACTS.gwin = [ { act: 'glassGold', label: 'GLASS — GOLD' }, { act: 'row3', label: 'GLAZE A RUN OF 3' } ];
+TYPE_ACTS.gable = [ { act: 'span15', label: 'WIDER ROOF ×1.5' }, { act: 'raise125', label: 'STEEPER ×1.25' } ];
+
+/* place buttons + section buttons for the new families */
+(function () {
+  const place = document.getElementById('panel-place');
+  if (!place) return;
+  const mkArm = (type, label) => {
+    const b = document.createElement('button');
+    b.className = 'pbtn'; b.dataset.place = type; b.textContent = label;
+    b.addEventListener('click', () => {
+      armedType = type;
+      document.querySelectorAll('[data-place]').forEach(x => x.classList.toggle('on', x === b));
+      buildGhost();
+      placeNote.textContent = PARTS[type].name + ' armed — press the ground and drag. Release, and it stands.';
+      haptic();
+    });
+    return b;
+  };
+  const prow = (label, btns) => {
+    const d = document.createElement('div');
+    d.className = 'prow';
+    d.innerHTML = '<span class="plab">' + label + '</span>';
+    btns.forEach(b => d.appendChild(b));
+    place.appendChild(d);
+  };
+  prow('FRAME', [mkArm('slab', 'FLOOR SLAB'), mkArm('column', 'COLUMN'), mkArm('beam', 'BEAM')]);
+  prow('SKIN', [mkArm('panel', 'WALL PANEL'), mkArm('gwin', 'GLASS PANEL'), mkArm('gdoor', 'DOOR PANEL'), mkArm('stair', 'STAIR'), mkArm('gable', 'GABLE ROOF')]);
+  const secRow = place.querySelector('[data-sec]') ? place.querySelector('[data-sec]').parentElement : null;
+  if (secRow) ['frame', 'skin'].forEach(key => {
+    const b = document.createElement('button');
+    b.className = 'pbtn'; b.dataset.sec = key; b.textContent = SECTIONS[key].label;
+    b.addEventListener('click', () => {
+      applySection(key);
+      document.querySelectorAll('[data-sec]').forEach(x => x.classList.toggle('on', x === b));
+      setState('SECTION — ' + SECTIONS[key].label + ' only'); haptic();
+    });
+    secRow.appendChild(b);
+  });
+})();
+
+/* ---- the generic frame generator: slabs, columns, beams, skin ---- */
+function genFrame(cfg) {
+  const { colsX, colsZ, bayX, bayZ, floors, storey, skin } = cfg;
+  const W = colsX * bayX, D = colsZ * bayZ;
+  const x0 = -W / 2, z0 = -D / 2;
+  const add = (t, x, z, r, sc, y) => { const it = addItem(t, x, z, r || 0, sc || null, 'stone'); if (y) it.group.position.y = y; return it; };
+  for (let f = 0; f < floors; f++) {
+    const y = f * storey;
+    for (let i = 0; i < colsX; i++) for (let j = 0; j < colsZ; j++) {
+      if (cfg.hole && i >= cfg.hole[0] && i < cfg.hole[1] && j >= cfg.hole[2] && j < cfg.hole[3] && f > 0) continue;
+      add('slab', x0 + bayX * (i + 0.5), z0 + bayZ * (j + 0.5), 0, [bayX / 8, 1, bayZ / 8], y);
+    }
+    for (let i = 0; i <= colsX; i++) for (let j = 0; j <= colsZ; j++)
+      add('column', x0 + bayX * i, z0 + bayZ * j, 0, [1, storey / 3.2, 1], y);
+    for (let i = 0; i < colsX; i++) for (let j = 0; j <= colsZ; j++)
+      add('beam', x0 + bayX * (i + 0.5), z0 + bayZ * j, 0, [bayX / 8, 1, 1], y + storey - 0.5);
+    for (let j = 0; j < colsZ; j++) for (let i = 0; i <= colsX; i++)
+      add('beam', x0 + bayX * i, z0 + bayZ * (j + 0.5), Math.PI / 2, [bayZ / 8, 1, 1], y + storey - 0.5);
+    if (skin && f === floors - 1) {
+      for (let i = 0; i < colsX; i++) {
+        add(i === 0 ? 'gdoor' : 'gwin', x0 + bayX * (i + 0.5), z0 + D, 0, [bayX / 4, storey / 3.2, 1], y);
+        add('gwin', x0 + bayX * (i + 0.5), z0, Math.PI, [bayX / 4, storey / 3.2, 1], y);
+      }
+      for (let j = 0; j < colsZ; j++) {
+        add('panel', x0, z0 + bayZ * (j + 0.5), Math.PI / 2, [bayZ / 4, storey / 3.2, 1], y);
+        add('gwin', x0 + W, z0 + bayZ * (j + 0.5), Math.PI / 2, [bayZ / 4, storey / 3.2, 1], y);
+      }
+    }
+    if (cfg.stairs && f < floors - 1) add('stair', x0 + W - 1.2, z0 + 2.4, 0, null, y + 0.4);
+    if (cfg.gables && f === floors - 1) for (let i = 0; i < colsX; i++)
+      add('gable', x0 + bayX * (i + 0.5), 0, Math.PI / 2, [D / 10 * 0.98, 1, bayX / 8], y + storey);
+  }
+  select(null);
+  return { W, D };
+}
+
+const FRAMES = {
+  house: { label: 'HOUSE', frames: [
+    { key: 'ranch', name: 'RANCH FRAME', gen: () => genFrame({ colsX: 3, colsZ: 2, bayX: 8, bayZ: 8, floors: 1, storey: 3.0, skin: true, gables: true }) },
+    { key: 'twostory', name: 'TWO-STORY FRAME', gen: () => genFrame({ colsX: 3, colsZ: 2, bayX: 7, bayZ: 7, floors: 2, storey: 3.0, skin: true, gables: true, stairs: true }) },
+    { key: 'courthouse', name: 'COURTYARD HOUSE', gen: () => genFrame({ colsX: 4, colsZ: 3, bayX: 7, bayZ: 7, floors: 1, storey: 3.1, skin: true, hole: [1, 3, 1, 2], gables: false }) }
+  ]},
+  office: { label: 'OFFICE', frames: [
+    { key: 'gridtower', name: 'GRID TOWER', gen: () => genFrame({ colsX: 3, colsZ: 3, bayX: 8, bayZ: 8, floors: 5, storey: 3.9, skin: true, stairs: true }) },
+    { key: 'slabblock', name: 'SLAB BLOCK', gen: () => genFrame({ colsX: 5, colsZ: 2, bayX: 8, bayZ: 9, floors: 3, storey: 3.9, skin: true, stairs: true }) },
+    { key: 'atrium', name: 'ATRIUM FRAME', gen: () => genFrame({ colsX: 4, colsZ: 4, bayX: 8, bayZ: 8, floors: 3, storey: 3.9, skin: true, hole: [1, 3, 1, 3], stairs: true }) }
+  ]},
+  apartment: { label: 'APARTMENT', frames: [
+    { key: 'pointtower', name: 'POINT TOWER', gen: () => genFrame({ colsX: 2, colsZ: 2, bayX: 8, bayZ: 8, floors: 6, storey: 3.1, skin: true, stairs: true }) },
+    { key: 'walkup', name: 'WALK-UP SLAB', gen: () => genFrame({ colsX: 4, colsZ: 2, bayX: 8, bayZ: 8, floors: 3, storey: 3.1, skin: true, stairs: true }) },
+    { key: 'courtblock', name: 'COURTYARD BLOCK', gen: () => genFrame({ colsX: 4, colsZ: 3, bayX: 8, bayZ: 8, floors: 2, storey: 3.1, skin: true, hole: [1, 3, 1, 2], stairs: true }) }
+  ]},
+  cathedral: { label: 'CATHEDRAL', frames: [
+    { key: 'ndfull', name: 'NOTRE DAME — FULL', gen: () => { fullBuild(); } },
+    { key: 'core', name: 'THE CORE NAVE', gen: () => { document.getElementById('presetCore').click(); } },
+    { key: 'skel', name: 'CATHEDRAL SKELETON', gen: () => { skeletonStart('nd'); } }
+  ]}
+};
+function planSVG(f, typeKey, idx) {
+  const dims = { ranch: [24, 16], twostory: [21, 14], courthouse: [28, 21], gridtower: [24, 24], slabblock: [40, 18], atrium: [32, 32], pointtower: [16, 16], walkup: [32, 16], courtblock: [32, 24], ndfull: [43, 128], core: [43, 128], skel: [43, 128] }[f.key] || [24, 16];
+  const w = dims[0], d = dims[1], sc = 92 / Math.max(w, d);
+  const W = Math.max(30, w * sc), H = Math.max(30, d * sc);
+  const ox = (100 - W) / 2, oy = (100 - H) / 2;
+  let inner = '';
+  const cols = Math.max(2, Math.round(w / 8)), rows = Math.max(2, Math.round(d / 8));
+  for (let i = 1; i < cols; i++) inner += '<line x1="' + (ox + W * i / cols) + '" y1="' + oy + '" x2="' + (ox + W * i / cols) + '" y2="' + (oy + H) + '"/>';
+  for (let j = 1; j < rows; j++) inner += '<line x1="' + ox + '" y1="' + (oy + H * j / rows) + '" x2="' + (ox + W) + '" y2="' + (oy + H * j / rows) + '"/>';
+  return '<svg viewBox="0 0 100 100"><rect x="' + ox + '" y="' + oy + '" width="' + W + '" height="' + H + '" fill="none" stroke="#ffd977" stroke-width="2"/><g stroke="#6b5d3f" stroke-width="0.7">' + inner + '</g><text x="50" y="96" fill="#bdb395" font-size="7" text-anchor="middle" font-family="Courier New">' + w + ' × ' + d + ' m</text></svg>';
+}
+
+/* ---- the chooser: what are you building? ---- */
+const chooser = document.getElementById('chooser');
+const chTypes = document.getElementById('chTypes'), chFrames = document.getElementById('chFrames');
+let gameType = null, planFirst = false;
+function renderChooser() {
+  chTypes.innerHTML = Object.keys(FRAMES).map(t =>
+    '<button class="ch-type' + (gameType === t ? ' on' : '') + '" data-type="' + t + '">' + FRAMES[t].label + '</button>').join('');
+  if (!gameType) { chFrames.innerHTML = '<div class="ch-hint">Pick a building type — then a starting frame, or begin from its floorplan, seen from above.</div>'; return; }
+  chFrames.innerHTML = FRAMES[gameType].frames.map((f, i) =>
+    '<button class="ch-frame" data-frame="' + i + '">' + planSVG(f, gameType, i) + '<span>' + f.name + '</span></button>').join('') +
+    '<button class="ch-frame ch-blank" data-frame="blank"><span class="ch-blank-x">+</span><span>BLANK FLOOR</span></button>';
+}
+chTypes.addEventListener('click', e => {
+  const b = e.target.closest('[data-type]');
+  if (!b) return;
+  gameType = b.dataset.type;
+  renderChooser(); haptic();
+});
+chFrames.addEventListener('click', e => {
+  const b = e.target.closest('[data-frame]');
+  if (!b) return;
+  chooser.style.display = 'none';
+  if (b.dataset.frame === 'blank') {
+    clearAll();
+    addItem('slab', 0, 0, 0, [6, 1, 6], 'stone');
+    fitIso(true);
+    setState('A BLANK FLOOR — 48 × 48 m of plate. Everything else is yours.');
+    prevSnap = snapDesign(); lastSig = designSig();
+    haptic(); return;
+  }
+  const f = FRAMES[gameType].frames[parseInt(b.dataset.frame, 10)];
+  clearAll();
+  f.gen();
+  applySection('all');
+  if (thrustOn) buildThrust();
+  if (planFirst) {
+    fitOverhead(true);
+    setState(FRAMES[gameType].label + ' — ' + f.name + ', from its floorplan. BLUEPRINT in VIEW returns you to the solid.');
+  } else {
+    fitIso(true);
+    setState(FRAMES[gameType].label + ' — ' + f.name + ' · ' + items.length + ' figures standing');
+  }
+  prevSnap = snapDesign(); lastSig = designSig();
+  haptic();
+});
+document.getElementById('chPlan').addEventListener('click', () => {
+  planFirst = !planFirst;
+  document.getElementById('chPlan').classList.toggle('on', planFirst);
+  document.getElementById('chPlan').textContent = planFirst ? 'START FROM THE FLOORPLAN — ON' : 'START FROM THE FLOORPLAN';
+  haptic();
+});
+document.getElementById('chClose').addEventListener('click', () => { chooser.style.display = 'none'; haptic(); });
+(function () {
+  const parts = document.getElementById('panel-parts');
+  if (!parts) return;
+  const d = document.createElement('div');
+  d.className = 'prow';
+  d.innerHTML = '<span class="plab">THE GAME</span>';
+  const b = document.createElement('button');
+  b.className = 'pbtn'; b.textContent = 'NEW BUILD — TYPE + FRAME';
+  b.addEventListener('click', () => { chooser.style.display = 'flex'; renderChooser(); haptic(); });
+  d.appendChild(b);
+  parts.insertBefore(d, parts.firstChild);
+})();
+
+/* ---- the entering state: a blank floor, and the question ---- */
+renderChooser();
+chooser.style.display = 'flex';
+clearAll();
+addItem('slab', 0, 0, 0, [6, 1, 6], 'stone');
+applySection('all');
+fitIso(false);
+prevSnap = snapDesign(); lastSig = designSig();
+document.getElementById('buildStamp').innerHTML = 'BUILD <b>v20</b> · LIVE — THE DESIGN GAME';
+setState('A BLANK FLOOR. What are you building?');
 
 </script>
 </body>
