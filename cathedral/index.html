@@ -160,6 +160,11 @@
   #walkPad .pbtn { min-height:46px; padding:10px 18px; background:rgba(8,9,14,.94); }
   .briefIn { width:76px; min-height:38px; background:#0e1017; border:1px solid #3a332a; color:#ffd977;
     font-family:'Courier New',monospace; font-size:13px; padding:4px 7px; }
+
+  /* ===== v19: hotbar badges ===== */
+  #hotbar .slot { position:relative; }
+  #hotbar .bdg { position:absolute; top:2px; right:5px; font-size:9px; color:#ffd977;
+    font-family:'Courier New',monospace; letter-spacing:.05em; }
 </style>
 <script type="importmap">
 { "imports": {
@@ -209,6 +214,7 @@ setTimeout(function () {
     <span class="sval" id="modVal">M = 8.00 m</span>
     <button class="pbtn" id="modApply">REBUILD ON THE MODULE</button></div>
   <div class="prow"><span class="wnote">One measure governs every dimension of the canon. M = 8.00 m is the published building; any other module transposes it, ratios intact.</span></div>
+  <div id="paramBox"></div>
 <div class="prow"><span class="plab">ADD A PART</span>
     <button class="pbtn" data-add="pillar">PILLAR</button>
     <button class="pbtn" data-add="arch">ARCH</button>
@@ -383,7 +389,8 @@ setTimeout(function () {
     <button class="pbtn on" id="hapBtn">HAPTICS ON</button>
     <button class="pbtn" id="resetBtn">RESET VIEW</button>
     <button class="pbtn" id="plateBtn">CAPTURE PLATE</button>
-    <button class="pbtn" id="standBtn">STAND INSIDE</button></div>
+    <button class="pbtn" id="standBtn">STAND INSIDE</button>
+    <button class="pbtn" id="exportBtn">EXPORT .GLB</button></div>
 </div>
 
 <div class="panel" id="panel-forge">
@@ -469,6 +476,8 @@ setTimeout(function () {
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
 
 /* ============ THE CANON — Notre Dame, published dimensions (standard references) ============ */
 const CANON = { LEN: 128, WID: 43, NAVE_W: 12, VAULT_H: 32.5, TOWER_H: 69, SPIRE_H: 96, ROSE_D: 9.6, BAY: 8 };
@@ -2776,6 +2785,214 @@ applySection('all');
 prevSnap = snapDesign(); lastSig = designSig();
 document.getElementById('buildStamp').innerHTML = 'BUILD <b>v18</b> · LIVE — PLATES · ON FOOT · THE GUARD';
 setState('SIX MORE — plates struck, feet on the floor, phases of raising, a guard on the structure, your own brief, the dressing baked in · ' + items.length + ' figures standing');
+
+
+/* ============ V19 — LIVING LIGHT · THE PARAMETRIC GRAPH · EXPORT · PRESENCE ============ */
+/* the room the light lives in (image-based lighting, generated — no downloads) */
+let pmrem = null;
+try {
+  pmrem = new THREE.PMREMGenerator(renderer);
+  scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+} catch (e) { /* the sun alone carries it if the room fails to build */ }
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+{
+  const skyGeo = new THREE.SphereGeometry(400, 24, 12);
+  const skyMat = new THREE.ShaderMaterial({
+    side: THREE.BackSide, depthWrite: false, fog: false,
+    uniforms: { top: { value: new THREE.Color(0x2e4a7a) }, mid: { value: new THREE.Color(0x060608) } },
+    vertexShader: 'varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: 'uniform vec3 top; uniform vec3 mid; varying vec3 vP; void main(){ float h = clamp(normalize(vP).y * 1.6, 0.0, 1.0); gl_FragColor = vec4(mix(mid, top, pow(h, 1.4)), 1.0); }'
+  });
+  const sky = new THREE.Mesh(skyGeo, skyMat);
+  sky.name = 'skyDome';
+  scene.add(sky);
+}
+const shadowCatcher = new THREE.Mesh(
+  new THREE.CircleGeometry(160, 48),
+  new THREE.ShadowMaterial({ opacity: 0.34 })
+);
+shadowCatcher.rotation.x = -Math.PI / 2;
+shadowCatcher.position.y = 0.02;
+shadowCatcher.receiveShadow = true;
+scene.add(shadowCatcher);
+
+/* ---- THE PARAMETRIC GRAPH: one store, every rebuild downstream of it ---- */
+const PARAMS = { module: 8, bays: 14, heightMul: 1, spanMul: 1, glass: 1, roseMul: 1 };
+const PARAM_DEFS = [
+  { k: 'module', label: 'MODULE M', min: 6, max: 10, step: 0.25, fmt: v => v.toFixed(2) + ' m' },
+  { k: 'bays', label: 'BAYS', min: 8, max: 20, step: 1, fmt: v => String(Math.round(v)) },
+  { k: 'heightMul', label: 'HEIGHT', min: 0.8, max: 1.3, step: 0.01, fmt: v => '×' + v.toFixed(2) },
+  { k: 'spanMul', label: 'SPAN', min: 0.85, max: 1.25, step: 0.01, fmt: v => '×' + v.toFixed(2) },
+  { k: 'glass', label: 'GLAZING', min: 0, max: 1, step: 0.05, fmt: v => Math.round(v * 100) + '%' },
+  { k: 'roseMul', label: 'ROSE Ø', min: 0.7, max: 1.6, step: 0.05, fmt: v => '×' + v.toFixed(2) }
+];
+const _fb19 = fullBuild;
+fullBuild = function () {
+  const P = PARAMS, k = P.module / 8, hm = P.heightMul, sm = P.spanMul, NB = Math.round(P.bays);
+  window.__modK = k;
+  const BAYM = P.module;
+  buildCathedral({
+    LEN: BAYM * (NB + 2), WID: 43 * k * sm, NAVE_W: 12 * k * sm,
+    VAULT_H: 32.5 * k * hm, TOWER_H: 69 * k * hm, SPIRE_H: 96 * k * hm,
+    ROSE_D: 9.6 * k * P.roseMul * sm, BAY: BAYM, note: 'PARAMETRIC — M ' + P.module.toFixed(2) + ' · ' + NB + ' bays'
+  });
+  const add = (t, x, z, r, sc, y) => { const it = addItem(t, x, z, r || 0, sc || null, 'stone'); if (y) it.group.position.y = y; return it; };
+  const z0 = -(NB - 1) / 2 * BAYM;
+  for (let j = 0; j < NB; j++) add('roof', 0, z0 + BAYM * j, 0, [k * sm, k * hm, k], 25 * k * hm);
+  [-16, 0, 16].forEach(x => add('roof', x * k, BAYM, Math.PI / 2, [k * sm, k * hm, k], 25 * k * hm));
+  const proto = items.find(i => i.type === 'buttress');
+  const rotPos = proto && proto.group.position.x > 0 ? proto.group.rotation.y : -Math.PI / 2;
+  const rotNeg = proto && proto.group.position.x < 0 ? proto.group.rotation.y : Math.PI / 2;
+  [...items].filter(i => i.type === 'buttress').forEach(removeItem);
+  for (let j = 0; j < NB; j++) [-1, 1].forEach(sd =>
+    add('buttress', sd * 24.5 * k * sm, z0 + BAYM * j, sd > 0 ? rotPos : rotNeg, [k, k * hm, k], 0));
+  [-1, 1].forEach(sd => {
+    const piers = items.filter(i => i.type === 'pillar' && Math.abs(i.group.position.x) < 8 * k * sm + 0.6 && Math.sign(i.group.position.x) === sd)
+      .sort((a, b2) => a.group.position.z - b2.group.position.z);
+    piers.forEach((pr, idx) => { const f = idx % 2 === 0 ? 1.28 : 0.9; pr.group.scale.x *= f; pr.group.scale.z *= f; });
+  });
+  for (let j = 0; j < NB; j++) [-1, 1].forEach(sd =>
+    add('triforium', sd * 6.2 * k * sm, z0 + BAYM * j, 0, [k, k * hm, k], 15.2 * k * hm));
+  const glazed = j => ((j * 2654435761) % 1000) / 1000 < P.glass;
+  for (let j = 0; j < NB; j++) [-1, 1].forEach(sd => {
+    add('lancet', sd * 6.2 * k * sm, z0 + BAYM * j, sd * Math.PI / 2, [0.42 * k, 0.5 * k * hm, 0.42 * k], 19 * k * hm);
+    if (glazed(j)) add('lancet', sd * 20.6 * k * sm, z0 + BAYM * j, sd * Math.PI / 2, [0.8 * k, 0.9 * k * hm, 0.8 * k], 0);
+  });
+  items.filter(i => i.type === 'tower').forEach(t => {
+    const m = measure(t), p = t.group.position;
+    [-1, 1].forEach(sd => {
+      add('lancet', p.x + sd * m.w * 0.22, p.z + m.d / 2 + 0.15, 0, [0.5, 0.62 * hm, 0.5], m.h * 0.52);
+      add('lancet', p.x + sd * m.w * 0.22, p.z - m.d / 2 - 0.15, Math.PI, [0.5, 0.62 * hm, 0.5], m.h * 0.52);
+    });
+  });
+  const halfL = (NB + 2) / 2 * BAYM;
+  [-1, 1].forEach(sd => {
+    add('lancet', sd * 31.6 * k * sm, BAYM - 3.5 * k, sd * Math.PI / 2, [0.9 * k, 1.1 * k * hm, 0.9 * k], 0);
+    add('lancet', sd * 31.6 * k * sm, BAYM + 3.5 * k, sd * Math.PI / 2, [0.9 * k, 1.1 * k * hm, 0.9 * k], 0);
+  });
+  add('lancet', -8 * k * sm, -(halfL - 1.5 * k), -0.6, [0.9 * k, 1 * k * hm, 0.9 * k], 0);
+  add('lancet', 8 * k * sm, -(halfL - 1.5 * k), 0.6, [0.9 * k, 1 * k * hm, 0.9 * k], 0);
+  add('lancet', 0, -(halfL + 0.2 * k), Math.PI, [0.9 * k, 1 * k * hm, 0.9 * k], 0);
+  for (let j = -2; j <= 2; j++) add('lancet', j * 4 * k * sm, halfL - 0.6 * k, 0, [0.5 * k, 0.55 * k * hm, 0.5 * k], 10.5 * k * hm);
+  select(null);
+};
+function paramFp() {
+  return PARAM_DEFS.map(d => d.k + '=' + (+PARAMS[d.k]).toFixed(2)).join(' · ');
+}
+function renderParams() {
+  const box = document.getElementById('paramBox');
+  if (!box) return;
+  box.innerHTML = PARAM_DEFS.map(d =>
+    '<div class="prow"><span class="plab">' + d.label + '</span>' +
+    '<input type="range" data-param="' + d.k + '" min="' + d.min + '" max="' + d.max + '" step="' + d.step + '" value="' + PARAMS[d.k] + '">' +
+    '<span class="sval">' + d.fmt(PARAMS[d.k]) + '</span></div>').join('') +
+    '<div class="prow"><span class="wnote">' + paramFp() + ' — the graph these sliders feed. Drag, release, the cathedral re-derives.</span></div>';
+}
+const paramBox = document.getElementById('paramBox');
+if (paramBox) {
+  renderParams();
+  paramBox.addEventListener('input', e => {
+    const inp = e.target.closest('[data-param]');
+    if (!inp) return;
+    const d = PARAM_DEFS.find(x => x.k === inp.dataset.param);
+    PARAMS[d.k] = parseFloat(inp.value);
+    inp.nextElementSibling.textContent = d.fmt(PARAMS[d.k]);
+  });
+  paramBox.addEventListener('change', e => {
+    if (!e.target.closest('[data-param]')) return;
+    clearAll();
+    fullBuild();
+    applySection('all');
+    if (thrustOn) buildThrust();
+    fitIso(true);
+    prevSnap = snapDesign(); lastSig = designSig();
+    setState('THE GRAPH RE-DERIVES — ' + paramFp());
+    haptic();
+  });
+}
+
+/* the design carries its parameters with it */
+const _snap19 = snapDesign;
+snapDesign = function () { const s = _snap19(); s.params = Object.assign({}, PARAMS); return s; };
+const _restore19 = restoreDesign;
+restoreDesign = function (snap) {
+  if (snap && snap.params) { Object.assign(PARAMS, snap.params); renderParams(); }
+  _restore19(snap);
+};
+
+/* ---- EXPORT: the cathedral leaves the page as a model ---- */
+document.getElementById('exportBtn').addEventListener('click', () => {
+  setState('FORGING THE MODEL — one moment');
+  setTimeout(() => {
+    try {
+      const exp = new GLTFExporter();
+      exp.parse(world, res => {
+        const blob = res instanceof ArrayBuffer ? new Blob([res], { type: 'model/gltf-binary' }) : new Blob([res], { type: 'model/gltf+json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'cathedral.glb';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+        setState('EXPORTED — cathedral.glb carries the whole standing building');
+        haptic();
+      }, err => setState('EXPORT REFUSED — ' + (err && err.message ? err.message : 'the forge failed')), { binary: true });
+    } catch (e) { setState('EXPORT REFUSED — ' + e.message); }
+  }, 30);
+});
+
+/* presence: the frame breathes on arrival, then never again uninvited */
+let userMoved = false;
+canvas.addEventListener('pointerdown', () => { userMoved = true; }, { once: true });
+{
+  const breathe = setInterval(() => {
+    if (userMoved || document.hidden) { clearInterval(breathe); return; }
+    const t = Date.now() / 1000;
+    camera.position.x += Math.sin(t * 0.24) * 0.012;
+    camera.position.y += Math.cos(t * 0.19) * 0.008;
+  }, 50);
+  setTimeout(() => clearInterval(breathe), 9000);
+}
+
+/* density-aware sharpness: light frames get their full pixels back */
+{
+  let frames = 0, ft0 = performance.now(), prState = 0;
+  const prLoop = setInterval(() => {
+    frames++;
+    const now = performance.now();
+    if (now - ft0 >= 2000) {
+      const fps = frames / ((now - ft0) / 1000);
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      if (fps > 52 && prState < 2 && dpr > 1.25) { renderer.setPixelRatio(dpr); prState = 2; }
+      else if (fps < 26 && prState > -1) { renderer.setPixelRatio(1); prState = -1; clearInterval(prLoop); }
+      frames = 0; ft0 = now;
+      if (prState === 2) clearInterval(prLoop);
+    }
+  }, 250);
+}
+
+/* badges on the hotbar slots: how many of each kind stand */
+setInterval(() => {
+  document.querySelectorAll('#hotbar .slot').forEach(slot => {
+    const t = slot.dataset.hot;
+    let n = slot.querySelector('.bdg');
+    if (!n) { n = document.createElement('span'); n.className = 'bdg'; slot.appendChild(n); }
+    const c = items.filter(i => i.type === t).length;
+    n.textContent = c || '';
+    n.style.display = c ? 'block' : 'none';
+  });
+}, 1500);
+
+/* keep the older MODULE slider honest — it writes the same store */
+const mrSync = document.getElementById('modRange');
+if (mrSync) mrSync.addEventListener('change', () => { PARAMS.module = parseFloat(mrSync.value); renderParams(); });
+
+/* ---- init ---- */
+renderParams();
+document.getElementById('buildStamp').innerHTML = 'BUILD <b>v19</b> · LIVE — THE LIVING GRAPH';
+setState('THE LIVING GRAPH — real light in a real room, parameters that re-derive the stone, the model exportable · ' + items.length + ' figures standing');
 
 </script>
 </body>
