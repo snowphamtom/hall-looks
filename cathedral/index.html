@@ -392,6 +392,11 @@ setTimeout(function () {
     <button class="pbtn" id="staggerBtn">BRAID STAGGER</button>
     <span class="wnote">Cesariano's geometry over the section, and the perspective masters' triangulated floor.</span></div>
   <div class="prow"><span class="wnote" id="eyeRead">Your perspective, drawn from your own eye — horizon, vanishing point, distance points, all of it moving as you move.</span></div>
+  <div class="prow"><span class="plab">AUDIO GUIDE</span>
+    <button class="pbtn" data-guide="guide1.mp3">▶ 1 · THE BLUEPRINT</button>
+    <button class="pbtn" data-guide="guide2.mp3">▶ 2 · YOUR HANDS</button>
+    <button class="pbtn" data-guide="guide3.mp3">▶ 3 · THE LEDGER</button></div>
+  <div class="prow"><span class="wnote" id="guideNote">A guide in an Australian voice — three short tracks: the blueprint, your hands, the ledger.</span></div>
 <div class="prow"><span class="plab">PHASES</span>
     <input type="range" id="phaseRange" min="0" max="9" step="1" value="9">
     <span class="sval" id="phaseVal">THE FURNISHING — THE WHOLE CATHEDRAL</span></div>
@@ -4010,6 +4015,38 @@ document.getElementById('geoBtn').addEventListener('click', () => {
 /* ---- init ---- */
 document.getElementById('buildStamp').innerHTML = 'BUILD <b>v28</b> · LIVE — FROM THE DRIVE';
 setState('FROM YOUR DRIVE, RAW — the hourglass braid stands in the parts (PLACE → FRAME), the stagger φ = π/3 beside it, and the epistemic ledger now grades every claim in MEASURE: CLAIMED ≤ INTERIOR, or the claim is refused.');
+
+
+/* ============ V29 — THE GUIDE SPEAKS (adult male, Australian) ============ */
+const guideAudio = new Audio();
+guideAudio.preload = 'none';
+let guideBtn = null;
+function guideReset() {
+  if (guideBtn) { guideBtn.textContent = guideBtn.dataset.label; guideBtn.classList.remove('on'); guideBtn = null; }
+}
+document.querySelectorAll('[data-guide]').forEach(b => {
+  b.dataset.label = b.textContent;
+  b.addEventListener('click', () => {
+    if (guideBtn === b) { guideAudio.pause(); guideReset(); setState('GUIDE PAUSED'); return; }
+    guideAudio.pause(); guideReset();
+    guideAudio.src = b.dataset.guide;
+    guideAudio.play().catch(() => setState('the guide could not start — check the connection and tap again'));
+    guideBtn = b;
+    b.classList.add('on');
+    b.textContent = '❚❚ ' + b.dataset.label.slice(2);
+    document.getElementById('guideNote').textContent = 'NOW PLAYING — ' + b.dataset.label.slice(2) + ' · tap it again to pause';
+    setState('THE GUIDE SPEAKS — ' + b.dataset.label.slice(2));
+    haptic();
+  });
+});
+guideAudio.addEventListener('ended', () => {
+  guideReset();
+  document.getElementById('guideNote').textContent = 'A guide in an Australian voice — three short tracks: the blueprint, your hands, the ledger.';
+});
+
+/* ---- init ---- */
+document.getElementById('buildStamp').innerHTML = 'BUILD <b>v29</b> · LIVE — THE GUIDE SPEAKS';
+setState('THE GUIDE SPEAKS — an adult Australian voice walks the place in three short tracks: VIEW → AUDIO GUIDE. The blueprint, your hands, the ledger.');
 
 </script>
 </body>
