@@ -185,6 +185,7 @@ setTimeout(function () {
     <button class="pbtn" data-skel="core">THE CORE (44 ★ 26)</button>
     <button class="pbtn" data-skel="filigree">GRAND FILIGREE</button>
     <button class="pbtn" id="skelSectioned">SECTIONED FRAME</button>
+    <button class="pbtn" id="skelFull">FULL BUILD</button>
     <button class="pbtn" data-skel="frame">EMPTY FRAME</button></div>
   <div class="prow"><span class="note">Whole-cathedral skeletons, standing in wire. Pick one, then change it — every tool works on the skeleton. Slide MATERIALIZE in VIEW to flesh it into stone.</span></div>
 <div class="prow"><span class="plab">ADD A PART</span>
@@ -2023,6 +2024,86 @@ const _skel14 = skeletonStart;
 skeletonStart = function (k) { _skel14(k); fitIso(true); };
 fitIso(false);
 setState('THE CATHEDRAL — the plate\u2019s view: isometric, whole frame, see-through wire · drag to turn · pinch to dive');
+
+
+/* ============ V15 — FULL BUILD: THE ENTIRE CATHEDRAL, COMPLETE ============ */
+PARTS.roof = {
+  name: 'Ridge Roof', w: 8, h: 5.6, d: 13.4, seats: 0, glass: 0, vol: 131,
+  build(mat) {
+    const g = new THREE.Group();
+    const sh = new THREE.Shape();
+    sh.moveTo(-6.7, 0); sh.lineTo(6.7, 0); sh.lineTo(0, 5.6); sh.closePath();
+    const geo = new THREE.ExtrudeGeometry(sh, { depth: 8, bevelEnabled: false });
+    geo.translate(0, 0, -4);
+    const m = new THREE.Mesh(geo, mat);
+    m.castShadow = true; m.receiveShadow = true;
+    g.add(m);
+    return g;
+  }
+};
+SECTIONS.body.types.push('roof');
+TYPE_ACTS.roof = [ { act: 'span15', label: 'WIDER ROOF ×1.5' }, { act: 'liftUp', label: 'LIFT +1 M' } ];
+
+function fullBuild() {
+  buildCathedral({ LEN: 128, WID: 43, NAVE_W: 12, VAULT_H: 32.5, TOWER_H: 69, SPIRE_H: 96, ROSE_D: 9.6, BAY: 8, note: 'FULL BUILD — the entire cathedral, complete' });
+  const add = (t, x, z, r, sc, y) => { const it = addItem(t, x, z, r || 0, sc || null, 'stone'); if (y) it.group.position.y = y; return it; };
+  /* ridge roofs — nave, transept, chancel */
+  for (let k = 0; k < 14; k++) add('roof', 0, -52 + 8 * k, 0, null, 25);
+  [-16, 0, 16].forEach(x => add('roof', x, 8, Math.PI / 2, null, 25));
+  /* clerestory — the upper tier of glass, both sides, every bay */
+  for (let k = 0; k < 14; k++) [-1, 1].forEach(sd => {
+    const w = add('lancet', sd * 6.2, -52 + 8 * k, sd * Math.PI / 2, [0.42, 0.5, 0.42], 19);
+  });
+  /* every outer bay glazed */
+  for (let k = 0; k < 14; k++) [-1, 1].forEach(sd => add('lancet', sd * 20.6, -52 + 8 * k, sd * Math.PI / 2, [0.8, 0.9, 0.8], 0));
+  /* crown every standing buttress and tower from its own measured top */
+  items.filter(i => i.type === 'buttress').forEach(b => {
+    const m = measure(b), p = b.group.position;
+    add('spire', p.x, p.z, b.group.rotation.y, [0.07, 0.13, 0.07], m.box.max.y - 0.5);
+  });
+  items.filter(i => i.type === 'tower').forEach(t => {
+    const m = measure(t), p = t.group.position;
+    const dx = dirX(t), dz = dirZ(t), a = m.w / 2 * 0.74, bb = m.d / 2 * 0.74;
+    [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(([sx, sz]) =>
+      add('spire', p.x + dx.x * a * sx + dz.x * bb * sz, p.z + dx.z * a * sx + dz.z * bb * sz, t.group.rotation.y, [0.08, 0.15, 0.08], m.box.max.y - 0.5));
+    [-1, 1].forEach(sd => {  /* tower windows, front and back faces */
+      add('lancet', p.x + sd * m.w * 0.22, p.z + m.d / 2 + 0.15, 0, [0.5, 0.62, 0.5], m.h * 0.52);
+      add('lancet', p.x + sd * m.w * 0.22, p.z - m.d / 2 - 0.15, Math.PI, [0.5, 0.62, 0.5], m.h * 0.52);
+    });
+  });
+  /* transept ends + apse + west gallery */
+  [-1, 1].forEach(sd => { add('lancet', sd * 31.6, 4.5, sd * Math.PI / 2, [0.9, 1.1, 0.9], 0); add('lancet', sd * 31.6, 11.5, sd * Math.PI / 2, [0.9, 1.1, 0.9], 0); });
+  add('lancet', -8, -62.5, -0.6, [0.9, 1, 0.9], 0); add('lancet', 8, -62.5, 0.6, [0.9, 1, 0.9], 0); add('lancet', 0, -64.2, Math.PI, [0.9, 1, 0.9], 0);
+  for (let k = -2; k <= 2; k++) add('lancet', k * 4, 63.4, 0, [0.5, 0.55, 0.5], 10.5);
+  select(null);
+}
+document.getElementById('skelFull').addEventListener('click', () => {
+  clearAll(); fullBuild(); applySection('all'); fitIso(true);
+  setState('FULL BUILD — roofs, clerestory, every bay glazed, pinnacles on every pier · ' + items.length + ' figures standing');
+  haptic();
+});
+/* roof joins the PLACE menu, in the BODY section */
+(function () {
+  const floorBtn = document.querySelector('[data-place="floor"]');
+  if (!floorBtn) return;
+  const b = document.createElement('button');
+  b.className = 'pbtn'; b.dataset.place = 'roof'; b.textContent = 'RIDGE ROOF';
+  floorBtn.after(b);
+  b.addEventListener('click', () => {
+    armedType = 'roof';
+    document.querySelectorAll('[data-place]').forEach(x => x.classList.toggle('on', x === b));
+    buildGhost();
+    placeNote.textContent = 'Ridge Roof armed — press the ground and drag. Release, and it stands.';
+    haptic();
+  });
+})();
+/* the entering state IS the full build, in the plate's view */
+clearAll();
+fullBuild();
+applySection('all');
+fitIso(false);
+document.getElementById('buildStamp').innerHTML = 'BUILD <b>v15</b> · LIVE — FULL BUILD';
+setState('FULL BUILD — the entire cathedral complete: ' + items.length + ' figures · roofs, clerestory, every bay glazed · the plate\u2019s view, in wire');
 
 </script>
 </body>
