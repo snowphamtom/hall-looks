@@ -4597,6 +4597,30 @@ if (gnI) gnI.textContent = 'Snow — the artifact at the heart of the blueprint 
 document.getElementById('buildStamp').innerHTML = 'BUILD <b>v37</b> · LIVE — SNOW, THE MAGIC ITEM';
 _setState('SNOW, THE MAGIC ITEM — the voice corrected at last: he is not your guide. He is the artifact at the pin, who waited in this quiet place for you to arrive so he could explain everything he can do. Muting sets him down; he is very good at waiting.');
 
+
+/* ============ V38 — SNOW, MECHANICALLY VOICED, MAGICALLY ENHANCED ============ */
+say = function (text, priority) {
+  if (GUIDE.muted || !GUIDE.unlocked || !('speechSynthesis' in window)) return;
+  const t = cleanSpeech(text);
+  if (!t || t.length > 320) return;
+  const now = performance.now();
+  if (!priority) {
+    if (t === GUIDE.lastText || now - GUIDE.lastSay < 2400) return;
+    if (speechSynthesis.speaking) return;
+  }
+  if (priority) speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(t);
+  if (GUIDE.voice) u.voice = GUIDE.voice;
+  u.lang = GUIDE.voice ? GUIDE.voice.lang : 'en-GB';
+  u.rate = 1.0; u.pitch = 0.88;
+  GUIDE.lastSay = now; GUIDE.lastText = t;
+  speechSynthesis.speak(u);
+};
+
+/* ---- init ---- */
+document.getElementById('buildStamp').innerHTML = 'BUILD <b>v38</b> · LIVE — SNOW, OF GEAR AND GLAMOUR';
+_setState('SNOW, OF GEAR AND GLAMOUR — his recorded voice is now what he is: an artifact\u2019s voice, obviously mechanical — ring-struck, gear-timed — and magically enhanced: a pitched ghost of himself singing a shimmer above every word. (The live voice approximates him through your device; the four tracks carry his true sound.)');
+
 </script>
 </body>
 </html>
