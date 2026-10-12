@@ -195,6 +195,14 @@
   "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
 } }
 </script>
+<style>
+input[type=range]{-webkit-appearance:none;appearance:none;background:transparent;min-height:30px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:28px;height:28px;border-radius:50%;background:#c9a227;border:2px solid #0a0a0c;margin-top:-9px}
+input[type=range]::-webkit-slider-runnable-track{height:10px;background:rgba(201,162,39,0.35);border-radius:5px}
+input[type=range]::-moz-range-thumb{width:26px;height:26px;border-radius:50%;background:#c9a227;border:2px solid #0a0a0c}
+button,.tabbtn,.hcell{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.panel{overscroll-behavior:contain}
+</style>
 </head>
 <body>
 <canvas id="cv"></canvas>
@@ -4679,6 +4687,75 @@ const gnE = document.getElementById('guideNote');
 if (gnE) gnE.textContent = 'Snow, the informant, speaks — four recordings: your options, the blueprint, your hands, the ledger.';
 document.getElementById('buildStamp').innerHTML = 'BUILD <b>v39</b> · LIVE — SNOW, THE INFORMANT';
 _setState('SNOW, THE INFORMANT — the accent is gone completely. What remains is an ethereal, unisex voice, pleasant and even, whose whole purpose is to inform: your options, your touch, your record. (The live voice is your device\u2019s own, kept neutral; the four recordings carry his true sound.)');
+
+
+/* ============ V40 — FULLY iPHONE: EVERY TOUCH ANSWERS ============ */
+const _hapClick = () => { const l = document.getElementById('hapLabel'); if (l) { try { l.click(); } catch (e) {} } };
+const _hapState = { last: 0 };
+haptic = function (kind) {
+  if (!hapOn) return;
+  const now = performance.now();
+  if (kind === 'commit') {
+    _hapClick();
+    setTimeout(_hapClick, 75);
+    if (navigator.vibrate) { try { navigator.vibrate([12, 40, 18]); } catch (e) {} }
+    _hapState.last = now;
+    return;
+  }
+  if (kind === 'refuse') {
+    _hapClick();
+    setTimeout(_hapClick, 85);
+    setTimeout(_hapClick, 190);
+    if (navigator.vibrate) { try { navigator.vibrate([28, 50, 28, 50, 40]); } catch (e) {} }
+    _hapState.last = now;
+    return;
+  }
+  if (now - _hapState.last < 65) return;
+  _hapState.last = now;
+  _hapClick();
+  if (navigator.vibrate) { try { navigator.vibrate(8); } catch (e) {} }
+};
+/* every touch, answered — buttons, tabs, hotbar, sheet, toggles, canvas */
+document.addEventListener('pointerdown', e => {
+  const t = e.target;
+  if (!t || !t.closest) return;
+  if (t.closest('button, .tabbtn, .hcell, input, select, label, a')) haptic('tap');
+  else if (t === renderer.domElement) haptic('tick');
+}, { passive: true });
+document.addEventListener('input', e => {
+  if (e.target && e.target.type === 'range') haptic('tick');
+}, { passive: true });
+/* refusals land in the hand, too */
+const _setState40 = setState;
+setState = function (t) {
+  _setState40(t);
+  if (typeof t === 'string' && /REFUSED|OVERCLAIMED/i.test(t)) haptic('refuse');
+};
+/* viewport truth on iOS: the URL bar breathes — follow it */
+if (window.visualViewport) {
+  let vvT = 0;
+  visualViewport.addEventListener('resize', () => {
+    const now = performance.now();
+    if (now - vvT < 120) return;
+    vvT = now;
+    window.dispatchEvent(new Event('resize'));
+  });
+}
+window.addEventListener('orientationchange', () => setTimeout(() => window.dispatchEvent(new Event('resize')), 250));
+/* first touch primes speech on iOS, silently */
+window.addEventListener('pointerdown', () => {
+  try {
+    if ('speechSynthesis' in window && !speechSynthesis.speaking) {
+      const prime = new SpeechSynthesisUtterance(' ');
+      prime.volume = 0;
+      speechSynthesis.speak(prime);
+    }
+  } catch (e) {}
+}, { once: true });
+
+/* ---- init ---- */
+document.getElementById('buildStamp').innerHTML = 'BUILD <b>v40</b> · LIVE — FULLY iPHONE';
+_setState('FULLY iPHONE — every touch now answers in the hand: taps tick, commits land twice, refusals thump three times, sliders chatter as they move — all on the iPhone\u2019s own haptic channel. Viewport follows the Safari bar; speech is primed by your first touch.');
 
 </script>
 </body>
