@@ -215,6 +215,28 @@ button,.tabbtn,.hcell{touch-action:manipulation;-webkit-tap-highlight-color:tran
 #chFrames button{border-radius:8px;border:1px solid rgba(201,162,39,.55);background:linear-gradient(165deg,#11131c,#090a0f);box-shadow:0 6px 14px rgba(0,0,0,.45);animation:dealIn .35s both}
 @keyframes dealIn{from{transform:translateY(24px) rotate(0deg);opacity:0}}
 </style>
+<style>
+/* v45 — the house dress: gold on night, one language for every format */
+.panel{background:linear-gradient(168deg,rgba(13,15,23,0.94),rgba(6,7,11,0.96));border:1px solid rgba(201,162,39,0.4);border-radius:12px;box-shadow:0 14px 34px rgba(0,0,0,0.55);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.pbtn{letter-spacing:0.07em;border:1px solid rgba(201,162,39,0.55);border-radius:8px;background:linear-gradient(170deg,rgba(32,34,46,0.9),rgba(12,13,19,0.95));box-shadow:0 3px 9px rgba(0,0,0,0.4);transition:transform .12s,box-shadow .12s,border-color .12s}
+.pbtn:active{transform:translateY(1px) scale(0.985)}
+.pbtn.on{border-color:#ffd977;color:#ffd977;box-shadow:0 0 0 1px rgba(255,217,119,0.5),0 0 16px rgba(201,162,39,0.35)}
+.plab{color:#c9a227;letter-spacing:0.2em}
+.tabbtn{letter-spacing:0.14em}
+.tabbtn.on{color:#ffd977;box-shadow:inset 0 -2px 0 #c9a227}
+input[type=range]{accent-color:#c9a227}
+#sheet{border:1px solid rgba(201,162,39,0.5);border-radius:12px;box-shadow:0 16px 36px rgba(0,0,0,0.6);background:linear-gradient(168deg,rgba(13,15,23,0.97),rgba(7,8,12,0.98))}
+#detailCard{border:1px solid rgba(201,162,39,0.3);border-radius:10px;background:rgba(255,217,119,0.03)}
+.hcell{border-radius:9px;border:1px solid rgba(201,162,39,0.35)}
+.hcell.on{border-color:#ffd977;box-shadow:0 0 0 1px rgba(255,217,119,0.55),0 0 14px rgba(201,162,39,0.4)}
+#state,#stateBar{font-family:Georgia,serif;font-style:italic;color:#e8d9a0}
+.ch-title{color:#ffd977;text-shadow:0 2px 14px rgba(201,162,39,0.35)}
+.panel::-webkit-scrollbar{width:5px;height:5px}
+.panel::-webkit-scrollbar-thumb{background:rgba(201,162,39,0.45);border-radius:3px}
+.panel::-webkit-scrollbar-track{background:rgba(255,255,255,0.03)}
+#buildStamp{letter-spacing:0.08em}
+</style>
+
 </head>
 <body>
 <canvas id="cv"></canvas>
@@ -4761,6 +4783,65 @@ renderer.domElement.addEventListener('pointerdown', e => {
 /* ---- init ---- */
 document.getElementById('buildStamp').innerHTML = 'BUILD <b>v44</b> · LIVE — POLISHED';
 _setState('POLISHED \u2014 the Book now records the door you actually solved, with its distance; the pad dims the given masks and refuses them as picks; the strings ride on cached crowns instead of re-measuring the world; the underlight burns lower and steadier.');
+
+
+/* ============ V45 — OPTIMAL AESTHETICS: EVERY FIGURE, EVERY FORMAT ============ */
+try { renderer.toneMappingExposure = 1.12; } catch (e) {}
+try {
+  for (const entry of Object.entries(MATS)) {
+    const k = entry[0], m = entry[1];
+    if (!m || !m.isMaterial) continue;
+    if (/gold/i.test(k)) { m.metalness = 1; m.roughness = 0.3; if ('envMapIntensity' in m) m.envMapIntensity = 1.35; }
+    else if (/iwhg|glass|thread/i.test(k)) { if ('iridescence' in m) { m.iridescence = 1.0; m.iridescenceIOR = 1.5; } if ('envMapIntensity' in m) m.envMapIntensity = 1.25; }
+    else if (/stone/i.test(k)) { if ('roughness' in m) m.roughness = Math.max(m.roughness || 0, 0.82); if ('envMapIntensity' in m) m.envMapIntensity = 1.0; }
+    else if ('envMapIntensity' in m) m.envMapIntensity = 1.1;
+    m.needsUpdate = true;
+  }
+} catch (e) {}
+const EDGE_MAT45 = new THREE.LineBasicMaterial({ color: 0x241c11, transparent: true, opacity: 0.38 });
+function dressEdges45(root) {
+  root.traverse(o => {
+    if (!o.isMesh || o.userData._edged) return;
+    o.userData._edged = true;
+    const pos = o.geometry && o.geometry.attributes && o.geometry.attributes.position;
+    if (!pos || pos.count > 9000) return;
+    try {
+      const ln = new THREE.LineSegments(new THREE.EdgesGeometry(o.geometry, 26), EDGE_MAT45);
+      ln.raycast = function () {};
+      o.add(ln);
+    } catch (e) {}
+  });
+}
+try { items.forEach(it => dressEdges45(it.group)); } catch (e) {}
+const _addItem45 = addItem;
+addItem = function () {
+  const r = _addItem45.apply(this, arguments);
+  try { const it = items[items.length - 1]; if (it) dressEdges45(it.group); } catch (e) {}
+  return r;
+};
+try {
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = 256;
+  const cx2 = cv.getContext('2d');
+  const gr = cx2.createRadialGradient(128, 128, 16, 128, 128, 128);
+  gr.addColorStop(0, '#12151f');
+  gr.addColorStop(0.55, '#0a0c12');
+  gr.addColorStop(1, '#040508');
+  cx2.fillStyle = gr;
+  cx2.fillRect(0, 0, 256, 256);
+  const disc = new THREE.Mesh(
+    new THREE.CircleGeometry(430, 48),
+    new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv) })
+  );
+  disc.rotation.x = -Math.PI / 2;
+  disc.position.y = -0.06;
+  disc.raycast = function () {};
+  scene.add(disc);
+} catch (e) {}
+
+/* ---- init ---- */
+document.getElementById('buildStamp').innerHTML = 'BUILD <b>v45</b> · LIVE — OPTIMAL AESTHETICS';
+_setState('OPTIMAL AESTHETICS \u2014 every figure now carries its drawn edges, the gold is true metal, the thread iridesces, the light sits at its best exposure, the ground falls away into dark \u2014 and every panel, card and control wears the same gold-on-night dress.');
 
 </script>
 </body>
