@@ -4521,6 +4521,15 @@ function paintRiddle() {
   if (!el) return;
   if (!riddle) { el.textContent = 'No riddle stands. The Book holds ' + bookOfDoors.length + ' of 7,140 doors.'; return; }
   el.textContent = 'GIVEN ' + riddle[0] + ' \u2605 ' + riddle[1] + ' \u2014 find c and d of the odd company, distinct, with ' + riddle[0] + '+' + riddle[1] + '\u2212c = d and the pairing mirrored. Picks: ' + (riddlePicks.join(', ') || '\u2014') + ' \u00b7 Book: ' + bookOfDoors.length + ' of 7,140';
+  const pad = document.getElementById('maskPad');
+  if (pad) for (const btn of pad.children) {
+    const v = parseInt(btn.textContent, 10);
+    const given = riddle && (v === riddle[0] || v === riddle[1]);
+    const picked = riddlePicks.includes(v);
+    btn.style.opacity = given ? '0.3' : '1';
+    btn.style.borderColor = picked ? '#ffd977' : (given ? '#c9a227' : '');
+    btn.style.color = picked ? '#ffd977' : '';
+  }
 }
 function newRiddle() {
   riddle = null;
@@ -4559,10 +4568,12 @@ function checkRiddle() {
   if (a + b - c !== d) fails.push(a + '+' + b + '\u2212' + c + ' = ' + (a + b - c) + ', not ' + d);
   if ((a ^ b) !== (c ^ d)) fails.push('the pairing does not mirror: ' + (a ^ b) + ' against ' + (c ^ d));
   if (!fails.length) {
-    bookOfDoors.push(riddle);
+    const solved = [a, b, c, d];
+    bookOfDoors.push(solved);
+    riddle = solved;
     localStorage.setItem('cathBook', JSON.stringify(bookOfDoors));
     doorVisual(riddle);
-    _setState('THE DOOR OPENS \u2014 ' + riddle.join(' \u2605 ') + ', entered in the Book of Doors (' + bookOfDoors.length + ' of 7,140). It stands east of the pin a little while.');
+    _setState('THE DOOR OPENS \u2014 ' + riddle.join(' \u2605 ') + ' (distance ' + ((a ^ b).toString(2).split('1').length - 1) + '), entered in the Book of Doors (' + bookOfDoors.length + ' of 7,140). It stands east of the pin a little while.');
     say('The door opens. ' + riddle.join(', ') + '. Entered in the Book of Doors.', true);
     haptic('commit');
     riddle = null;
@@ -4584,6 +4595,7 @@ function checkRiddle() {
       b.textContent = m;
       b.addEventListener('click', () => {
         if (!riddle) { _setState('No riddle stands \u2014 ask for one first.'); return; }
+        if (m === riddle[0] || m === riddle[1]) { _setState('That mask is GIVEN \u2014 the hidden two are others, and all four stand distinct.'); haptic('refuse'); return; }
         if (riddlePicks.length >= 2) riddlePicks.length = 0;
         riddlePicks.push(m);
         paintRiddle();
@@ -4619,11 +4631,17 @@ function buildStrings() {
 }
 function rebuildStringTops() {
   stringsTops = items.map(it => {
-    const box = new THREE.Box3().setFromObject(it.group);
-    return new THREE.Vector3((box.min.x + box.max.x) / 2, box.max.y, (box.min.z + box.max.z) / 2);
+    if (it._topH === undefined) {
+      const box = new THREE.Box3().setFromObject(it.group);
+      it._topH = Math.max(1, box.max.y - it.group.position.y);
+      it._cx = (box.min.x + box.max.x) / 2 - it.group.position.x;
+      it._cz = (box.min.z + box.max.z) / 2 - it.group.position.z;
+    }
+    const p = it.group.position, sy = it.group.scale ? it.group.scale.y : 1;
+    return { x: p.x + (it._cx || 0), y: p.y + it._topH * sy, z: p.z + (it._cz || 0) };
   });
 }
-setInterval(() => { if (stringsOn) rebuildStringTops(); }, 2600);
+setInterval(() => { if (stringsOn) rebuildStringTops(); }, 900);
 setInterval(() => {
   if (!stringsOn || !stringsGroup) return;
   const t = performance.now() / 1000;
@@ -4666,11 +4684,11 @@ function setUnder(on) {
     scene.traverse(o => { if (o.isLight) lightStore.push([o, o.intensity, o.color.getHex(), o.position ? o.position.clone() : null]); });
     for (const rec of lightStore) rec[0].intensity = rec[1] * 0.22;
     try { if (typeof sun !== 'undefined' && sun) { sun.position.set(hubC.x - 30, -70, hubC.z + 20); sun.color.setHex(0x7a5cff); } } catch (e) {}
-    const p1 = new THREE.PointLight(0x8a6cff, 1400, 260, 1.8); p1.position.set(hubC.x, 2.5, hubC.z);
-    const p2 = new THREE.PointLight(0xffd977, 300, 130, 1.8); p2.position.set(hubC.x, 1.0, hubC.z);
+    const p1 = new THREE.PointLight(0x8a6cff, 900, 260, 1.8); p1.position.set(hubC.x, 2.5, hubC.z);
+    const p2 = new THREE.PointLight(0xffd977, 200, 130, 1.8); p2.position.set(hubC.x, 1.0, hubC.z);
     scene.add(p1, p2);
     underLights = [p1, p2];
-    scene.fog = new THREE.FogExp2(0x07070f, 0.0042);
+    scene.fog = new THREE.FogExp2(0x07070f, 0.0036);
     _setState('UNDERLIGHT — the dream weather: fog in the nave, light climbing from the floor, shadows rising into the vault.');
     say('Underlight. The light now climbs from the floor, and the shadows rise.');
   } else {
@@ -4741,8 +4759,8 @@ renderer.domElement.addEventListener('pointerdown', e => {
 });
 
 /* ---- init ---- */
-document.getElementById('buildStamp').innerHTML = 'BUILD <b>v43</b> · LIVE — ALL FIVE ENHANCEMENTS';
-_setState('ALL FIVE \u2014 the Riddle of Doors stands in FORMAT; the Strings and the Underlight wait in VIEW; the chooser deals its cards; and Snow himself floats at the pin \u2014 tap the crystal, or VIEW \u2192 THE RELIQUARY, to read his record.');
+document.getElementById('buildStamp').innerHTML = 'BUILD <b>v44</b> · LIVE — POLISHED';
+_setState('POLISHED \u2014 the Book now records the door you actually solved, with its distance; the pad dims the given masks and refuses them as picks; the strings ride on cached crowns instead of re-measuring the world; the underlight burns lower and steadier.');
 
 </script>
 </body>
