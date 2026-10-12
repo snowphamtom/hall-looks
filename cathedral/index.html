@@ -192,6 +192,11 @@ setTimeout(function () {
     <button class="pbtn" id="saveBtn">SAVE DESIGN</button>
     <button class="pbtn" id="shareBtn">SHARE LINK</button></div>
   <div class="prow" id="saveList"></div>
+  <div class="prow"><span class="plab">THE MODULE</span>
+    <input type="range" id="modRange" min="6" max="10" step="0.25" value="8">
+    <span class="sval" id="modVal">M = 8.00 m</span>
+    <button class="pbtn" id="modApply">REBUILD ON THE MODULE</button></div>
+  <div class="prow"><span class="wnote">One measure governs every dimension of the canon. M = 8.00 m is the published building; any other module transposes it, ratios intact.</span></div>
 <div class="prow"><span class="plab">ADD A PART</span>
     <button class="pbtn" data-add="pillar">PILLAR</button>
     <button class="pbtn" data-add="arch">ARCH</button>
@@ -335,6 +340,21 @@ setTimeout(function () {
 <div class="prow"><span class="plab">AXES + BOX</span>
     <button class="pbtn on" id="axesBtn">AXES + BOX ON</button>
     <span class="wnote">The XYZ frame of the space — shown while you frame, hidden while you work inside it.</span></div>
+<div class="prow"><span class="plab">FORCES</span>
+    <button class="pbtn" id="thrustBtn">THRUST LINES</button>
+    <span class="wnote">Vault → flyer → pier → ground, at every bay.</span></div>
+  <div class="prow"><span class="plab">SECTION</span>
+    <button class="pbtn" id="secOff">WHOLE</button>
+    <input type="range" id="secRange" min="-64" max="64" step="8" value="0">
+    <span class="sval" id="secVal">WHOLE</span></div>
+  <div class="prow"><span class="plab">AXIS</span>
+    <input type="range" id="axisRange" min="-30" max="30" step="1" value="0">
+    <span class="sval" id="axisVal">+0°</span>
+    <span class="wnote">The liturgical axis — the whole frame turns on its pin; placements stay true.</span></div>
+  <div class="prow"><span class="plab">SUN STUDY</span>
+    <input type="range" id="hourRange" min="5" max="21" step="0.25" value="12">
+    <span class="sval" id="hourVal">12:00</span></div>
+  <div class="prow"><span class="wnote" id="sunNote">—</span></div>
 <div class="prow"><span class="plab">HISTORY</span>
     <button class="pbtn" id="undoBtn">⟲ UNDO</button>
     <button class="pbtn" id="redoBtn">REDO ⟳</button>
@@ -1358,7 +1378,7 @@ function frameStep() {
   if (!window.__v7Ready) return;
   world.rotation.x += (fTX - world.rotation.x) * 0.08;
   world.rotation.z += (fTZ - world.rotation.z) * 0.08;
-  world.rotation.y += (fRY - world.rotation.y) * 0.08;
+  world.rotation.y += ((fRY + (window.__axisYaw || 0)) - world.rotation.y) * 0.08;
   ring1.rotation.y += 0.004;
   ring2.rotation.y -= 0.004 * PHI;
   ring3.rotation.y += 0.004 * PHI * PHI;
@@ -2280,6 +2300,242 @@ if (location.hash.indexOf('#d=') === 0) {
 prevSnap = snapDesign(); lastSig = designSig();
 renderSaveList();
 document.getElementById('buildStamp').innerHTML = 'BUILD <b>v16</b> · LIVE — EDGES · UNDO · DESIGNS';
+
+
+/* ============ V17 — THE ARCHITECT'S SET ============ */
+PARTS.triforium = {
+  name: 'Triforium Band', w: 0.6, h: 3.2, d: 8, seats: 0, glass: 0, vol: 6,
+  build(mat) {
+    const g = new THREE.Group();
+    const band = new THREE.Mesh(new THREE.BoxGeometry(0.6, 3.2, 8), mat);
+    band.position.y = 1.6; band.castShadow = true; band.receiveShadow = true;
+    g.add(band);
+    for (let i = -1; i <= 1; i++) {
+      const a = PARTS.arch.build(mat);
+      a.scale.set(0.16, 0.3, 0.16); a.position.set(0, 0.15, i * 2.6); a.rotation.y = Math.PI / 2;
+      g.add(a);
+    }
+    return g;
+  }
+};
+SECTIONS.body.types.push('triforium');
+TYPE_ACTS.triforium = [ { act: 'row3', label: 'RUN THE BAND ×3' }, { act: 'glassIwhg', label: 'GILDED SCREEN' } ];
+(function () {
+  const wallBtn = document.querySelector('[data-place="wall"]');
+  if (!wallBtn) return;
+  const b = document.createElement('button');
+  b.className = 'pbtn'; b.dataset.place = 'triforium'; b.textContent = 'TRIFORIUM';
+  wallBtn.after(b);
+  b.addEventListener('click', () => {
+    armedType = 'triforium';
+    document.querySelectorAll('[data-place]').forEach(x => x.classList.toggle('on', x === b));
+    buildGhost();
+    placeNote.textContent = 'Triforium Band armed — press the ground and drag. Release, and it stands.';
+    haptic();
+  });
+})();
+
+/* the whole canon, re-derived from ONE module — M = 8 m is the published building */
+window.__modK = 1;
+fullBuild = function (k) {
+  k = k || 1;
+  window.__modK = k;
+  const B = 8 * k;
+  buildCathedral({ LEN: 128 * k, WID: 43 * k, NAVE_W: 12 * k, VAULT_H: 32.5 * k, TOWER_H: 69 * k, SPIRE_H: 96 * k, ROSE_D: 9.6 * k, BAY: B, note: 'FULL BUILD — module M = ' + B.toFixed(2) + ' m' });
+  const add = (t, x, z, r, sc, y) => { const it = addItem(t, x, z, r || 0, sc || null, 'stone'); if (y) it.group.position.y = y; return it; };
+  /* roofs */
+  for (let j = 0; j < 14; j++) add('roof', 0, -52 * k + B * j, 0, [k, k, k], 25 * k);
+  [-16, 0, 16].forEach(x => add('roof', x * k, 8 * k, Math.PI / 2, [k, k, k], 25 * k));
+  /* the builder's flyers come out — a master re-flies the nave bay by bay */
+  const proto = items.find(i => i.type === 'buttress');
+  const rotPos = proto && proto.group.position.x > 0 ? proto.group.rotation.y : -Math.PI / 2;
+  const rotNeg = proto && proto.group.position.x < 0 ? proto.group.rotation.y : Math.PI / 2;
+  [...items].filter(i => i.type === 'buttress').forEach(removeItem);
+  const T = 32.5 / 8; /* the thrust index: vault height over bay */
+  for (let j = 0; j < 14; j++) [-1, 1].forEach(sd => {
+    const b = add('buttress', sd * 24.5 * k, -52 * k + B * j, sd > 0 ? rotPos : rotNeg, [k, k, k], 0);
+    const m = measure(b);
+    add('spire', b.group.position.x, b.group.position.z, b.group.rotation.y, [0.07 * k, 0.13 * k * (T / 4.0625) * 4.0625 / 4.0625 * (0.9 + 0.2 * (j % 3) / 2), 0.07 * k], m.box.max.y - 0.5);
+  });
+  /* alternating piers — the sexpartite pulse: strong, weak, strong */
+  [-1, 1].forEach(sd => {
+    const piers = items.filter(i => i.type === 'pillar' && Math.abs(i.group.position.x) < 8 * k && Math.sign(i.group.position.x) === sd)
+      .sort((a, b2) => a.group.position.z - b2.group.position.z);
+    piers.forEach((pr, idx) => { const f = idx % 2 === 0 ? 1.28 : 0.9; pr.group.scale.x *= f; pr.group.scale.z *= f; });
+  });
+  /* triforium — the missing middle voice of the elevation */
+  for (let j = 0; j < 14; j++) [-1, 1].forEach(sd =>
+    add('triforium', sd * 6.2 * k, -52 * k + B * j, 0, [k, k, k], 15.2 * k));
+  /* clerestory + every bay glazed */
+  for (let j = 0; j < 14; j++) [-1, 1].forEach(sd => {
+    add('lancet', sd * 6.2 * k, -52 * k + B * j, sd * Math.PI / 2, [0.42 * k, 0.5 * k, 0.42 * k], 19 * k);
+    add('lancet', sd * 20.6 * k, -52 * k + B * j, sd * Math.PI / 2, [0.8 * k, 0.9 * k, 0.8 * k], 0);
+  });
+  /* towers crowned + glazed from their own measured tops */
+  items.filter(i => i.type === 'tower').forEach(t => {
+    const m = measure(t), p = t.group.position;
+    const dx = dirX(t), dz = dirZ(t), a = m.w / 2 * 0.74, bb = m.d / 2 * 0.74;
+    [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(([sx, sz]) =>
+      add('spire', p.x + dx.x * a * sx + dz.x * bb * sz, p.z + dx.z * a * sx + dz.z * bb * sz, t.group.rotation.y, [0.08, 0.15, 0.08], m.box.max.y - 0.5));
+    [-1, 1].forEach(sd => {
+      add('lancet', p.x + sd * m.w * 0.22, p.z + m.d / 2 + 0.15, 0, [0.5, 0.62, 0.5], m.h * 0.52);
+      add('lancet', p.x + sd * m.w * 0.22, p.z - m.d / 2 - 0.15, Math.PI, [0.5, 0.62, 0.5], m.h * 0.52);
+    });
+  });
+  [-1, 1].forEach(sd => { add('lancet', sd * 31.6 * k, 4.5 * k, sd * Math.PI / 2, [0.9 * k, 1.1 * k, 0.9 * k], 0); add('lancet', sd * 31.6 * k, 11.5 * k, sd * Math.PI / 2, [0.9 * k, 1.1 * k, 0.9 * k], 0); });
+  add('lancet', -8 * k, -62.5 * k, -0.6, [0.9 * k, 1 * k, 0.9 * k], 0);
+  add('lancet', 8 * k, -62.5 * k, 0.6, [0.9 * k, 1 * k, 0.9 * k], 0);
+  add('lancet', 0, -64.2 * k, Math.PI, [0.9 * k, 1 * k, 0.9 * k], 0);
+  for (let j = -2; j <= 2; j++) add('lancet', j * 4 * k, 63.4 * k, 0, [0.5 * k, 0.55 * k, 0.5 * k], 10.5 * k);
+  select(null);
+};
+
+/* thrust lines — the force diagram of the building, drawn through its flyers */
+let thrustGroup = null, thrustOn = false;
+function buildThrust() {
+  if (thrustGroup) { world.remove(thrustGroup); thrustGroup.geometry.dispose(); thrustGroup = null; }
+  const k = window.__modK || 1, pts = [];
+  items.filter(i => i.type === 'buttress').forEach(b => {
+    const p = b.group.position, s = Math.sign(p.x) || 1, m = measure(b), z = p.z;
+    pts.push(new THREE.Vector3(s * 6 * k, 26 * k, z), new THREE.Vector3(s * 15 * k, 25 * k, z));
+    pts.push(new THREE.Vector3(s * 15 * k, 25 * k, z), new THREE.Vector3(p.x, m.box.max.y, z));
+    pts.push(new THREE.Vector3(p.x, m.box.max.y, z), new THREE.Vector3(p.x + s * 2.5 * k, 0, z));
+  });
+  thrustGroup = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(pts),
+    new THREE.LineBasicMaterial({ color: 0xff9d5c, transparent: true, opacity: 0.9 }));
+  thrustGroup.visible = thrustOn;
+  world.add(thrustGroup);
+}
+document.getElementById('thrustBtn').addEventListener('click', () => {
+  thrustOn = !thrustOn;
+  if (thrustOn) buildThrust();
+  if (thrustGroup) thrustGroup.visible = thrustOn;
+  document.getElementById('thrustBtn').classList.toggle('on', thrustOn);
+  document.getElementById('thrustBtn').textContent = thrustOn ? 'THRUST LINES — ON' : 'THRUST LINES';
+  setState(thrustOn ? 'THRUST — vault to flyer to pier to ground, at every bay' : 'thrust lines folded away');
+  haptic();
+});
+
+/* the module control */
+const modRange = document.getElementById('modRange'), modVal = document.getElementById('modVal');
+document.getElementById('modApply').addEventListener('click', () => {
+  const M = parseFloat(modRange.value);
+  modVal.textContent = 'M = ' + M.toFixed(2) + ' m';
+  clearAll();
+  fullBuild(M / 8);
+  applySection('all');
+  if (thrustOn) buildThrust();
+  fitIso(true);
+  setState('MODULE ' + M.toFixed(2) + ' m — the whole canon transposed ×' + (M / 8).toFixed(3) + ' · the audit still grades the published M = 8 building');
+  haptic();
+});
+modRange.addEventListener('input', () => { modVal.textContent = 'M = ' + parseFloat(modRange.value).toFixed(2) + ' m'; });
+
+/* the liturgical axis — the whole frame turns on its pin; placements stay true */
+const _gpOrig = groundPoint;
+groundPoint = function (e) {
+  const p = _gpOrig(e);
+  if (!p) return p;
+  const th = world.rotation.y;
+  if (!th) return p;
+  const c = Math.cos(th), s = Math.sin(th);
+  const dx = p.x - hubC.x, dz = p.z - hubC.z;
+  return new THREE.Vector3(hubC.x + dx * c - dz * s, 0, hubC.z + dx * s + dz * c);
+};
+const axisRange = document.getElementById('axisRange'), axisVal = document.getElementById('axisVal');
+axisRange.addEventListener('input', () => {
+  const deg = parseFloat(axisRange.value);
+  window.__axisYaw = deg * Math.PI / 180;
+  axisVal.textContent = (deg >= 0 ? '+' : '') + deg.toFixed(0) + '°';
+  sunStudy();
+});
+
+/* the sun, computed for Omaha — and the hour the rose takes the light */
+function solarPos(date, hourLocal) {
+  const lat = 41.2565 * Math.PI / 180, lon = -95.9345;
+  const doy = Math.floor((Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) - Date.UTC(date.getFullYear(), 0, 0)) / 864e5);
+  const g = 2 * Math.PI / 365 * (doy - 1 + (hourLocal - 12) / 24);
+  const eqtime = 229.18 * (0.000075 + 0.001868 * Math.cos(g) - 0.032077 * Math.sin(g) - 0.014615 * Math.cos(2 * g) - 0.040849 * Math.sin(2 * g));
+  const decl = 0.006918 - 0.399912 * Math.cos(g) + 0.070257 * Math.sin(g) - 0.006758 * Math.cos(2 * g) + 0.000907 * Math.sin(2 * g) - 0.002697 * Math.cos(3 * g) + 0.00148 * Math.sin(3 * g);
+  let tst = hourLocal * 60 + eqtime + 4 * lon - 60 * -5;
+  let ha = tst / 4 - 180;
+  while (ha < -180) ha += 360; while (ha > 180) ha -= 360;
+  const haR = ha * Math.PI / 180;
+  const cosZen = Math.sin(lat) * Math.sin(decl) + Math.cos(lat) * Math.cos(decl) * Math.cos(haR);
+  const el = 90 - Math.acos(Math.max(-1, Math.min(1, cosZen))) * 180 / Math.PI;
+  let az = Math.atan2(Math.sin(haR), Math.cos(haR) * Math.sin(lat) - Math.tan(decl) * Math.cos(lat)) * 180 / Math.PI + 180;
+  az = ((az % 360) + 360) % 360;
+  return { el, az };
+}
+const hourRange = document.getElementById('hourRange'), hourVal = document.getElementById('hourVal'), sunNote = document.getElementById('sunNote');
+function sunStudy() {
+  const now = new Date();
+  const hr = parseFloat(hourRange.value);
+  const hh = Math.floor(hr), mm = Math.round((hr - hh) * 60);
+  hourVal.textContent = hh + ':' + String(mm).padStart(2, '0');
+  const sp = solarPos(now, hr);
+  const yaw = window.__axisYaw || 0;
+  const fx = Math.sin(yaw), fz = Math.cos(yaw);
+  const faceBearing = ((Math.atan2(fx, -fz) * 180 / Math.PI) + 360) % 360;
+  if (sp.el > -1) {
+    const azR = sp.az * Math.PI / 180, elR = Math.max(0.02, sp.el) * Math.PI / 180;
+    sun.position.set(Math.sin(azR) * Math.cos(elR) * 220, Math.sin(elR) * 220, -Math.cos(azR) * Math.cos(elR) * 220);
+    sun.target.position.set(0, 0, 0);
+  }
+  let rose = 'the rose takes no direct sun today — its light is sky light.';
+  for (let h = 5; h <= 21; h += 0.05) {
+    const s2 = solarPos(now, h);
+    if (s2.el > 2 && Math.abs(((s2.az - faceBearing + 540) % 360) - 180) < 4) {
+      rose = 'THE ROSE TAKES THE SUN at ' + Math.floor(h) + ':' + String(Math.round((h % 1) * 60)).padStart(2, '0') + ' — elevation ' + s2.el.toFixed(1) + '°, straight down the nave to the altar.';
+      break;
+    }
+  }
+  sunNote.textContent = 'Omaha, today · ' + hourVal.textContent + ' — sun elevation ' + sp.el.toFixed(1) + '°, azimuth ' + sp.az.toFixed(1) + '° (true compass). Façade bearing ' + faceBearing.toFixed(1) + '°. ' + rose;
+}
+hourRange.addEventListener('input', sunStudy);
+
+/* section cut — the building sliced at a bay, swept by hand */
+const clipPlane = new THREE.Plane(new THREE.Vector3(0, 0, -1), 10000);
+let cutZ = null;
+function collectClipMats() {
+  const set = new Set();
+  Object.values(MATS).forEach(m => set.add(m));
+  [edgeMat, ghostMat, bpMat, skelMat].forEach(m => { if (m) set.add(m); });
+  items.forEach(it => it.group.traverse(o => { if (o.isMesh && o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => set.add(m)); }));
+  hub.traverse(o => { if (o.isMesh) set.add(o.material); });
+  return [...set];
+}
+function applyCut() {
+  renderer.localClippingEnabled = true;
+  const mats = collectClipMats();
+  if (cutZ === null) { mats.forEach(m => { m.clippingPlanes = null; }); return; }
+  clipPlane.constant = cutZ;
+  mats.forEach(m => { m.clippingPlanes = [clipPlane]; });
+}
+const secRange = document.getElementById('secRange'), secVal = document.getElementById('secVal');
+secRange.addEventListener('input', () => {
+  cutZ = parseFloat(secRange.value);
+  secVal.textContent = 'CUT AT Z ' + cutZ.toFixed(0) + ' m';
+  applyCut();
+});
+document.getElementById('secOff').addEventListener('click', () => {
+  cutZ = null; secVal.textContent = 'WHOLE';
+  applyCut();
+  setState('SECTION — whole again'); haptic();
+});
+setInterval(() => { if (cutZ !== null) applyCut(); }, 1500);
+
+/* ---- init: the refined full build stands ---- */
+const nowHr = new Date();
+hourRange.value = nowHr.getHours() + nowHr.getMinutes() / 60;
+clearAll();
+fullBuild(1);
+applySection('all');
+buildThrust();
+sunStudy();
+prevSnap = snapDesign(); lastSig = designSig();
+document.getElementById('buildStamp').innerHTML = 'BUILD <b>v17</b> · LIVE — THE ARCHITECT\u2019S SET';
+setState('THE ARCHITECT\u2019S SET — one module, true flyers, the triforium, alternating piers, thrust drawn, the sun computed · ' + items.length + ' figures');
 
 </script>
 </body>
