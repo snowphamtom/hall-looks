@@ -515,6 +515,18 @@ setTimeout(function () {
     <button class="pbtn" id="introBegin" style="font-size:15px;padding:10px 16px">BEGIN</button>
   </div>
 </div>
+<div id="bootErr" style="display:none;position:fixed;top:calc(52px + env(safe-area-inset-top));left:10px;right:10px;z-index:70;background:#5a0d0d;color:#ffd7d7;border:1px solid #ff6b6b;padding:10px 12px;font-family:'Courier New',monospace;font-size:13px;line-height:1.5"></div>
+<script>
+window.__cathErrs = [];
+window.addEventListener('error', e => { window.__cathErrs.push(e.message || 'unknown'); });
+setTimeout(() => {
+  if (!window.__cathOK) {
+    const b = document.getElementById('bootErr');
+    const st = document.getElementById('buildStamp');
+    if (b) { b.style.display = 'block'; b.textContent = 'BOOT STALLED \u2014 stamp reads: ' + (st ? st.textContent : '?') + (window.__cathErrs.length ? ' \u00b7 error: ' + window.__cathErrs[0] : ' \u00b7 no error captured; the build is still chewing. Read this to Jett.'); }
+  }
+}, 9000);
+</script>
 <div id="buildStamp">BUILD <b>v14</b> · LIVE — ISO OPENING, WIRE FRAME</div>
 <div id="navCluster">
   <button id="navOver">⌖<span class="cap">OVERHEAD</span></button>
@@ -3903,13 +3915,21 @@ setState('MIRRORS MULTIPLIED — kaleidoscope ×4 and ×8 about the pin, rows of
 
 
 /* ============ V27 — THE DEFAULT: A FULLY BUILT BLUEPRINT ============ */
-document.getElementById('chooser').classList.add('hidden');
-clearAll();
-fullBuild();
-applySection('all');
-refreshExtents();
-if (!bpMode) bpBtn.click();
-fitIso(true);
+window.addEventListener('load', () => setTimeout(() => {
+  try {
+    document.getElementById('chooser').classList.add('hidden');
+    clearAll();
+    fullBuild();
+    applySection('all');
+    refreshExtents();
+    if (!bpMode) bpBtn.click();
+    fitIso(true);
+  } catch (err) {
+    setState('BOOT FAULT \u2014 ' + err.message + ' (the app lives; read this line to Jett)');
+    const b = document.getElementById('bootErr');
+    if (b) { b.style.display = 'block'; b.textContent = 'BOOT FAULT: ' + err.message; }
+  }
+}, 60));
 
 /* ---- init ---- */
 document.getElementById('buildStamp').innerHTML = 'BUILD <b>v27</b> · LIVE — THE DEFAULT BLUEPRINT';
@@ -4756,6 +4776,27 @@ window.addEventListener('pointerdown', () => {
 /* ---- init ---- */
 document.getElementById('buildStamp').innerHTML = 'BUILD <b>v40</b> · LIVE — FULLY iPHONE';
 _setState('FULLY iPHONE — every touch now answers in the hand: taps tick, commits land twice, refusals thump three times, sliders chatter as they move — all on the iPhone\u2019s own haptic channel. Viewport follows the Safari bar; speech is primed by your first touch.');
+
+
+/* ============ V41 — BOOT RESCUE ============ */
+window.__cathOK = true;
+/* HEAR now enters at once — Snow keeps talking while you explore */
+const ihOld = document.getElementById('introHear');
+if (ihOld) {
+  const ihNew = ihOld.cloneNode(true);
+  ihOld.replaceWith(ihNew);
+  ihNew.addEventListener('click', () => {
+    introAudio.currentTime = 0;
+    introAudio.play().catch(() => {});
+    introDone();
+    _setState('SNOW IS SPEAKING — your options, while you explore. The building is already yours.');
+    haptic('commit');
+  });
+}
+
+/* ---- init ---- */
+document.getElementById('buildStamp').innerHTML = 'BUILD <b>v41</b> · LIVE — BOOT RESCUE';
+_setState('BOOT RESCUE — the default build can no longer take the app down with it: it loads guarded, a beat after the doors open, and any fault is written on the red banner, not swallowed. The intro leaves the moment you press either button.');
 
 </script>
 </body>
