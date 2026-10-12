@@ -393,6 +393,7 @@ setTimeout(function () {
     <span class="wnote">Cesariano's geometry over the section, and the perspective masters' triangulated floor.</span></div>
   <div class="prow"><span class="wnote" id="eyeRead">Your perspective, drawn from your own eye — horizon, vanishing point, distance points, all of it moving as you move.</span></div>
   <div class="prow"><span class="plab">AUDIO GUIDE</span>
+    <button class="pbtn" data-guide="guide0.mp3">▶ 0 · YOUR OPTIONS</button>
     <button class="pbtn" data-guide="guide1.mp3">▶ 1 · THE BLUEPRINT</button>
     <button class="pbtn" data-guide="guide2.mp3">▶ 2 · YOUR HANDS</button>
     <button class="pbtn" data-guide="guide3.mp3">▶ 3 · THE LEDGER</button></div>
@@ -498,6 +499,14 @@ setTimeout(function () {
   <button id="chClose">✕</button>
 </div>
 <button class="pbtn" id="guideToggle" style="position:fixed;top:calc(10px + env(safe-area-inset-top));right:10px;z-index:30">🔊 GUIDE</button>
+<div id="intro" style="position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;background:rgba(4,6,10,0.82)">
+  <div style="max-width:520px;margin:16px;padding:26px 24px;border:1px solid #c9a227;background:rgba(8,10,14,0.96);text-align:center">
+    <div style="color:#ffd977;font-family:Georgia,serif;font-size:26px;letter-spacing:2px">BEFORE YOU BEGIN</div>
+    <div style="color:#bdb395;font-family:'Courier New',monospace;font-size:13px;line-height:1.6;margin:12px 0 18px">One short introduction, in the guide's voice — every option you have, spoken plainly.</div>
+    <button class="pbtn" id="introHear" style="font-size:15px;padding:10px 16px">▶ HEAR YOUR OPTIONS</button>
+    <button class="pbtn" id="introBegin" style="font-size:15px;padding:10px 16px">BEGIN</button>
+  </div>
+</div>
 <div id="buildStamp">BUILD <b>v14</b> · LIVE — ISO OPENING, WIRE FRAME</div>
 <div id="navCluster">
   <button id="navOver">⌖<span class="cap">OVERHEAD</span></button>
@@ -4250,6 +4259,38 @@ function pairStatus() {
 /* ---- init ---- */
 document.getElementById('buildStamp').innerHTML = 'BUILD <b>v31</b> · LIVE — PAIRED TO YOUR SCREEN';
 _setState('PAIRED LIVE — the guide now reads the options off the screen you are actually on, as they stand, and calls out every change the moment it happens. Screens, toggles, sliders, instructions: wired, not scripted.');
+
+
+/* ============ V32 — BEFORE YOU BEGIN: YOUR OPTIONS, SPOKEN ============ */
+const introEl = document.getElementById('intro');
+const introAudio = new Audio();
+introAudio.preload = 'auto';
+introAudio.src = 'guide0.mp3';
+function introDone() {
+  introEl.style.display = 'none';
+  localStorage.setItem('cathIntroHeard', '1');
+}
+document.getElementById('introHear').addEventListener('click', () => {
+  document.getElementById('introHear').textContent = '❚❚ PLAYING — YOUR OPTIONS…';
+  introAudio.currentTime = 0;
+  introAudio.play().catch(() => {});
+  haptic();
+});
+introAudio.addEventListener('ended', () => {
+  document.getElementById('introHear').textContent = '▶ HEAR YOUR OPTIONS';
+  introDone();
+  _setState('THOSE ARE YOUR OPTIONS — the building is yours. The guide walks with you; mute him top-right when you know the place.');
+});
+document.getElementById('introBegin').addEventListener('click', () => {
+  introAudio.pause();
+  introDone();
+  haptic();
+});
+
+/* ---- init ---- */
+if (localStorage.getItem('cathIntroHeard') === '1') introEl.style.display = 'none';
+document.getElementById('buildStamp').innerHTML = 'BUILD <b>v32</b> · LIVE — YOUR OPTIONS, SPOKEN';
+_setState('BEFORE YOU BEGIN — one short introduction, in the guide\u2019s voice: every option you have, spoken plainly. It also lives at VIEW → AUDIO GUIDE, track zero, whenever you want it again.');
 
 </script>
 </body>
