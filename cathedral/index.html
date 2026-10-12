@@ -3565,6 +3565,70 @@ renderChooser();
 document.getElementById('buildStamp').innerHTML = 'BUILD <b>v23</b> · LIVE — THE MOST-BUILT';
 setState('THE MOST-BUILT — the chooser now opens with what the world actually builds: houses, apartments, warehouses, offices, retail, schools, hotels — and the cathedral among them');
 
+
+/* ============ V24 — RECONCILED TO THE SOURCED NUMBERS ============ */
+function genWarehouse2() {
+  const W = 108, D = 72, BAY = 18, H = 9.8;
+  const r = genFrame({ colsX: W / BAY, colsZ: D / BAY, bayX: BAY, bayZ: BAY, floors: 1, storey: H, skin: false });
+  const add = (t, x, z, rot, sc, y) => { const it = addItem(t, x, z, rot || 0, sc || null, 'stone'); if (y) it.group.position.y = y; return it; };
+  for (let i = 0; i < W / BAY; i++) for (let j = 0; j < D / BAY; j++)
+    add('slab', -W / 2 + BAY * (i + 0.5), -D / 2 + BAY * (j + 0.5), 0, [BAY / 8, 0.6, BAY / 8], H);
+  for (let i = 0; i < W / BAY; i++) {
+    add('gdoor', -W / 2 + BAY * (i + 0.5), D / 2, 0, [BAY / 4 * 0.9, H / 3.2, 1], 0);
+    add('panel', -W / 2 + BAY * (i + 0.5), -D / 2, Math.PI, [BAY / 4, H / 3.2, 1], 0);
+  }
+  for (let j = 0; j < D / BAY; j++) {
+    add('panel', -W / 2, -D / 2 + BAY * (j + 0.5), Math.PI / 2, [BAY / 4, H / 3.2, 1], 0);
+    add('panel', W / 2, -D / 2 + BAY * (j + 0.5), Math.PI / 2, [BAY / 4, H / 3.2, 1], 0);
+  }
+  select(null);
+  return r;
+}
+const genRanch = () => genFrame({ colsX: 2, colsZ: 2, bayX: 8, bayZ: 6.25, floors: 1, storey: 3.0, skin: true, gables: true });
+const genTwoStory = () => genFrame({ colsX: 2, colsZ: 1, bayX: 6.25, bayZ: 8, floors: 2, storey: 3.0, skin: true, gables: true, stairs: true });
+FRAMES.house.frames = [
+  { key: 'ranch', name: 'RANCH — THE MEDIAN HOUSE', gen: genRanch },
+  { key: 'twostory', name: 'TWO-STORY — THE OTHER HALF', gen: genTwoStory },
+  { key: 'courthouse', name: 'COURTYARD HOUSE', gen: () => genFrame({ colsX: 3, colsZ: 2, bayX: 7, bayZ: 6.5, floors: 1, storey: 3.1, skin: true, hole: [1, 2, 1, 2] }) },
+  { key: 'ranchgarage', name: 'RANCH + GARAGE (65% HAVE ONE)', gen: () => { const r = genRanch(); addItem('garage', 12.3, 3, -Math.PI / 2, null, 'stone'); return r; } }
+];
+FRAMES.apartment.frames = [
+  { key: 'garden', name: 'GARDEN APARTMENTS — MOST BUILT', gen: () => genFrame({ colsX: 4, colsZ: 2, bayX: 8, bayZ: 8, floors: 3, storey: 3.1, skin: true, stairs: true }) },
+  { key: 'walkup', name: 'WALK-UP SLAB', gen: () => genFrame({ colsX: 4, colsZ: 2, bayX: 8, bayZ: 8, floors: 3, storey: 3.1, skin: true, stairs: true }) },
+  { key: 'pointtower', name: 'POINT TOWER', gen: () => genFrame({ colsX: 2, colsZ: 2, bayX: 8, bayZ: 8, floors: 6, storey: 3.1, skin: true, stairs: true }) },
+  { key: 'courtblock', name: 'COURTYARD BLOCK', gen: () => genFrame({ colsX: 4, colsZ: 3, bayX: 8, bayZ: 8, floors: 2, storey: 3.1, skin: true, hole: [1, 3, 1, 2], stairs: true }) }
+];
+FRAMES.office.frames = [
+  { key: 'gridtower', name: 'GRID TOWER', gen: () => genFrame({ colsX: 3, colsZ: 3, bayX: 8, bayZ: 8, floors: 5, storey: 4.2, skin: true, stairs: true }) },
+  { key: 'slabblock', name: 'SLAB BLOCK', gen: () => genFrame({ colsX: 5, colsZ: 2, bayX: 8, bayZ: 9, floors: 3, storey: 4.2, skin: true, stairs: true }) },
+  { key: 'atrium', name: 'ATRIUM FRAME', gen: () => genFrame({ colsX: 4, colsZ: 4, bayX: 8, bayZ: 8, floors: 3, storey: 4.2, skin: true, hole: [1, 3, 1, 3], stairs: true }) }
+];
+FRAMES.warehouse.frames[0] = { key: 'distbox', name: 'DISTRIBUTION BOX — 108 × 72', gen: genWarehouse2 };
+FRAMES.hotel.frames = [
+  { key: 'hotelslab', name: 'SELECT-SERVICE — ±80 KEYS, 4 FLOORS', gen: () => genFrame({ colsX: 9, colsZ: 2, bayX: 7.6, bayZ: 8, floors: 4, storey: 3.3, skin: true, stairs: true }) }
+];
+planSVG = function (f) {
+  const dims = { ranch: [16, 12.5], twostory: [12.5, 8], courthouse: [21, 13], ranchgarage: [16, 12.5], garden: [32, 16],
+    gridtower: [24, 24], slabblock: [40, 18], atrium: [32, 32], pointtower: [16, 16], walkup: [32, 16], courtblock: [32, 24],
+    distbox: [108, 72], smallbay: [48, 24], strip: [40, 12], bigbox: [60, 45], courtschool: [32, 24], hotelslab: [68.4, 16],
+    ndfull: [43, 128], core: [43, 128], skel: [43, 128] }[f.key] || [24, 16];
+  const w = dims[0], d = dims[1], sc = 92 / Math.max(w, d);
+  const W = Math.max(30, w * sc), H = Math.max(30, d * sc);
+  const ox = (100 - W) / 2, oy = (100 - H) / 2;
+  let inner = '';
+  const cols = Math.max(2, Math.round(w / 8)), rows = Math.max(2, Math.round(d / 8));
+  for (let i = 1; i < cols; i++) inner += '<line x1="' + (ox + W * i / cols) + '" y1="' + oy + '" x2="' + (ox + W * i / cols) + '" y2="' + (oy + H) + '"/>';
+  for (let j = 1; j < rows; j++) inner += '<line x1="' + ox + '" y1="' + (oy + H * j / rows) + '" x2="' + (ox + W) + '" y2="' + (oy + H * j / rows) + '"/>';
+  return '<svg viewBox="0 0 100 100"><rect x="' + ox + '" y="' + oy + '" width="' + W + '" height="' + H + '" fill="none" stroke="#ffd977" stroke-width="2"/><g stroke="#6b5d3f" stroke-width="0.7">' + inner + '</g><text x="50" y="96" fill="#bdb395" font-size="7" text-anchor="middle" font-family="Courier New">' + w + ' × ' + d + ' m</text></svg>';
+};
+renderChooser();
+const chSub = document.querySelector('.ch-sub');
+if (chSub) chSub.textContent += ' · WOOD FRAME CARRIES 94% OF NEW US HOMES (NAHB/CENSUS)';
+
+/* ---- init ---- */
+document.getElementById('buildStamp').innerHTML = 'BUILD <b>v24</b> · LIVE — RECONCILED TO THE SOURCES';
+setState('RECONCILED — every template re-measured against the construction record: the median house, the garden apartment, the true warehouse scale, the office floor-to-floor, the hotel prototype');
+
 </script>
 </body>
 </html>
