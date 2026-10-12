@@ -389,6 +389,7 @@ setTimeout(function () {
     <button class="pbtn" id="geoBtn">CONSTRUCTION</button>
     <button class="pbtn" id="perspBtn">PERSPECTIVE FLOOR</button>
     <button class="pbtn" id="eyeBtn">YOUR PERSPECTIVE</button>
+    <button class="pbtn" id="staggerBtn">BRAID STAGGER</button>
     <span class="wnote">Cesariano's geometry over the section, and the perspective masters' triangulated floor.</span></div>
   <div class="prow"><span class="wnote" id="eyeRead">Your perspective, drawn from your own eye — horizon, vanishing point, distance points, all of it moving as you move.</span></div>
 <div class="prow"><span class="plab">PHASES</span>
@@ -447,6 +448,7 @@ setTimeout(function () {
     <input class="briefIn" type="number" id="briefVault" placeholder="VAULT m" min="0">
     <input class="briefIn" type="number" id="briefStone" placeholder="STONE m³" min="0"></div>
   <div class="prow"><span class="wnote" id="briefNote">Set your own targets above — the sheet grades the standing building against your brief, live.</span></div>
+  <div class="prow"><span class="wnote" id="solvLine"></span></div>
 </div>
 
 <div id="forgeCard">
@@ -3889,6 +3891,125 @@ fitIso(true);
 /* ---- init ---- */
 document.getElementById('buildStamp').innerHTML = 'BUILD <b>v27</b> · LIVE — THE DEFAULT BLUEPRINT';
 setState('THE DEFAULT — perfectly calculated, fully built, and drawn as a blueprint: Notre Dame at the published canon, module 8, every figure measured before you touch it. Reshape it with the poles — or open PARTS → NEW BUILD to start from a floor of your own.');
+
+
+/* ============ V28 — FROM THE DRIVE: THE BRAID, THE STAGGER, THE LEDGER ============ */
+const PHI_G = (1 + Math.sqrt(5)) / 2;
+const HB = { neck: 0.12, bulb: 1.0, H: 2.4 * PHI_G, amp: 0.085, freq: 3.0 * PHI_G, mod: 7.776 / 10 };
+let BRAID_STAGGER = 0;
+function hbRadius(y) {
+  const t = 2 * y / HB.H;
+  const r = HB.neck + (HB.bulb - HB.neck) * (Math.cosh(1.8 * t) - 1) / (Math.cosh(1.8) - 1);
+  return Math.min(HB.bulb * 1.05, Math.max(HB.neck * 0.8, r));
+}
+function hbStrand(y, i) {
+  const phase = 2 * Math.PI * i / 4 + ((i % 2 === 1) ? BRAID_STAGGER : 0);
+  const lr = hbRadius(y);
+  const la = HB.amp * (lr / HB.bulb) * (1 + 0.15 * Math.sin(2 * Math.PI * HB.mod * y));
+  let x = la * Math.sin(HB.freq * y * Math.PI + phase);
+  let z = la * Math.cos(HB.freq * y * Math.PI + phase * 1.5);
+  const na = Math.exp(-Math.pow(y / (HB.H * 0.08), 2));
+  x *= (1 - 0.38 * na); z *= (1 - 0.38 * na);
+  return [x, z];
+}
+PARTS.braid = {
+  name: 'Hourglass Braid', w: 4.62, h: 8.54, d: 4.62, seats: 0, glass: 0, vol: 39,
+  build(mat) {
+    const g = new THREE.Group(), S = 2.2, NP = 160;
+    const lathePts = [];
+    for (let k = 0; k <= 40; k++) {
+      const y = -HB.H / 2 + HB.H * k / 40;
+      lathePts.push(new THREE.Vector2(Math.max(0.02, hbRadius(y)) * S, (y + HB.H / 2) * S));
+    }
+    const env = new THREE.Mesh(new THREE.LatheGeometry(lathePts, 36), mat);
+    env.castShadow = true;
+    g.add(env);
+    for (let i = 0; i < 4; i++) {
+      [false, true].forEach(inv => {
+        const pts = [];
+        for (let k = 0; k <= NP; k++) {
+          const y = -HB.H / 2 + HB.H * k / NP;
+          let [x, z] = inv ? (() => { const [px, pz] = hbStrand(-y, i); return [-px, -pz]; })() : hbStrand(y, i);
+          pts.push(new THREE.Vector3(x * S, (y + HB.H / 2) * S, z * S));
+        }
+        const tube = new THREE.Mesh(
+          new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 200, 0.075, 5),
+          inv ? MATS.iwhgG : MATS.gold);
+        tube.castShadow = true;
+        g.add(tube);
+      });
+    }
+    return g;
+  }
+};
+SECTIONS.frame.types.push('braid');
+PHASE_RANK.braid = 1;
+(function () {
+  const colBtn = document.querySelector('[data-place="column"]');
+  if (!colBtn) return;
+  const b = document.createElement('button');
+  b.className = 'pbtn'; b.dataset.place = 'braid'; b.textContent = 'HOURGLASS BRAID';
+  b.addEventListener('click', () => {
+    armedType = 'braid';
+    document.querySelectorAll('[data-place]').forEach(x => x.classList.toggle('on', x === b));
+    buildGhost();
+    placeNote.textContent = 'Hourglass Braid armed — four strands and their exact inverse mirrors, out of your Drive. Press the ground and drag.';
+    haptic();
+  });
+  colBtn.after(b);
+})();
+
+/* the stagger — phase φ between the braid's families; the Flower cut at π/3 */
+document.getElementById('staggerBtn').addEventListener('click', () => {
+  const on = BRAID_STAGGER === 0;
+  BRAID_STAGGER = on ? Math.PI / 3 : 0;
+  document.getElementById('staggerBtn').classList.toggle('on', on);
+  document.getElementById('staggerBtn').textContent = on ? 'STAGGER φ = π/3 — ON' : 'BRAID STAGGER';
+  const braids = items.filter(it => it.type === 'braid');
+  braids.forEach(it => {
+    const p = it.group.position, r = it.group.rotation.y, sc = [...it.scale];
+    removeItem(it);
+    addItem('braid', p.x, p.z, r, sc, 'stone');
+  });
+  const turns = HB.freq * HB.H / 2;
+  const lk = turns * BRAID_STAGGER / (2 * Math.PI);
+  setState(on
+    ? 'STAGGERED — φ = π/3 between the families: Lk = N·φ/2π = ' + lk.toFixed(2) + ' over the braid\u2019s ' + turns.toFixed(1) + ' turns. Cut it level here and the section is the Flower of Life — your treatise, standing in the room.'
+    : 'STAGGER OFF — the families run co-phased again.');
+  haptic();
+});
+
+/* Strand VII, wired in: CLAIMED ≤ INTERIOR, computed from the standing building */
+const solvLine = document.getElementById('solvLine');
+let solvLast = '';
+setInterval(() => {
+  if (!solvLine) return;
+  let brief = {};
+  try { brief = JSON.parse(localStorage.getItem('cathBrief') || '{}'); } catch (e) { brief = {}; }
+  const seatsNow = items.reduce((a, it) => a + (PARTS[it.type].seats || 0), 0);
+  const stoneNow = items.reduce((a, it) => a + PARTS[it.type].vol * it.scale[0] * it.scale[1] * it.scale[2], 0);
+  const claims = [];
+  if (brief.seats) claims.push(['seats', brief.seats, seatsNow]);
+  if (brief.stone) claims.push(['stone m³', brief.stone, Math.round(stoneNow)]);
+  if (brief.vault) claims.push(['vault m', brief.vault, +boxMaxY().toFixed(1)]);
+  let txt;
+  if (!claims.length) txt = 'EPISTEMIC LEDGER — no claims standing: nothing asserted, nothing owed. Set a brief above and every claim is held to the building\u2019s interior.';
+  else {
+    const bad = claims.filter(c => c[2] < c[1]);
+    txt = 'EPISTEMIC LEDGER — ' + claims.map(c => 'CLAIMED ' + c[0] + ' ' + c[1] + ' ≤ INTERIOR ' + c[2] + (c[2] >= c[1] ? ' ✓' : ' ✗')).join(' · ') +
+      (bad.length ? ' — OVERCLAIMED: the claim is refused until the building carries it' : ' — SOLVENT: every claim stands inside what is built');
+  }
+  if (txt !== solvLast) { solvLast = txt; solvLine.textContent = txt; }
+}, 1300);
+
+/* the vesica, on the record, where the construction is drawn */
+document.getElementById('geoBtn').addEventListener('click', () => {
+  if (geoOn) setTimeout(() => setState('THE CONSTRUCTION — and know this from your own treatise: the vesica at the heart of every arch here, its centers one radius apart, overlaps in exactly 5/16. Kepler takes 74.05% of the solid; the lynchpin keeps the still 25.95%.'), 60);
+});
+
+/* ---- init ---- */
+document.getElementById('buildStamp').innerHTML = 'BUILD <b>v28</b> · LIVE — FROM THE DRIVE';
+setState('FROM YOUR DRIVE, RAW — the hourglass braid stands in the parts (PLACE → FRAME), the stagger φ = π/3 beside it, and the epistemic ledger now grades every claim in MEASURE: CLAIMED ≤ INTERIOR, or the claim is refused.');
 
 </script>
 </body>
