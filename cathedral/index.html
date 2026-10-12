@@ -497,6 +497,7 @@ setTimeout(function () {
   <button id="chPlan">START FROM THE FLOORPLAN</button>
   <button id="chClose">✕</button>
 </div>
+<button class="pbtn" id="guideToggle" style="position:fixed;top:calc(10px + env(safe-area-inset-top));right:10px;z-index:30">🔊 GUIDE</button>
 <div id="buildStamp">BUILD <b>v14</b> · LIVE — ISO OPENING, WIRE FRAME</div>
 <div id="navCluster">
   <button id="navOver">⌖<span class="cap">OVERHEAD</span></button>
@@ -4047,6 +4048,112 @@ guideAudio.addEventListener('ended', () => {
 /* ---- init ---- */
 document.getElementById('buildStamp').innerHTML = 'BUILD <b>v29</b> · LIVE — THE GUIDE SPEAKS';
 setState('THE GUIDE SPEAKS — an adult Australian voice walks the place in three short tracks: VIEW → AUDIO GUIDE. The blueprint, your hands, the ledger.');
+
+
+/* ============ V30 — THE COMPANION: HE WALKS WITH YOU (South African) ============ */
+const GUIDE = {
+  muted: localStorage.getItem('cathGuideMuted') === '1',
+  unlocked: false, lastSay: 0, lastText: '', voice: null
+};
+function pickGuideVoice() {
+  const vs = speechSynthesis.getVoices();
+  if (!vs.length) return;
+  const za = vs.filter(v => /en[-_]ZA/i.test(v.lang));
+  GUIDE.voice = za.find(v => /male|tshidi|sipho/i.test(v.name)) || za[0]
+    || vs.find(v => /en[-_]GB/i.test(v.lang) && /daniel/i.test(v.name))
+    || vs.find(v => /^en/i.test(v.lang)) || vs[0];
+}
+if ('speechSynthesis' in window) { pickGuideVoice(); speechSynthesis.onvoiceschanged = pickGuideVoice; }
+function cleanSpeech(t) {
+  return String(t)
+    .replace(/★/g, ' the pin ').replace(/·/g, ', ').replace(/×/g, ' by ')
+    .replace(/≤/g, ' no more than ').replace(/✓|✗|▶|❚❚|⚒/g, '')
+    .replace(/[—–]/g, ', ').replace(/\s+/g, ' ').trim();
+}
+function say(text, priority) {
+  if (GUIDE.muted || !GUIDE.unlocked || !('speechSynthesis' in window)) return;
+  const t = cleanSpeech(text);
+  if (!t || t.length > 320) return;
+  const now = performance.now();
+  if (!priority) {
+    if (t === GUIDE.lastText || now - GUIDE.lastSay < 2400) return;
+    if (speechSynthesis.speaking) return;
+  }
+  if (priority) speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(t);
+  if (GUIDE.voice) u.voice = GUIDE.voice;
+  u.lang = GUIDE.voice ? GUIDE.voice.lang : 'en-ZA';
+  u.rate = 1.08; u.pitch = 1.0;
+  GUIDE.lastSay = now; GUIDE.lastText = t;
+  speechSynthesis.speak(u);
+}
+const guideToggle = document.getElementById('guideToggle');
+function paintGuideToggle() {
+  guideToggle.textContent = GUIDE.muted ? '🔇 GUIDE — MUTED' : '🔊 GUIDE';
+  guideToggle.classList.toggle('on', !GUIDE.muted);
+}
+guideToggle.addEventListener('click', () => {
+  GUIDE.muted = !GUIDE.muted;
+  localStorage.setItem('cathGuideMuted', GUIDE.muted ? '1' : '0');
+  if (GUIDE.muted && 'speechSynthesis' in window) speechSynthesis.cancel();
+  paintGuideToggle();
+  if (!GUIDE.muted) { GUIDE.unlocked = true; say("Ja sharp, I'm back, my friend! Let's go, let's go!", true); }
+  haptic();
+});
+paintGuideToggle();
+window.addEventListener('pointerdown', () => {
+  if (GUIDE.unlocked) return;
+  GUIDE.unlocked = true;
+  if (!GUIDE.muted) setTimeout(() => say("Aweh, my friend! I'm your guide, hey. I walk with you, I call out your options, everything. You know the place already? No problem — tap the guide button, top right, and I pipe down. Sharp?", true), 350);
+}, { once: false });
+
+/* every screen, explained as you arrive */
+const PANEL_BLURBS = {
+  parts: "Parts! Everything you build with, it's all here: pillars, arches, towers, vaults — even the hourglass braid from the Drive, ja! Pick a skeleton start, work the sliders, and the whole building re-derives itself. Lekker!",
+  place: "Place! Arm a figure — a tower, an arch, a window — then press the ground, drag it where you want it. Size it, count it, mirror it both sides. Easy, my friend, easy!",
+  format: "Format! The operations! Extend, multiply, mirror — across the nave, across the crossing, kaleidoscope it right round the pin! And the shape poles: pull the frame itself, the space follows you. It follows!",
+  blueprint: "Blueprint mode! Draw on it like paper: move, stretch, warp — and every change stays measured, hey. You don't love it? Undo the warp. No stress.",
+  view: "View! Your camera, the construction lines, your own perspective drawn from your very eye — and the recorded guide tracks, right here, whenever you want them. Sharp sharp!",
+  forge: "The Forge! Tap a figure, grab it: rotate it, scale it, duplicate it, set it down. Grid snap, rotation snap — they keep the whole thing honest, ja.",
+  measure: "Measure! The truth panel, my friend. Dimensions, the canon audit, your brief graded live — and the epistemic ledger: claimed, no more than interior. More than that? Refused. On the record!"
+};
+document.querySelectorAll('.tabbtn').forEach(b => b.addEventListener('click', () => {
+  const blurb = PANEL_BLURBS[b.dataset.tab];
+  if (blurb) setTimeout(() => say(blurb), 60);
+}));
+
+/* the state line, spoken — refusals always break through */
+const _setState = setState;
+setState = function (t) {
+  _setState(t);
+  if (typeof t !== 'string') return;
+  if (/REFUSED|OVERCLAIMED/i.test(t)) { say(t, true); return; }
+  if (/armed|PULL THE POLE|drag/i.test(t)) return;
+  say(t);
+};
+
+/* whatever you touch, he reads it — the figure and its actual options */
+const sheetEl = document.getElementById('sheet');
+let sheetSig = '';
+setInterval(() => {
+  if (!sheetEl || !selected) return;
+  const visible = sheetEl.offsetParent !== null && sheetEl.children.length > 0;
+  if (!visible) { sheetSig = ''; return; }
+  const labels = [...sheetEl.querySelectorAll('button')].map(b => cleanSpeech(b.textContent)).filter(x => x && x.length < 42);
+  const sig = selected.id + '|' + labels.join('|');
+  if (sig === sheetSig) return;
+  sheetSig = sig;
+  let line = PARTS[selected.type].name + '. ';
+  try { line += dimsOf(selected).txt + '. '; } catch (e) {}
+  if (labels.length) line += 'Your options: ' + labels.slice(0, 6).join(', ') + '.';
+  say(line);
+}, 650);
+
+/* ---- init ---- */
+const gn = document.getElementById('guideNote');
+if (gn) gn.textContent = 'A guide in a South African voice — three short tracks: the blueprint, your hands, the ledger.';
+document.getElementById('buildStamp').innerHTML = 'BUILD <b>v30</b> · LIVE — THE COMPANION';
+_setState('THE COMPANION — he walks with you now: every screen explained, every touch read aloud, every refusal announced. Mute him top-right when you know the place. (Live voice: your device\u2019s South African voice; the three recorded tracks keep the studio voice.)');
 
 </script>
 </body>
