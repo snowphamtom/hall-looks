@@ -260,6 +260,7 @@ setTimeout(function () {
   <div class="prow"><span class="plab">GYRO CENTER</span>
     <button class="pbtn" id="gyroBtn">ENABLE GYRO</button><span class="sval" id="gyroState">OFF</span></div>
   <div class="prow"><span class="wnote">The gold hub floats at the measured center of the frame, wired to its corners and feet. Drag the hub to turn the whole cathedral; tilt leans it. A building tap settles it level — no measurement is ever taken on a tilt.</span></div>
+  <div class="prow"><span class="plab">THE PIN</span><span class="wnote" id="pinRead">—</span></div>
   <div class="prow"><span class="plab">WIRED NOTES</span>
     <button class="pbtn on" id="notesBtn">NOTES ON</button></div>
   <div class="prow"><span class="plab">FRAME RATIO</span>
@@ -270,7 +271,7 @@ setTimeout(function () {
     <button class="pbtn on" data-fratio="1.6180339887">φ</button>
     <button class="pbtn" data-fratio="2">2 : 1</button>
     <button class="pbtn" id="frApply">APPLY TO FRAME</button></div>
-  <div class="prow"><span class="wnote" id="frNote">Ratio φ armed — APPLY rescales every figure and every coordinate about the crossing (0, 0), then the ledger re-measures.</span></div>
+  <div class="prow"><span class="wnote" id="frNote">Ratio φ armed — APPLY rescales every figure and every coordinate about the pinned node, then the ledger re-measures.</span></div>
 <div class="prow"><span class="plab">CAMERA</span>
     <button class="pbtn" id="orbitBtn">AUTO-ORBIT</button>
     <button class="pbtn on" id="hapBtn">HAPTICS ON</button>
@@ -1288,6 +1289,9 @@ function frameStep() {
   ring2.rotation.y -= 0.004 * PHI;
   ring3.rotation.y += 0.004 * PHI * PHI;
   hubCore.rotation.y -= 0.002;
+  _pv.set(hubC.x, hubC.y, hubC.z);
+  _pr.copy(_pv).applyEuler(world.rotation);
+  world.position.copy(_pv).sub(_pr);
 }
 function settleFrame(why) {
   fTX = 0; fTZ = 0; fRY = 0;
@@ -1298,11 +1302,19 @@ setInterval(() => { if (bpMode && (fTX || fTZ || fRY)) { fTX = 0; fTZ = 0; fRY =
 /* gyro — tilts the CENTER, the whole frame answers */
 const gyroBtn = document.getElementById('gyroBtn'), gyroState = document.getElementById('gyroState');
 let gyroOn = false;
+let alpha0 = null;
 function onGyro(e) {
   if (!gyroOn || !gyroFollow) return;
   if (e.beta == null) return;
-  fTX = THREE.MathUtils.clamp((e.beta - 45) * 0.006, -0.20, 0.20);
-  fTZ = THREE.MathUtils.clamp((e.gamma || 0) * 0.006, -0.20, 0.20);
+  if (e.alpha != null) {
+    if (alpha0 === null) alpha0 = e.alpha;
+    let d = (e.alpha - alpha0) * Math.PI / 180;
+    while (d > Math.PI) d -= 2 * Math.PI;
+    while (d < -Math.PI) d += 2 * Math.PI;
+    fRY = -d;
+  }
+  fTX = THREE.MathUtils.clamp((e.beta - 45) * Math.PI / 180, -1.05, 1.05);
+  fTZ = THREE.MathUtils.clamp((e.gamma || 0) * Math.PI / 180, -1.05, 1.05);
 }
 gyroBtn.addEventListener('click', async () => {
   if (gyroOn) { gyroOn = false; gyroFollow = false; window.removeEventListener('deviceorientation', onGyro); settleFrame('gyro off'); gyroState.textContent = 'OFF'; gyroBtn.classList.remove('on'); return; }
@@ -1312,7 +1324,7 @@ gyroBtn.addEventListener('click', async () => {
       if (r !== 'granted') { gyroState.textContent = 'DENIED — frame stays level'; return; }
     }
   } catch (err) { gyroState.textContent = 'NO SENSOR — frame stays level'; return; }
-  gyroOn = true; gyroFollow = true;
+  gyroOn = true; gyroFollow = true; alpha0 = null;
   window.addEventListener('deviceorientation', onGyro);
   gyroState.textContent = 'LIVE — tilt the phone; the hub leans, the whole frame answers';
   gyroBtn.classList.add('on'); haptic();
@@ -1419,7 +1431,9 @@ document.getElementById('frApply').addEventListener('click', () => {
   const before = lastExtents ? (lastExtents.maxZ - lastExtents.minZ) : 0;
   items.forEach(it => {
     const g = it.group;
-    g.position.x *= frameRatio; g.position.z *= frameRatio; g.position.y *= frameRatio;
+    g.position.x = hubC.x + (g.position.x - hubC.x) * frameRatio;
+    g.position.z = hubC.z + (g.position.z - hubC.z) * frameRatio;
+    g.position.y *= frameRatio;
     g.scale.multiplyScalar(frameRatio);
   });
   recount();
@@ -1540,6 +1554,29 @@ setInterval(() => {
 window.__v8Ready = true;
 fitOverhead(false);
 setState('OVERHEAD — the entire cathedral in one frame · one finger turns · pinch dives · two fingers travel');
+
+const _pv = new THREE.Vector3(), _pr = new THREE.Vector3();
+
+/* ============ V9 — THE PIN: ONE NODE, EVERY MOVEMENT WIRED TO IT ============ */
+const pinNeedle = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 1, 8),
+  new THREE.MeshBasicMaterial({ color: 0xffd977 }));
+const pinRing = new THREE.Mesh(new THREE.TorusGeometry(1.7, 0.06, 8, 64),
+  new THREE.MeshBasicMaterial({ color: 0xffd977 }));
+pinRing.rotation.x = Math.PI / 2;
+const pinDot = new THREE.Mesh(new THREE.CircleGeometry(0.32, 24),
+  new THREE.MeshBasicMaterial({ color: 0xffd977 }));
+pinDot.rotation.x = -Math.PI / 2;
+scene.add(pinNeedle, pinRing, pinDot);
+const pinRead = document.getElementById('pinRead');
+setInterval(() => {
+  pinNeedle.scale.y = Math.max(0.1, hubC.y);
+  pinNeedle.position.set(hubC.x, hubC.y / 2, hubC.z);
+  pinRing.position.set(hubC.x, 0.04, hubC.z);
+  pinDot.position.set(hubC.x, 0.04, hubC.z);
+  if (pinRead) pinRead.textContent =
+    'THE PIN — node fixed at the measured center: X ' + hubC.x.toFixed(2) + ' · Y ' + hubC.y.toFixed(2) + ' (half the measured height) · Z ' + hubC.z.toFixed(2) +
+    '. Gyro, hub-drag and rescaling all turn the frame about this point; the pin itself never moves.';
+}, 700);
 
 </script>
 </body>
