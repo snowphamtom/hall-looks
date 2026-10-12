@@ -132,6 +132,17 @@
     color:#ffd977; font-size:19px; cursor:pointer; font-family:'Courier New',monospace; }
   #navCluster button:active { background:rgba(60,50,20,.95); }
   #navCluster .cap { display:block; font-size:6.5px; letter-spacing:.1em; margin-top:1px; color:#a89f83; }
+
+  /* ===== v12: the figure sheet ===== */
+  #figSheet { position:fixed; left:50%; transform:translateX(-50%); bottom:calc(58px + 62px + env(safe-area-inset-bottom)); z-index:12;
+    width:min(680px,94vw); background:rgba(8,9,14,.97); border:1px solid #ffd977; padding:12px 14px; display:none;
+    max-height:44vh; overflow-y:auto; }
+  .fs-head { display:flex; justify-content:space-between; align-items:center; }
+  #fsTitle { color:#ffd977; letter-spacing:.14em; font-family:'Courier New',monospace; font-size:.8rem; }
+  #fsClose { background:none; border:1px solid #6b5d3f; color:#ffd977; width:34px; height:34px; border-radius:50%; cursor:pointer; flex:none; }
+  .fs-note { color:#bdb395; font-size:.74rem; margin:5px 0 9px; font-family:'Courier New',monospace; line-height:1.5; }
+  .fs-body { display:flex; flex-wrap:wrap; gap:6px; }
+  .fs-body .pbtn { min-height:40px; }
 </style>
 <script type="importmap">
 { "imports": {
@@ -168,6 +179,7 @@ setTimeout(function () {
     <button class="pbtn" data-skel="lubeck">LÜBECK</button>
     <button class="pbtn" data-skel="core">THE CORE (44 ★ 26)</button>
     <button class="pbtn" data-skel="filigree">GRAND FILIGREE</button>
+    <button class="pbtn" id="skelSectioned">SECTIONED FRAME</button>
     <button class="pbtn" data-skel="frame">EMPTY FRAME</button></div>
   <div class="prow"><span class="note">Whole-cathedral skeletons, standing in wire. Pick one, then change it — every tool works on the skeleton. Slide MATERIALIZE in VIEW to flesh it into stone.</span></div>
 <div class="prow"><span class="plab">ADD A PART</span>
@@ -194,6 +206,43 @@ setTimeout(function () {
     <button class="pbtn" data-exemplar="lubeck">LÜBECK · BRICK 125</button></div>
   <div class="prow"><span class="note">The great plates draw them all to the same scale — so does the sandbox. Exemplars are proportion studies governed by their headline published figures; the ledger keeps auditing against Notre Dame.</span></div>
   <div class="prow"><span class="note">Parts land at the plot center, snapped to the 2 m module. Drag any part to move it — it snaps as it goes. Tap a part to select it, then size and format it.</span></div>
+</div>
+
+<div class="panel" id="panel-place">
+  <div class="prow"><span class="plab">SECTIONS</span>
+    <button class="pbtn on" data-sec="all">ALL</button>
+    <button class="pbtn" data-sec="towers">TOWERS</button>
+    <button class="pbtn" data-sec="pillars">PILLARS</button>
+    <button class="pbtn" data-sec="arches">ARCHES</button>
+    <button class="pbtn" data-sec="openings">OPENINGS</button>
+    <button class="pbtn" data-sec="body">BODY</button></div>
+  <div class="prow"><span class="wnote">The whole skeleton, sectioned. Isolate a section to work inside it — then pick a figure and drag it onto the ground.</span></div>
+  <div class="prow"><span class="plab">TOWERS</span>
+    <button class="pbtn" data-place="tower">TOWER</button>
+    <button class="pbtn" data-place="spire">SPIRE</button></div>
+  <div class="prow"><span class="plab">PILLARS</span>
+    <button class="pbtn" data-place="pillar">PILLAR</button></div>
+  <div class="prow"><span class="plab">ARCHES</span>
+    <button class="pbtn" data-place="arch">ARCH</button>
+    <button class="pbtn" data-place="vault">VAULT BAY</button>
+    <button class="pbtn" data-place="buttress">FLYING BUTTRESS</button></div>
+  <div class="prow"><span class="plab">OPENINGS</span>
+    <button class="pbtn" data-place="lancet">LANCET WINDOW</button>
+    <button class="pbtn" data-place="rose">ROSE WINDOW</button>
+    <button class="pbtn" data-place="portal">PORTAL</button></div>
+  <div class="prow"><span class="plab">BODY</span>
+    <button class="pbtn" data-place="wall">WALL</button>
+    <button class="pbtn" data-place="pew">PEW</button>
+    <button class="pbtn" data-place="floor">FLOOR FIELD</button></div>
+  <div class="prow"><span class="plab">SIZE W</span><input type="range" id="pX" min="25" max="300" value="100"><span class="sval" id="pXVal">×1.00</span></div>
+  <div class="prow"><span class="plab">SIZE H</span><input type="range" id="pY" min="25" max="300" value="100"><span class="sval" id="pYVal">×1.00</span></div>
+  <div class="prow"><span class="plab">SIZE D</span><input type="range" id="pZ" min="25" max="300" value="100"><span class="sval" id="pZVal">×1.00</span></div>
+  <div class="prow"><span class="plab">HOW MANY</span>
+    <button class="pbtn" id="qMinus">−</button><span class="sval" id="qVal">1</span><button class="pbtn" id="qPlus">+</button>
+    <button class="pbtn" id="pRot">ROTATE 90°</button></div>
+  <div class="prow"><span class="plab">MIRROR</span>
+    <button class="pbtn" id="mirToggle">MIRROR BOTH SIDES — OFF</button></div>
+  <div class="prow"><span class="wnote" id="placeNote">Pick a figure, then press the ground and drag — the ghost walks with your finger. Release and it stands.</span></div>
 </div>
 
 <div class="panel" id="panel-format">
@@ -316,6 +365,11 @@ setTimeout(function () {
   </div>
 </div>
 <div id="hotbar"><button class="slot" data-hot="pillar"><span class="g">PL</span><span class="n">PILLAR</span></button><button class="slot" data-hot="arch"><span class="g">AR</span><span class="n">ARCH</span></button><button class="slot" data-hot="wall"><span class="g">WA</span><span class="n">WALL</span></button><button class="slot" data-hot="buttress"><span class="g">BU</span><span class="n">BUTTR</span></button><button class="slot" data-hot="lancet"><span class="g">LA</span><span class="n">LANCET</span></button><button class="slot" data-hot="rose"><span class="g">RO</span><span class="n">ROSE</span></button><button class="slot" data-hot="portal"><span class="g">PO</span><span class="n">PORTAL</span></button><button class="slot" data-hot="pew"><span class="g">PW</span><span class="n">PEW</span></button><button class="slot" data-hot="floor"><span class="g">FL</span><span class="n">FLOOR</span></button></div>
+<div id="figSheet">
+  <div class="fs-head"><span id="fsTitle">—</span><button id="fsClose">✕</button></div>
+  <div class="fs-note" id="fsNote">—</div>
+  <div class="fs-body" id="fsBody"></div>
+</div>
 <div id="notePin"></div>
 <div id="navHud">—</div>
 <div id="navCluster">
@@ -330,6 +384,7 @@ setTimeout(function () {
 <div id="bar">
   <span class="brand">CATHEDRAL ★ SANDBOX</span>
   <button class="tabbtn" data-tab="parts">PARTS</button>
+  <button class="tabbtn" data-tab="place">PLACE</button>
   <button class="tabbtn" data-tab="format">FORMAT</button>
   <button class="tabbtn" data-tab="blueprint">BLUEPRINT</button>
   <button class="tabbtn" data-tab="view">VIEW</button>
@@ -1664,6 +1719,258 @@ document.getElementById('axesBtn').addEventListener('click', () => {
   document.getElementById('axesBtn').classList.toggle('on', axesOn);
   document.getElementById('axesBtn').textContent = axesOn ? 'AXES + BOX ON' : 'AXES + BOX OFF';
   haptic();
+});
+
+
+/* ============ V11 — PLACE, BY SECTION · THE FRAME, SECTIONED ============ */
+const SECTIONS = {
+  towers:   { label: 'TOWERS',   types: ['tower', 'spire'] },
+  pillars:  { label: 'PILLARS',  types: ['pillar'] },
+  arches:   { label: 'ARCHES',   types: ['arch', 'vault', 'buttress'] },
+  openings: { label: 'OPENINGS', types: ['lancet', 'rose', 'portal'] },
+  body:     { label: 'BODY',     types: ['wall', 'pew', 'floor'] }
+};
+function sectionOf(type) {
+  for (const k in SECTIONS) if (SECTIONS[k].types.includes(type)) return k;
+  return 'body';
+}
+let secFilter = 'all';
+function applySection(sec) {
+  secFilter = sec;
+  items.forEach(it => { it.group.visible = (sec === 'all' || sectionOf(it.type) === sec); });
+  if (selected && !selected.group.visible) select(null);
+  document.querySelectorAll('[data-sec]').forEach(b => b.classList.toggle('on', b.dataset.sec === sec));
+  updSecCounts();
+  setState(sec === 'all' ? 'THE WHOLE FRAME — every section standing' : 'SECTION — ' + SECTIONS[sec].label + ' only · the rest of the frame is folded away');
+}
+function updSecCounts() {
+  document.querySelectorAll('[data-sec]').forEach(b => {
+    const sec = b.dataset.sec;
+    const n = sec === 'all' ? items.length : items.filter(i => sectionOf(i.type) === sec).length;
+    b.textContent = (sec === 'all' ? 'ALL' : SECTIONS[sec].label) + ' · ' + n;
+  });
+}
+document.querySelectorAll('[data-sec]').forEach(b => b.addEventListener('click', () => { applySection(b.dataset.sec); haptic(); }));
+setInterval(updSecCounts, 1500);
+/* hidden figures must not catch taps */
+const _pickItem = pickItem;
+pickItem = function (e) { const it = _pickItem(e); return (it && !it.group.visible) ? null : it; };
+
+/* ---- the ghost: a wire figure that walks with your finger ---- */
+let armedType = null, ghost = null, ghostRot = 0, placeScale = [1, 1, 1], qty = 1, mirrorOn = false;
+const ghostMat = new THREE.MeshBasicMaterial({ color: 0xffd977, wireframe: true, transparent: true, opacity: 0.85 });
+const placeNote = document.getElementById('placeNote');
+function buildGhost() {
+  if (ghost) { scene.remove(ghost); ghost = null; }
+  if (!armedType) return;
+  ghost = PARTS[armedType].build(MATS.stone);
+  ghost.traverse(o => { if (o.isMesh) { o.material = ghostMat; o.castShadow = false; o.receiveShadow = false; } });
+  ghost.scale.set(placeScale[0], placeScale[1], placeScale[2]);
+  ghost.rotation.y = ghostRot;
+  ghost.visible = false;
+  scene.add(ghost);
+}
+document.querySelectorAll('[data-place]').forEach(b => b.addEventListener('click', () => {
+  armedType = b.dataset.place;
+  document.querySelectorAll('[data-place]').forEach(x => x.classList.toggle('on', x === b));
+  buildGhost();
+  placeNote.textContent = PARTS[armedType].name + ' armed — press the ground and drag: the ghost walks with your finger. Release, and it stands.';
+  haptic();
+}));
+const pX = document.getElementById('pX'), pY = document.getElementById('pY'), pZ = document.getElementById('pZ');
+function syncPlaceScale() {
+  placeScale = [pX.value / 100, pY.value / 100, pZ.value / 100];
+  document.getElementById('pXVal').textContent = '×' + placeScale[0].toFixed(2);
+  document.getElementById('pYVal').textContent = '×' + placeScale[1].toFixed(2);
+  document.getElementById('pZVal').textContent = '×' + placeScale[2].toFixed(2);
+  if (ghost) ghost.scale.set(placeScale[0], placeScale[1], placeScale[2]);
+  if (selected) { selected.group.scale.set(placeScale[0], placeScale[1], placeScale[2]); if (selBox) selBox.update(); }
+}
+[pX, pY, pZ].forEach(el => el.addEventListener('input', syncPlaceScale));
+document.getElementById('qMinus').addEventListener('click', () => { qty = Math.max(1, qty - 1); document.getElementById('qVal').textContent = qty; haptic(); });
+document.getElementById('qPlus').addEventListener('click', () => { qty = Math.min(24, qty + 1); document.getElementById('qVal').textContent = qty; haptic(); });
+document.getElementById('pRot').addEventListener('click', () => {
+  ghostRot = (ghostRot + Math.PI / 2) % (Math.PI * 2);
+  if (ghost) ghost.rotation.y = ghostRot;
+  placeNote.textContent = 'Facing ' + Math.round(THREE.MathUtils.radToDeg(ghostRot)) + '° — the run of ' + qty + ' will march this way.';
+  haptic();
+});
+document.getElementById('mirToggle').addEventListener('click', () => {
+  mirrorOn = !mirrorOn;
+  const b = document.getElementById('mirToggle');
+  b.classList.toggle('on', mirrorOn);
+  b.textContent = mirrorOn ? 'MIRROR BOTH SIDES — ON' : 'MIRROR BOTH SIDES — OFF';
+  placeNote.textContent = mirrorOn
+    ? 'Mirroring about the pinned axis: every figure you place or drag gets its twin across the center — drag one, the other answers.'
+    : 'Mirror off — figures stand alone.';
+  haptic();
+});
+
+/* ---- press, drag, release: the figure stands ---- */
+let placeDrag = null;
+canvas.addEventListener('pointerdown', e => {
+  if (openTab !== 'place' || !armedType || bpMode) return;
+  if (pickItem(e)) return;              /* tapping a standing figure drags THAT figure (normal drag) */
+  const gp = groundPoint(e); if (!gp) return;
+  placeDrag = { pid: e.pointerId, x: gp.x, z: gp.z };
+  controls.enabled = false;
+  if (ghost) { ghost.visible = true; ghost.position.set(snap(gp.x), 0, snap(gp.z)); }
+});
+canvas.addEventListener('pointermove', e => {
+  if (placeDrag && e.pointerId === placeDrag.pid) {
+    const gp = groundPoint(e); if (!gp) return;
+    placeDrag.x = gp.x; placeDrag.z = gp.z;
+    if (ghost) ghost.position.set(snap(gp.x), 0, snap(gp.z));
+    placeNote.textContent = PARTS[armedType].name + ' at X ' + snap(gp.x).toFixed(1) + ' · Z ' + snap(gp.z).toFixed(1) + ' — release to stand ' + qty + (mirrorOn ? ' + ' + qty + ' mirrored' : '') + '.';
+    return;
+  }
+  /* mirror drag-follow: move a figure, its twin answers across the pin */
+  if (drag && drag.kind === 'move' && mirrorOn && drag.it && drag.it.twinId != null) {
+    const tw = items.find(i => i.id === drag.it.twinId);
+    if (tw) {
+      tw.group.position.x = 2 * hubC.x - drag.it.group.position.x;
+      tw.group.position.z = drag.it.group.position.z;
+      tw.group.rotation.y = -drag.it.group.rotation.y;
+    }
+  }
+});
+window.addEventListener('pointerup', e => {
+  if (!placeDrag || e.pointerId !== placeDrag.pid) return;
+  const gx = snap(placeDrag.x), gz = snap(placeDrag.z);
+  placeDrag = null; controls.enabled = true;
+  if (ghost) ghost.visible = false;
+  if (placedGuard()) return;
+  const dir = { x: Math.cos(ghostRot), z: -Math.sin(ghostRot) };
+  const gb = new THREE.Box3().setFromObject(ghost); const gs = new THREE.Vector3(); gb.getSize(gs);
+  const step = Math.abs(dir.x) * gs.x + Math.abs(dir.z) * gs.z;
+  let last = null;
+  for (let k = 0; k < qty; k++) {
+    const x = snap(gx + dir.x * step * k), z = snap(gz + dir.z * step * k);
+    const it = addItem(armedType, x, z, ghostRot, placeScale.slice(), 'stone');
+    last = it;
+    if (mirrorOn) {
+      const tw = addItem(armedType, snap(2 * hubC.x - x), z, -ghostRot, placeScale.slice(), 'stone');
+      it.twinId = tw.id; tw.twinId = it.id;
+    }
+  }
+  if (last) select(last);
+  recount(); updSecCounts();
+  setState(PARTS[armedType].name + ' standing × ' + qty + (mirrorOn ? ' + mirrored twins' : '') + ' at X ' + gx.toFixed(1) + ' · Z ' + gz.toFixed(1));
+  haptic();
+});
+setInterval(() => { if (ghost) ghost.visible = !!(placeDrag && openTab === 'place'); }, 300);
+
+/* ---- SECTIONED FRAME start: the whole skeleton, opened in the PLACE menu ---- */
+document.getElementById('skelSectioned').addEventListener('click', () => {
+  skeletonStart('nd');
+  applySection('all');
+  document.querySelector('[data-tab="place"]').click();
+  setState('SECTIONED FRAME — the entire skeleton, in arches, pillars, towers · place inside its sections');
+});
+syncPlaceScale();
+
+
+/* ============ V12 — TOUCH A FIGURE, GET ITS OWN OPTIONS ============ */
+const figSheet = document.getElementById('figSheet');
+const fsTitle = document.getElementById('fsTitle'), fsNote = document.getElementById('fsNote'), fsBody = document.getElementById('fsBody');
+let sheetFor = -1, sheetSuppressed = -1;
+const COMMON_ACTS = [
+  { act: 'sizeDn', label: 'SIZE −' }, { act: 'sizeUp', label: 'SIZE +' },
+  { act: 'rot90', label: 'ROTATE 90°' },
+  { act: 'liftUp', label: 'LIFT +1 M' }, { act: 'liftDn', label: 'LIFT −1 M' },
+  { act: 'mirX', label: 'MIRROR — NAVE AXIS' }, { act: 'mirZ', label: 'MIRROR — CROSSING AXIS' },
+  { act: 'dup', label: 'DUPLICATE' }, { act: 'del', label: 'REMOVE' }
+];
+const TYPE_ACTS = {
+  tower:   [ { act: 'spireTop', label: 'CROWN IT WITH A SPIRE' }, { act: 'pinnacles', label: 'FOUR PINNACLES' },
+             { act: 'raise125', label: 'RAISE ×1.25' }, { act: 'twin', label: 'TWIN IT ACROSS THE NAVE' } ],
+  spire:   [ { act: 'raise125', label: 'RAISE ×1.25' }, { act: 'sizeUp', label: 'BROADEN +' } ],
+  arch:    [ { act: 'row5', label: 'MAKE IT A ROW OF 5' }, { act: 'span15', label: 'WIDEN SPAN ×1.5' }, { act: 'raise125', label: 'RAISE THE RISE ×1.25' } ],
+  vault:   [ { act: 'row3', label: 'BAYS — ROW OF 3' }, { act: 'liftUp2', label: 'LIFT TO THE SPRINGING +2 M' } ],
+  pillar:  [ { act: 'row5', label: 'COLONNADE — ROW OF 5' }, { act: 'raise125', label: 'RAISE ×1.25' }, { act: 'thicken', label: 'THICKEN ×1.4' } ],
+  buttress:[ { act: 'row3', label: 'ROW OF 3 ALONG THE WALL' }, { act: 'mirX', label: 'MIRROR — NAVE AXIS' } ],
+  lancet:  [ { act: 'glassIwhg', label: 'GLASS — IRIDESCENT THREAD' }, { act: 'glassGold', label: 'GLASS — GOLD' },
+             { act: 'row3', label: 'ROW OF 3 WINDOWS' }, { act: 'raise125', label: 'TALLER ×1.25' } ],
+  rose:    [ { act: 'rose144', label: 'DIAMETER 14.4 M' }, { act: 'rose192', label: 'DIAMETER 19.2 M' },
+             { act: 'glassGold', label: 'GLASS — GOLD' }, { act: 'glassIwhg', label: 'GLASS — IRIDESCENT THREAD' } ],
+  portal:  [ { act: 'span15', label: 'WIDEN ×1.5' }, { act: 'raise125', label: 'RAISE ×1.25' } ],
+  wall:    [ { act: 'span15', label: 'LENGTHEN ×1.5' }, { act: 'raise125', label: 'RAISE ×1.25' } ],
+  pew:     [ { act: 'row3', label: 'ROWS OF 3' }, { act: 'faceAltar', label: 'FACE THE PIN ★' } ],
+  floor:   [ { act: 'centerIt', label: 'CENTER ON 000' }, { act: 'sizeUp', label: 'WIDER +' } ]
+};
+function setItemMat(it, name) {
+  it.group.traverse(o => { if (o.isMesh) o.material = MATS[name]; });
+  it.mat = name;
+}
+function extendRun(it, n) {
+  const dx = dirX(it), step = stepAlong(it, dx);
+  for (let k = 1; k < n; k++) cloneAt(it, snap(it.group.position.x + dx.x * step * k), snap(it.group.position.z + dx.z * step * k), it.group.rotation.y);
+  recount();
+}
+function renderSheet() {
+  if (!selected || sheetSuppressed === selected.id) { figSheet.style.display = 'none'; sheetFor = -1; return; }
+  sheetFor = selected.id;
+  const it = selected, m = measure(it), p = it.group.position;
+  fsTitle.textContent = PARTS[it.type].name.toUpperCase() + ' — ITS OPTIONS';
+  fsNote.textContent = 'measured ' + m.w.toFixed(2) + ' × ' + m.h.toFixed(2) + ' × ' + m.d.toFixed(2) + ' m · ratio ' + ratioStr(m.w, m.h, m.d) +
+    ' · X ' + p.x.toFixed(1) + ' · Y ' + p.y.toFixed(1) + ' · Z ' + p.z.toFixed(1) + ' · section: ' + SECTIONS[sectionOf(it.type)].label;
+  const acts = (TYPE_ACTS[it.type] || []).concat(COMMON_ACTS);
+  fsBody.innerHTML = acts.map(a => '<button class="pbtn fs-act" data-act="' + a.act + '">' + a.label + '</button>').join('');
+  figSheet.style.display = 'block';
+}
+setInterval(() => {
+  const id = selected ? selected.id : -1;
+  if (id !== sheetFor && !(selected && sheetSuppressed === selected.id)) {
+    if (selected && sheetFor === -1 && openTab) { const b = document.querySelector('.tabbtn[data-tab="' + openTab + '"]'); if (b) b.click(); }
+    renderSheet();
+  }
+  if (!selected) { figSheet.style.display = 'none'; sheetFor = -1; sheetSuppressed = -1; }
+}, 300);
+document.getElementById('fsClose').addEventListener('click', () => {
+  if (selected) sheetSuppressed = selected.id;
+  figSheet.style.display = 'none'; sheetFor = -1;
+});
+fsBody.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]');
+  if (!b || !selected) return;
+  const it = selected, act = b.dataset.act, p = it.group.position, s = it.group.scale;
+  const m = measure(it);
+  if (act === 'del') { removeItem(it); haptic(); return; }
+  if (act === 'dup') { document.getElementById('dupBtn').click(); haptic(); return; }
+  if (act === 'sizeDn') it.group.scale.setScalar(Math.max(0.25, s.x * 0.9));
+  if (act === 'sizeUp') it.group.scale.setScalar(Math.min(3, s.x * 1.1));
+  if (act === 'rot90') it.group.rotation.y += Math.PI / 2;
+  if (act === 'liftUp' || act === 'liftUp2') p.y += (act === 'liftUp2' ? 2 : 1);
+  if (act === 'liftDn') p.y = Math.max(0, p.y - 1);
+  if (act === 'mirX' || act === 'twin') { const c = cloneAt(it, 2 * hubC.x - p.x, p.z, -it.group.rotation.y); it.twinId = c.id; c.twinId = it.id; select(c); }
+  if (act === 'mirZ') { const c = cloneAt(it, p.x, 2 * hubC.z - p.z, Math.PI - it.group.rotation.y); select(c); }
+  if (act === 'raise125') s.y = Math.min(3, s.y * 1.25);
+  if (act === 'span15') s.x = Math.min(3, s.x * 1.5);
+  if (act === 'thicken') { s.x = Math.min(3, s.x * 1.4); s.z = Math.min(3, s.z * 1.4); }
+  if (act === 'row3') extendRun(it, 3);
+  if (act === 'row5') extendRun(it, 5);
+  if (act === 'glassIwhg') setItemMat(it, 'iwhg');
+  if (act === 'glassGold') setItemMat(it, 'gold');
+  if (act === 'rose144') it.group.scale.setScalar(14.4 / PARTS.rose.w);
+  if (act === 'rose192') it.group.scale.setScalar(19.2 / PARTS.rose.w);
+  if (act === 'faceAltar') it.group.rotation.y = Math.atan2(hubC.x - p.x, hubC.z - p.z);
+  if (act === 'centerIt') { p.x = snap(hubC.x); p.z = snap(hubC.z); }
+  if (act === 'spireTop') {
+    const cap = addItem('spire', p.x, p.z, it.group.rotation.y, [m.w / PARTS.spire.w, (m.h * 0.38) / PARTS.spire.h, m.d / PARTS.spire.w], it.mat);
+    cap.group.position.y = m.box.max.y;
+    setState('SPIRE SET — its base measured from the tower\u2019s crown (' + m.box.max.y.toFixed(2) + ' m)');
+  }
+  if (act === 'pinnacles') {
+    const dx = dirX(it), dz = dirZ(it), a = m.w / 2 * 0.74, bb = m.d / 2 * 0.74;
+    [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(([sx, sz]) => {
+      const px = p.x + dx.x * a * sx + dz.x * bb * sz, pz = p.z + dx.z * a * sx + dz.z * bb * sz;
+      const pin = addItem('spire', px, pz, it.group.rotation.y, [0.09, 0.16, 0.09], it.mat);
+      pin.group.position.y = m.box.max.y;
+    });
+    setState('FOUR PINNACLES — set at the measured corners of the crown');
+  }
+  if (selBox) selBox.update();
+  recount(); renderSheet(); haptic();
 });
 
 </script>
