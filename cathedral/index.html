@@ -3876,6 +3876,20 @@ document.getElementById('mirRowBtn').addEventListener('click', () => {
 document.getElementById('buildStamp').innerHTML = 'BUILD <b>v26</b> · LIVE — MIRRORS MULTIPLIED + REULEAUX';
 setState('MIRRORS MULTIPLIED — kaleidoscope ×4 and ×8 about the pin, rows of twins down the axis. And two new crowns: the Reuleaux pyramid, constant-width at its base, and its concave twin.');
 
+
+/* ============ V27 — THE DEFAULT: A FULLY BUILT BLUEPRINT ============ */
+document.getElementById('chooser').classList.add('hidden');
+clearAll();
+fullBuild();
+applySection('all');
+refreshExtents();
+if (!bpMode) bpBtn.click();
+fitIso(true);
+
+/* ---- init ---- */
+document.getElementById('buildStamp').innerHTML = 'BUILD <b>v27</b> · LIVE — THE DEFAULT BLUEPRINT';
+setState('THE DEFAULT — perfectly calculated, fully built, and drawn as a blueprint: Notre Dame at the published canon, module 8, every figure measured before you touch it. Reshape it with the poles — or open PARTS → NEW BUILD to start from a floor of your own.');
+
 </script>
 </body>
 </html>
