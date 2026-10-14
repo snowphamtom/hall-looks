@@ -1094,3 +1094,9 @@ label.clear:focus-within { outline: 2px solid #e4a15a; outline-offset: 2px; }
 @media (max-width: 700px) { .rank-ladder:empty { min-height: 2077px; } }
 /* One visible keyboard ring everywhere it was missing. */
 :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline: 2px solid #e4a15a; outline-offset: 2px; }
+@media (max-width: 700px) {
+  .vault-bar { flex-wrap: wrap; gap: 10px; }
+  .vault-bar > strong { flex: 1 1 100%; }
+  .vault-io { flex-wrap: nowrap; }
+}
+.vault-io .clear { white-space: nowrap; }
