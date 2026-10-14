@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GENESIS 7140 — A Mathematical Marvel</title>
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#04070f;font-family:Georgia,'Times New Roman',serif;color:#e8ddc0}
+  #app{position:fixed;inset:0}
+  #title{position:fixed;top:18px;left:0;right:0;text-align:center;pointer-events:none;z-index:2}
+  #title h1{margin:0;font-size:22px;letter-spacing:.35em;font-weight:400;color:#f5e9c8;text-shadow:0 0 24px #b8860b66}
+  #title p{margin:6px 0 0;font-size:12px;letter-spacing:.18em;color:#9a8c66;font-family:system-ui,sans-serif}
+  #math{position:fixed;left:16px;top:50%;transform:translateY(-50%);z-index:2;background:#0a0f1ccc;
+    border:1px solid #3a2f18;border-radius:12px;padding:14px 16px;font-size:13px;line-height:2;max-width:250px;backdrop-filter:blur(6px)}
+  #math .eq{color:#f5e9c8;font-size:14px}
+  #math .lbl{color:#9a8c66;font-size:11px;letter-spacing:.1em;font-family:system-ui,sans-serif}
+  #math hr{border:none;border-top:1px solid #3a2f18;margin:8px 0}
+  #panel{position:fixed;right:16px;top:50%;transform:translateY(-50%);z-index:2;background:#0a0f1ccc;
+    border:1px solid #3a2f18;border-radius:12px;padding:14px 16px;font-size:12px;font-family:system-ui,sans-serif;
+    max-width:230px;backdrop-filter:blur(6px)}
+  #panel h3{margin:0 0 10px;font-size:11px;letter-spacing:.2em;color:#9a8c66;font-weight:600}
+  #panel label{display:flex;align-items:center;gap:8px;margin:7px 0;cursor:pointer;color:#d8cba0}
+  #panel input{accent-color:#b8860b}
+  #panel button{background:#1a1408;border:1px solid #3a2f18;color:#d8cba0;border-radius:6px;
+    padding:5px 10px;margin:3px 4px 0 0;cursor:pointer;font-size:11px}
+  #panel button.on{background:#b8860b;color:#0a0f1c;border-color:#b8860b}
+  #readout{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:2;background:#0a0f1cf2;
+    border:1px solid #3a2f18;border-radius:10px;padding:10px 18px;font-size:13px;display:none;
+    font-family:system-ui,sans-serif;color:#d8cba0;white-space:nowrap}
+  #readout b{color:#fff}
+  #hint{position:fixed;bottom:14px;right:16px;z-index:2;font-size:11px;color:#5f563e;font-family:system-ui,sans-serif;pointer-events:none}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="title"><h1>GENESIS 7140</h1><p>A MATHEMATICAL MARVEL · DRAG TO ORBIT · SCROLL TO ZOOM · HOVER ANYTHING</p></div>
+<div id="math">
+  <div class="lbl">THE COUNTING</div>
+  <div class="eq">C(48, 2) = 1128</div>
+  <div style="font-size:12px;color:#9a8c66">every pair of the 48 nodes</div>
+  <hr>
+  <div class="eq">944 + 124 + 60 = 1128</div>
+  <div style="font-size:12px;color:#9a8c66">doors · alias · never</div>
+  <hr>
+  <div class="eq">Σ doors = 7140</div>
+  <div style="font-size:12px;color:#9a8c66">height of every golden pillar</div>
+  <hr>
+  <div class="lbl">NEVER-PAIR ANATOMY</div>
+  <div style="font-size:12px">124 × D1 &nbsp; 38 × D2 &nbsp; 12 × D3<br>8 × D4 &nbsp; 2 × D5</div>
+</div>
+<div id="panel">
+  <h3>LAYERS</h3>
+  <label><input type="checkbox" id="l_nodes" checked> 48 nodes</label>
+  <label><input type="checkbox" id="l_doors" checked> 944 door pillars</label>
+  <label><input type="checkbox" id="l_alias" checked> 124 alias</label>
+  <label><input type="checkbox" id="l_never" checked> 60 never</label>
+  <h3 style="margin-top:12px">HAMMING</h3>
+  <div id="hams"></div>
+  <h3 style="margin-top:12px">MOTION</h3>
+  <button id="rot" class="on">orbit</button>
+</div>
+<div id="readout"></div>
+<div id="hint">every number on this page is measured, not drawn</div>
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js",
+"three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// data: nodes [x,z,degree,mask,doors_incident,r,g,b]
+// beams [x,z,h,r,g,b,a,b,ham,doors,cls(0/1/2),universe]
+const {nodes, beams} = await (await fetch('data.json')).json();
+const CLSNAME = ['DOOR','ALIAS','NEVER'];
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x04070f);
+scene.fog = new THREE.Fog(0x04070f, 45, 130);
+
+const cam = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, 0.1, 600);
+cam.position.set(0, 20, 44);
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+document.getElementById('app').appendChild(renderer.domElement);
+const controls = new OrbitControls(cam, renderer.domElement);
+controls.target.set(0, 4, 0);
+controls.enableDamping = true;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.5;
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+const pl = new THREE.PointLight(0xffe6a3, 900, 90); pl.position.set(0, 18, 0); scene.add(pl);
+
+// ---- nodes: 48 golden stars ----
+const nodeGeo = new THREE.SphereGeometry(1, 20, 16);
+const nodeMat = new THREE.MeshBasicMaterial({transparent:true, opacity:0.95});
+const nodeMesh = new THREE.InstancedMesh(nodeGeo, nodeMat, nodes.length);
+{
+  const m4=new THREE.Matrix4(), q=new THREE.Quaternion(), s=new THREE.Vector3(), p=new THREE.Vector3(), c=new THREE.Color();
+  nodes.forEach((n,i)=>{
+    const r = 0.35 + Math.sqrt(n[2])*0.09;
+    p.set(n[0], 0.4, n[1]); s.set(r,r,r);
+    m4.compose(p,q,s); nodeMesh.setMatrixAt(i,m4);
+    c.setRGB(n[5],n[6],n[7]); nodeMesh.setColorAt(i,c);
+  });
+  nodeMesh.instanceMatrix.needsUpdate = true;
+}
+scene.add(nodeMesh);
+// node glow sprites
+const glowTex = (()=>{ const cv=document.createElement('canvas'); cv.width=cv.height=64;
+  const g=cv.getContext('2d'), gr=g.createRadialGradient(32,32,0,32,32,32);
+  gr.addColorStop(0,'rgba(255,230,160,0.9)'); gr.addColorStop(1,'rgba(255,230,160,0)');
+  g.fillStyle=gr; g.fillRect(0,0,64,64); return new THREE.CanvasTexture(cv); })();
+nodes.forEach(n=>{
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({map:glowTex, transparent:true, opacity:0.5, depthWrite:false}));
+  sp.position.set(n[0], 0.4, n[1]); const sc = 2.5 + Math.sqrt(n[2])*0.35; sp.scale.set(sc,sc,1);
+  sp.userData.isGlow = true; scene.add(sp);
+});
+
+// ---- door pillars: 944 ----
+const doors = beams.filter(b=>b[10]===0);
+const beamGeo = new THREE.CylinderGeometry(0.5, 0.65, 1, 8, 1, true);
+beamGeo.translate(0, 0.5, 0);
+const beamMat = new THREE.MeshBasicMaterial({transparent:true, opacity:0.75, blending:THREE.AdditiveBlending, depthWrite:false});
+const doorMesh = new THREE.InstancedMesh(beamGeo, beamMat, doors.length);
+let hamOf = [];
+{
+  const m4=new THREE.Matrix4(), q=new THREE.Quaternion(), s=new THREE.Vector3(), p=new THREE.Vector3(), c=new THREE.Color();
+  doors.forEach((b,i)=>{
+    p.set(b[0], 0, b[1]); const w = 0.10 + b[9]*0.004; s.set(w, b[2], w);
+    m4.compose(p,q,s); doorMesh.setMatrixAt(i,m4);
+    c.setRGB(b[3],b[4],b[5]); doorMesh.setColorAt(i,c);
+    hamOf[i] = b[8];
+  });
+  doorMesh.instanceMatrix.needsUpdate = true;
+}
+scene.add(doorMesh);
+
+// ---- alias + never markers ----
+function markers(list, color){
+  const g = new THREE.OctahedronGeometry(0.55);
+  const m = new THREE.InstancedMesh(g, new THREE.MeshBasicMaterial({transparent:true, opacity:0.95}), list.length);
+  const m4=new THREE.Matrix4(), q=new THREE.Quaternion(), s=new THREE.Vector3(1,1.4,1), p=new THREE.Vector3(), c=new THREE.Color();
+  list.forEach((b,i)=>{ p.set(b[0], 0.7, b[1]); m4.compose(p,q,s); m.setMatrixAt(i,m4); c.setRGB(b[3],b[4],b[5]); m.setColorAt(i,c); });
+  m.instanceMatrix.needsUpdate = true; scene.add(m); return m;
+}
+const aliasMesh = markers(beams.filter(b=>b[10]===1));
+const neverMesh = markers(beams.filter(b=>b[10]===2));
+
+// ---- floor ----
+const floor = new THREE.Mesh(new THREE.CircleGeometry(34, 64),
+  new THREE.MeshBasicMaterial({color:0x0a0f1c, transparent:true, opacity:0.9}));
+floor.rotation.x = -Math.PI/2; floor.position.y = -0.05; scene.add(floor);
+const grid = new THREE.PolarGridHelper(32, 12, 8, 64, 0x2a2416, 0x141007);
+grid.position.y = 0; scene.add(grid);
+
+// ---- interaction ----
+const ray = new THREE.Raycaster(), mouse = new THREE.Vector2();
+const readout = document.getElementById('readout');
+const doorData = doors, aliasData = beams.filter(b=>b[10]===1), neverData = beams.filter(b=>b[10]===2);
+function describe(mesh, list, i){
+  const b = list[i];
+  if (mesh === nodeMesh) {
+    const n = nodes[i];
+    return `<b>NODE</b> · mask ${n[3]} · degree ${n[2]} · ${n[4]} incident doors`;
+  }
+  const cls = CLSNAME[b[10]];
+  const extra = b[10]===0 ? ` · <b>${b[9]} doors</b> · ham D${b[8]}` : ` · ham D${b[8]}`;
+  return `<b>${cls}</b> · pair ${b[6]} ↔ ${b[7]}${extra} · universe ${b[11]}`;
+}
+const pickables = [[nodeMesh, nodes],[doorMesh, doorData],[aliasMesh, aliasData],[neverMesh, neverData]];
+addEventListener('pointermove', e=>{
+  mouse.set(e.clientX/innerWidth*2-1, -(e.clientY/innerHeight)*2+1);
+  ray.setFromCamera(mouse, cam);
+  let found = null;
+  for (const [mesh, list] of pickables) {
+    if (!mesh.visible) continue;
+    const hit = ray.intersectObject(mesh);
+    if (hit.length && hit[0].instanceId !== undefined) { found = [mesh, list, hit[0].instanceId]; break; }
+  }
+  if (found) {
+    readout.style.display = 'block';
+    readout.innerHTML = describe(...found);
+    document.body.style.cursor = 'crosshair';
+  } else { readout.style.display = 'none'; document.body.style.cursor = 'default'; }
+});
+
+// ---- controls ----
+const $ = id => document.getElementById(id);
+$('l_nodes').onchange = e => { nodeMesh.visible = e.target.checked;
+  scene.children.forEach(o=>{ if(o.userData.isGlow) o.visible = e.target.checked; }); };
+$('l_doors').onchange = e => doorMesh.visible = e.target.checked;
+$('l_alias').onchange = e => aliasMesh.visible = e.target.checked;
+$('l_never').onchange = e => neverMesh.visible = e.target.checked;
+$('rot').onclick = e => { controls.autoRotate = !controls.autoRotate; e.target.classList.toggle('on', controls.autoRotate); };
+// ham filter
+const HAMC = {2:'#8a2be2',3:'#4169e1',4:'#2ecc71',5:'#ff8c00',6:'#ff2222'};
+const hamState = {2:true,3:true,4:true,5:true,6:true};
+const hamsEl = $('hams');
+Object.keys(HAMC).forEach(h=>{
+  const btn = document.createElement('button');
+  btn.textContent = 'D'+h; btn.className = 'on'; btn.style.borderColor = HAMC[h];
+  btn.onclick = ()=>{
+    hamState[h] = !hamState[h]; btn.classList.toggle('on', hamState[h]);
+    const m4=new THREE.Matrix4(), q=new THREE.Quaternion(), s0=new THREE.Vector3(), p=new THREE.Vector3(), c=new THREE.Color();
+    doors.forEach((b,i)=>{
+      if (b[8] != h) return;
+      if (hamState[h]) { p.set(b[0],0,b[1]); const w=0.10+b[9]*0.004; s0.set(w,b[2],w); }
+      else { p.set(0,-100,0); s0.set(0.001,0.001,0.001); }
+      m4.compose(p,q,s0); doorMesh.setMatrixAt(i,m4);
+    });
+    doorMesh.instanceMatrix.needsUpdate = true;
+  };
+  hamsEl.appendChild(btn);
+});
+
+addEventListener('resize', ()=>{
+  cam.aspect = innerWidth/innerHeight; cam.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+// gentle pulse on never markers
+const clock = new THREE.Clock();
+renderer.setAnimationLoop(()=>{
+  const t = clock.getElapsedTime();
+  neverMesh.material.opacity = 0.65 + 0.3*Math.sin(t*2.4);
+  controls.update(); renderer.render(scene, cam);
+});
+</script>
+</body>
+</html>
