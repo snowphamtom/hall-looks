@@ -37,7 +37,14 @@ background:repeating-linear-gradient(to bottom,transparent 0 3px,rgba(0,0,0,.14)
 .holo-alive{animation:holo-flick 7s ease-in-out infinite}
 @keyframes holo-flick{0%,100%{opacity:1}92%{opacity:1}93%{opacity:.965}94%{opacity:1}96.5%{opacity:.985}97.5%{opacity:1}}
 
-
+/* Ambient gold-dust loop (TouchDesigner render) behind the hero. Screen blend: black reads as clear. */
+body.page-home .room-hero{z-index:auto}
+.hero-loop{position:absolute;left:-4vw;right:-4vw;top:-140px;bottom:-60px;width:calc(100% + 8vw);height:calc(100% + 200px);object-fit:cover;z-index:0;pointer-events:none;mix-blend-mode:screen;filter:brightness(1.7) saturate(1.15);opacity:0;transition:opacity 1.2s ease;
+-webkit-mask-image:radial-gradient(ellipse 70% 62% at 50% 50%,#000 55%,transparent 100%);mask-image:radial-gradient(ellipse 70% 62% at 50% 50%,#000 55%,transparent 100%)}
+.hero-loop.is-on{opacity:1}
+.room-hero>.stage,.room-hero>.room-guide{position:relative;z-index:1}
+@media (max-width:700px){.hero-loop{left:-5vw;right:-5vw;width:100vw;top:-90px;height:calc(100% + 150px)}}
+@media (prefers-reduced-motion: reduce){.hero-loop{display:none}}
 </style>
 </head>
 <body class="page-home">
@@ -47,6 +54,7 @@ background:repeating-linear-gradient(to bottom,transparent 0 3px,rgba(0,0,0,.14)
   <div class="kicker">The room</div>
   <h1 class="crown-title">HEAVY IS THE CROWN</h1>
   <div class="room-hero">
+    <video class="hero-loop" muted loop playsinline preload="none" aria-hidden="true" tabindex="-1" disablepictureinpicture poster="./media/hero-dust-poster.jpg?v=td01" data-webm="./media/hero-dust.webm?v=td01" data-mp4="./media/hero-dust.mp4?v=td01"></video>
     <span class="plate-mark plate-nw" aria-hidden="true"></span>
     <span class="plate-mark plate-se" aria-hidden="true"></span>
     <div class="stage stage-still">
@@ -85,5 +93,19 @@ background:repeating-linear-gradient(to bottom,transparent 0 3px,rgba(0,0,0,.14)
 <script src="holo-grid.js?v=87782d74"></script>
 <script src="holo-spatial-img.js?v=b6be1039"></script>
 <script src="holo-spatial.js?v=fe53af0f"></script>
+<script>
+(function(){var v=document.querySelector('.hero-loop');if(!v)return;
+var c=navigator.connection,rm=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)');
+if((c&&c.saveData)||(rm&&rm.matches)){v.remove();return;}
+var w=document.createElement('source');w.src=v.dataset.webm;w.type='video/webm; codecs="vp9"';
+var m=document.createElement('source');m.src=v.dataset.mp4;m.type='video/mp4';
+v.appendChild(w);v.appendChild(m);v.muted=true;v.preload='auto';v.autoplay=true;
+v.addEventListener('playing',function(){v.classList.add('is-on')},{once:true});
+function go(){if(document.hidden){v.pause()}else{var p=v.play();if(p&&p.catch)p.catch(function(){})}}
+document.addEventListener('visibilitychange',go);
+if(rm&&rm.addEventListener)rm.addEventListener('change',function(e){if(e.matches){v.pause();v.style.display='none'}});
+function start(){v.load();go()}
+if(document.readyState==='complete')start();else window.addEventListener('load',start,{once:true});})();
+</script>
 </body>
 </html>
