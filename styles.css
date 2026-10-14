@@ -1032,8 +1032,8 @@ a:focus-visible, textarea:focus-visible, input:focus-visible, select:focus-visib
 picture{display:contents}
 .stage-still > picture:first-child > img { width: 100%; max-height: none; object-fit: contain; object-position: center center; }
 /* Polish 2: nav links meet the 24px target size. */
-#site-nav .nav-links a, #site-nav .brand{padding:4px 0;display:inline-block}
-#site-nav .nav-sound{min-height:28px}
+.nav .nav-links a, .nav .brand{padding:4px 0;display:inline-block}
+.nav .nav-sound{min-height:28px}
 /* Polish 2: one nav row on laptop widths now that the Sound button sits in it. */
 @media (min-width: 1101px) and (max-width: 1560px) {
   .nav { padding: 18px 24px; gap: 8px 16px; flex-wrap: nowrap; align-items: center; }
