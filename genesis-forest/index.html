@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GENESIS 7140 — Beam Forest</title>
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#050a14;font-family:system-ui,sans-serif;color:#dfe8ff}
+  #app{position:fixed;inset:0}
+  #hud{position:fixed;top:14px;left:16px;pointer-events:none;z-index:2}
+  #hud h1{font-size:17px;letter-spacing:.14em;margin:0 0 4px;font-weight:600}
+  #hud p{margin:0;font-size:12px;color:#8fa3c8}
+  #legend{position:fixed;top:14px;right:16px;z-index:2;background:#0a1224cc;border:1px solid #22314f;
+    border-radius:10px;padding:10px 12px;font-size:12px;line-height:1.7;backdrop-filter:blur(4px)}
+  .sw{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:7px;vertical-align:baseline}
+  #tip{position:fixed;z-index:3;pointer-events:none;background:#0a1224f2;
+    border:1px solid #3a5a96;border-radius:8px;padding:8px 10px;font-size:12px;display:none;max-width:240px}
+  #tip b{color:#fff}
+  #foot{position:fixed;bottom:12px;left:16px;z-index:2;font-size:11px;color:#5f7396;pointer-events:none}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="hud"><h1>GENESIS 7140 — BEAM FOREST</h1><p>944 door pairs · height = doors per pair · drag to orbit · scroll to zoom · hover a beam</p></div>
+<div id="legend">
+  <div><span class="sw" style="background:#8a2be2"></span>D2 · violet</div>
+  <div><span class="sw" style="background:#4169e1"></span>D3 · royal</div>
+  <div><span class="sw" style="background:#2ecc71"></span>D4 · emerald</div>
+  <div><span class="sw" style="background:#ff8c00"></span>D5 · amber</div>
+  <div><span class="sw" style="background:#ff2222"></span>D6 · red</div>
+  <div><span class="sw" style="background:#ffffff"></span>complement · white</div>
+</div>
+<div id="tip"></div>
+<div id="foot">built from touchdesigner_edges.csv · 48 nodes · verified 944/944</div>
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js",
+"three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const data = await (await fetch('beams.json')).json();
+const N = data.length;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x050a14);
+scene.fog = new THREE.Fog(0x050a14, 30, 90);
+
+const cam = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, 0.1, 500);
+cam.position.set(0, 10, 24);
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+document.getElementById('app').appendChild(renderer.domElement);
+
+const controls = new OrbitControls(cam, renderer.domElement);
+controls.target.set(0, 3, 0);
+controls.enableDamping = true;
+
+// ground grid
+const grid = new THREE.GridHelper(40, 40, 0x1c2b4d, 0x0e1830);
+scene.add(grid);
+
+// instanced beams
+const geo = new THREE.CylinderGeometry(0.5, 0.5, 1, 10, 1, true);
+geo.translate(0, 0.5, 0); // base at y=0
+const mat = new THREE.MeshBasicMaterial({transparent:true, opacity:0.85});
+const mesh = new THREE.InstancedMesh(geo, mat, N);
+const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3();
+const col = new THREE.Color();
+data.forEach((b, i) => {
+  p.set(b.x, 0, 0); s.set(b.sxz, b.sy, b.sxz);
+  m4.compose(p, q, s); mesh.setMatrixAt(i, m4);
+  col.setRGB(b.c[0], b.c[1], b.c[2]); mesh.setColorAt(i, col);
+});
+mesh.instanceMatrix.needsUpdate = true;
+scene.add(mesh);
+
+// soft glow points
+scene.add(new THREE.PointLight(0x8899ff, 60, 60)); 
+const pl = new THREE.PointLight(0xffd27f, 40, 50); pl.position.set(8, 10, 6); scene.add(pl);
+
+// hover readout
+const ray = new THREE.Raycaster(), mouse = new THREE.Vector2();
+const tip = document.getElementById('tip');
+let hover = -1;
+addEventListener('pointermove', e => {
+  mouse.set(e.clientX/innerWidth*2-1, -(e.clientY/innerHeight)*2+1);
+  ray.setFromCamera(mouse, cam);
+  const hit = ray.intersectObject(mesh);
+  if (hit.length) {
+    const i = hit[0].instanceId, b = data[i];
+    hover = i;
+    tip.style.display = 'block';
+    tip.style.left = (e.clientX+14)+'px'; tip.style.top = (e.clientY+14)+'px';
+    tip.innerHTML = `<b>door ${b.a} ↔ ${b.b}</b><br>hamming D${b.ham} · ${b.doors} doors${b.comp?' · <b>COMPLEMENT</b>':''}`;
+    document.body.style.cursor = 'crosshair';
+  } else { hover = -1; tip.style.display = 'none'; document.body.style.cursor = 'default'; }
+});
+
+addEventListener('resize', () => {
+  cam.aspect = innerWidth/innerHeight; cam.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+renderer.setAnimationLoop(() => { controls.update(); renderer.render(scene, cam); });
+</script>
+</body>
+</html>
