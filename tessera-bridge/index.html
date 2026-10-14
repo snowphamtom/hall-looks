@@ -11,17 +11,20 @@
   #hud h1{font-size:20px;letter-spacing:.35em;margin:0 0 6px;font-weight:normal}
   #hud p{margin:0;font-size:12px;color:#8a8578;letter-spacing:.08em}
   #foot{position:fixed;bottom:14px;left:22px;z-index:2;font-size:11px;color:#5a5548;pointer-events:none;letter-spacing:.06em}
-  #layer-ui{position:fixed;right:22px;top:50%;transform:translateY(-50%);z-index:2;display:flex;flex-direction:column;gap:6px}
-  #layer-ui button{background:#0c0c12;border:1px solid #2a2a35;color:#8a8578;font-family:inherit;font-size:10px;letter-spacing:.08em;padding:6px 10px;border-radius:6px;cursor:pointer;text-align:left;min-width:140px}
-  #layer-ui button.on{border-color:#d4a843;color:#f5f0e1}
-  #layer-ui button:hover{border-color:#d4a843}
+  #panel{position:fixed;right:22px;top:50%;transform:translateY(-50%);z-index:2;display:flex;flex-direction:column;gap:6px;max-height:90vh;overflow-y:auto;padding:8px;background:#06060cd9;border:1px solid #2a2a35;border-radius:12px}
+  #panel h3{font-size:10px;letter-spacing:.2em;color:#d4a843;margin:8px 0 2px;font-weight:normal}
+  #panel button{background:#0c0c12;border:1px solid #2a2a35;color:#8a8578;font-family:inherit;font-size:10px;letter-spacing:.08em;padding:6px 10px;border-radius:6px;cursor:pointer;text-align:left;min-width:150px}
+  #panel button.on{border-color:#d4a843;color:#f5f0e1}
+  #panel button:hover{border-color:#d4a843}
+  #panel button.action{border-color:#3a5a96;color:#a8c8e8}
+  #panel button.action.on{border-color:#6bb6d6;color:#fff}
 </style>
 </head>
 <body>
 <div id="app"></div>
-<div id="hud"><h1>TESSERA KERNEL BRIDGE</h1><p>twelve layers · one volume · drag to orbit · scroll to zoom</p></div>
+<div id="hud"><h1>TESSERA KERNEL BRIDGE</h1><p>click to reveal · every change is your choice</p></div>
 <div id="foot">48 nodes · 1,128 pairs · 7,140 doors · every number measured, not drawn</div>
-<div id="layer-ui"></div>
+<div id="panel"></div>
 <script type="importmap">
 {"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js",
 "three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
@@ -64,6 +67,7 @@ scene.background = new THREE.Color(0x030305);
 const cam = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.1, 500);
 cam.position.set(0, 14, 38);
 const ctl = new OrbitControls(cam, renderer.domElement);
+const camTarget = new THREE.Vector3(0,14,38);
 ctl.enableDamping = true;
 
 const light = new THREE.DirectionalLight(0xfff2d8, 2.5);
@@ -113,17 +117,83 @@ const cornerMat = new THREE.MeshBasicMaterial({color:0xfff5d1});
 });
 scene.add(stack);
 
-// layer toggle UI
-const ui = document.getElementById('layer-ui');
+// ---- FULL INTERACTIVE CONTROL PANEL ----
+// Every visual change is a user click. Nothing happens automatically.
+const ui = document.getElementById('panel');
+function section(t){ const h=document.createElement('h3'); h.textContent=t; ui.appendChild(h); }
+function btn(label, fn, startOn){
+  const b=document.createElement('button'); b.textContent=label;
+  if(startOn) b.className='on';
+  b.onclick=()=>{ const r=fn(b); if(r!==undefined) b.className=r?'on':''; };
+  ui.appendChild(b); return b;
+}
+
+// LAYERS
+section('LAYERS');
+const layerBtns = [];
 layers.forEach((L, i)=>{
-  const b = document.createElement('button');
-  b.textContent = names[i];
-  b.className = 'on';
+  layerBtns.push(btn(names[i], (b)=>{
+    L.mesh.visible=!L.mesh.visible; return L.mesh.visible;
+  }, true));
+});
+section('LAYER ACTIONS');
+btn('Solo: click a layer to isolate', ()=>{ // toggles solo mode armed
+  soloArmed=!soloArmed; return soloArmed;
+});
+btn('Show all layers', ()=>{
+  layers.forEach((L,i)=>{ L.mesh.visible=true; layerBtns[i].className='on'; });
+  soloArmed=false;
+});
+btn('Hide all layers', ()=>{
+  layers.forEach((L,i)=>{ L.mesh.visible=false; layerBtns[i].className=''; });
+});
+
+// VIEWS
+section('VIEWS');
+const views = {
+  'Top down':[0,45,0.1], 'Front':[0,8,42], 'Side':[42,8,0],
+  'Isometric':[28,24,28], 'Inside':[0,4,10], 'Wide':[0,18,55]
+};
+Object.entries(views).forEach(([name, pos])=>{
+  btn('View: '+name, ()=>{
+    // animate camera to position
+    camTarget.set(pos[0],pos[1],pos[2]);
+    autoRotate=false; rotBtn.className='';
+  });
+});
+
+// MOTION
+section('MOTION');
+let autoRotate=false;
+const rotBtn = btn('Auto-rotate', ()=>{ autoRotate=!autoRotate; return autoRotate; });
+let breatheOn=false;
+const breatheBtn = btn('Breathe (layers expand)', ()=>{ breatheOn=!breatheOn; return breatheOn; });
+btn('Explode stack', ()=>{
+  layers.forEach(L=>{ L.mesh.position.y = L.baseY*2.5; });
+  setTimeout(()=>{ if(!breatheOn) layers.forEach(L=>{ L.mesh.position.y=L.baseY; }); }, 2000);
+}, false);
+
+// WIREFRAME
+section('WIREFRAME');
+btn('Toggle wireframe', ()=>{ wire.visible=!wire.visible; return wire.visible; }, true);
+btn('Spin wireframe', ()=>{
+  wireSpin=!wireSpin; return wireSpin;
+});
+
+// solo mode: clicking a layer button isolates it
+let soloArmed=false;
+let wireSpin=false;
+// override layer buttons for solo
+layerBtns.forEach((b, i)=>{
+  const orig = b.onclick;
   b.onclick = ()=>{
-    L.mesh.visible = !L.mesh.visible;
-    b.className = L.mesh.visible ? 'on' : '';
+    if(soloArmed){
+      layers.forEach((L,j)=>{ L.mesh.visible=(j===i); layerBtns[j].className=(j===i)?'on':''; });
+      soloArmed=false;
+      // find the solo button and turn it off
+      ui.querySelectorAll('button').forEach(x=>{ if(x.textContent.startsWith('Solo:')) x.className=''; });
+    } else { orig(); }
   };
-  ui.appendChild(b);
 });
 
 // animate: slow rotation + breathing
@@ -131,13 +201,16 @@ const clock = new THREE.Clock();
 function tick(){
   requestAnimationFrame(tick);
   const t = clock.getElapsedTime();
-  stack.rotation.y = t * 0.12;
-  // breathing: layers gently separate and rejoin
-  const breathe = Math.sin(t*0.5)*0.35;
-  layers.forEach(L=>{
-    L.mesh.position.y = L.baseY * (1 + breathe*0.12);
-    L.mat.opacity = 0.72 + Math.sin(t*0.8 + L.idx)*0.1;
-  });
+  // rotation ONLY when user enables it
+  if(autoRotate) stack.rotation.y = t * 0.15;
+  if(wireSpin){ wire.rotation.y = t*0.1; }
+  // breathing ONLY when user enables it
+  if(breatheOn){
+    const breathe = Math.sin(t*0.8)*0.4;
+    layers.forEach(L=>{ L.mesh.position.y = L.baseY * (1 + breathe*0.15); });
+  }
+  // camera glide to target when user picks a view
+  cam.position.lerp(camTarget, 0.06);
   ctl.update();
   renderer.render(scene, cam);
 }
