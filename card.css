@@ -211,3 +211,10 @@
   .hc-card.is-loading .hc-card__art::after { animation: none; }
   .hc-card__art img { transition: none; }
 }
+/* Text sits on its own dark band, never across the figure. */
+.hc-card__plate em { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+@container (max-width: 200px) { .hc-card__plate em { -webkit-line-clamp: 2; } }
+@media (max-width: 480px) {
+  .tier-grid .hc-card__plate { padding: 0 8px 8px; gap: 3px; }
+  .tier-grid .hc-card__plate em { -webkit-line-clamp: 1; font-size: 12px; }
+}
