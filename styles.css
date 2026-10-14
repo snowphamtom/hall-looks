@@ -1051,3 +1051,6 @@ picture{display:contents}
 .sort select{font:inherit;font-size:13px;min-height:32px;padding:4px 8px;border-radius:8px;background:#101114;color:#F4F1E8;border:1px solid var(--line,rgba(244,239,230,.16))}
 .vault-shown{font-size:13px;color:var(--muted,rgba(244,241,232,.62))}
 .hc-card.is-new::after{content:"New";position:absolute;top:8px;right:8px;z-index:5;font:600 10px/1 "Outfit",system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;padding:4px 7px;border-radius:999px;background:#e4a15a;color:#0a0a0b;pointer-events:none}
+/* Polish 4: the look frames hug the 16:9 picture: whole figure, no empty bands, no crop. */
+.figure-wrap { min-height: 0; padding: 14px; align-self: start; }
+.figure-wrap img { width: 100%; max-width: none; height: auto; max-height: none; aspect-ratio: 16 / 9; object-fit: contain; border-radius: 10px; }
