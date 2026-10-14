@@ -665,9 +665,11 @@ function contentOf(img){
 }
 function drawCover(g,img,box,head){
   const src=contentOf(img);
-  const scale=(box.y1-box.y0)/src.h;
-  const dw=src.w*scale, dh=src.h*scale;
   const srcHeadX=src.w*0.5, srcHeadY=src.h*0.16;
+  // Scale so the photo reaches both side edges of the figure's box too;
+  // otherwise a narrow photo stops in a straight line inside the silhouette.
+  const scale=Math.max((box.y1-box.y0)/src.h,(head.cx-box.x0)/srcHeadX,(box.x1-head.cx)/(src.w-srcHeadX));
+  const dw=src.w*scale, dh=src.h*scale;
   const dx=head.cx-srcHeadX*scale;
   const dy=head.cy-srcHeadY*scale;
   g.drawImage(img,src.x,src.y,src.w,src.h,dx,dy,dw,dh);
