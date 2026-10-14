@@ -1054,3 +1054,11 @@ picture{display:contents}
 /* Polish 4: the look frames hug the 16:9 picture: whole figure, no empty bands, no crop. */
 .figure-wrap { min-height: 0; padding: 14px; align-self: start; }
 .figure-wrap img { width: 100%; max-width: none; height: auto; max-height: none; aspect-ratio: 16 / 9; object-fit: contain; border-radius: 10px; }
+/* Polish 4: keep the king schematic, but out from under the home title. */
+body.page-home .sky-schematic { background-position: 82% 62%; background-size: auto 78%; opacity: .42;
+  -webkit-mask-image: radial-gradient(60% 62% at 80% 60%, #000 50%, transparent 100%); mask-image: radial-gradient(60% 62% at 80% 60%, #000 50%, transparent 100%); }
+body.page-home .crown-title { text-shadow: 0 2px 18px rgba(5,5,6,.85), 0 0 2px rgba(5,5,6,.9); }
+@media (max-width: 720px) {
+  body.page-home .sky-schematic { background-position: center 88%; background-size: auto 46%; opacity: .32;
+    -webkit-mask-image: radial-gradient(80% 40% at 50% 86%, #000 45%, transparent 100%); mask-image: radial-gradient(80% 40% at 50% 86%, #000 45%, transparent 100%); }
+}
