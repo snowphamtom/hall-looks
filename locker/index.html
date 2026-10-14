@@ -46,6 +46,17 @@
       <strong>Locker <span id="saved-count">0 / 24</span> saved</strong>
       <button type="button" id="clear" class="clear">Clear locker</button>
     </div>
+    <div class="vault-tools" id="vault-tools" hidden>
+      <div class="chips" role="group" aria-label="Show saves from">
+        <button type="button" class="chip" data-src="all" aria-pressed="true">All</button>
+        <button type="button" class="chip" data-src="forge" aria-pressed="false">Forge</button>
+        <button type="button" class="chip" data-src="smith" aria-pressed="false">Smith</button>
+        <button type="button" class="chip" data-src="foundation" aria-pressed="false">Foundation</button>
+        <button type="button" class="chip" data-src="locker" aria-pressed="false">Roster</button>
+      </div>
+      <label class="sort">Sort <select id="vault-sort"><option value="new">Newest first</option><option value="old">Oldest first</option><option value="rank">Highest rank</option><option value="name">Name A–Z</option></select></label>
+      <span id="vault-shown" class="vault-shown" aria-live="polite"></span>
+    </div>
     <div id="vault-slots" class="vault-slots"></div>
     <p id="vault-empty" class="vault-empty">Locker empty. Save a character from the roster below, or from Forge.</p>
     <div class="vault-meta"><span id="capacity">Capacity 24</span><span>Mode: this browser</span></div>

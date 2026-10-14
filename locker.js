@@ -81,10 +81,33 @@ function paintComb() {
   if (window.applyLockerField) window.applyLockerField();
 }
 
+// Collection view (borrowed from Genshin's archive filters and Hearthstone's "new" tags):
+// filter saves by where they were made, sort them, and mark the ones saved since your last visit.
+let vaultSrc = "all";
+const SEEN_KEY = "hall-locker-seen-v1";
+let seenAt = 0;
+try { seenAt = +localStorage.getItem(SEEN_KEY) || 0; localStorage.setItem(SEEN_KEY, String(Date.now())); } catch (e) {}
+function srcOf(entry) { return !entry.source ? "forge" : entry.source; }
+function shownList() {
+  const sortEl = document.getElementById("vault-sort");
+  const mode = sortEl ? sortEl.value : "new";
+  const out = list().filter((e) => vaultSrc === "all" || srcOf(e) === vaultSrc);
+  const t = (e) => +new Date(e.at) || 0;
+  if (mode === "new") out.sort((a, b) => t(b) - t(a));
+  else if (mode === "old") out.sort((a, b) => t(a) - t(b));
+  else if (mode === "rank") out.sort((a, b) => tierById(tierFor(b)).n - tierById(tierFor(a)).n);
+  else out.sort((a, b) => String(a.label || "").localeCompare(String(b.label || "")));
+  return out;
+}
 function render() {
   saved = load();
   slots.innerHTML = "";
-  list().forEach((entry) => {
+  const tools = document.getElementById("vault-tools");
+  if (tools) tools.hidden = list().length < 2;
+  const shown = shownList();
+  const shownEl = document.getElementById("vault-shown");
+  if (shownEl) shownEl.textContent = vaultSrc === "all" ? "" : "Showing " + shown.length + " of " + list().length;
+  shown.forEach((entry) => {
     const c = rosterFor(entry);
     const tier = tierById(tierFor(entry));
     const thumb = entry.thumb && String(entry.thumb).indexOf("data:image/") === 0 ? entry.thumb : (c ? c.img : "");
@@ -97,6 +120,7 @@ function render() {
     });
     card.dataset.tier = String(tier.n);
     card.dataset.id = entry.id;
+    if (seenAt && (+new Date(entry.at) || 0) > seenAt) { card.classList.add("is-new"); card.setAttribute("aria-description", "New since your last visit"); }
     card.addEventListener("click", () => removeEntry(entry));
     slots.appendChild(card);
   });
@@ -238,6 +262,13 @@ document.getElementById("clear").addEventListener("click", () => {
   say(r.ok ? "Locker cleared. Crowns and the board stay." : r.reason);
   render();
 });
+document.querySelectorAll("#vault-tools .chip").forEach((chip) => chip.addEventListener("click", () => {
+  vaultSrc = chip.dataset.src;
+  document.querySelectorAll("#vault-tools .chip").forEach((c) => c.setAttribute("aria-pressed", c === chip ? "true" : "false"));
+  render();
+}));
+const vaultSort = document.getElementById("vault-sort");
+if (vaultSort) vaultSort.addEventListener("change", render);
 window.addEventListener("storage", (e) => { if (e.key === null || (e.key || "").indexOf("foundation-locker") === 0) render(); });
 
 render();

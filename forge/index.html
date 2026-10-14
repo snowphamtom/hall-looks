@@ -70,7 +70,7 @@ select:disabled,input[type=range]:disabled{opacity:.35;cursor:not-allowed;filter
 
 /* Site nav (added for the hall site). Same look as the other pages' nav. */
 :root{--navh:52px}
-#site-nav{position:fixed;top:0;left:0;right:0;height:var(--navh);z-index:40;display:flex;flex-wrap:nowrap;gap:0 20px;align-items:center;padding:0 24px;background:rgba(7,7,8,.86);backdrop-filter:blur(16px);border-bottom:1px solid rgba(244,239,230,.16);font-family:"Outfit","Avenir Next","Segoe UI",sans-serif;overflow-x:auto;scrollbar-width:none}
+#site-nav{position:fixed;top:0;left:0;right:0;height:var(--navh);z-index:40;display:flex;flex-wrap:nowrap;gap:0 16px;align-items:center;padding:0 24px;background:rgba(7,7,8,.86);backdrop-filter:blur(16px);border-bottom:1px solid rgba(244,239,230,.16);font-family:"Outfit","Avenir Next","Segoe UI",sans-serif;overflow-x:auto;scrollbar-width:none}
 #site-nav a{color:rgba(244,241,232,.62);text-decoration:none;font-size:14px;white-space:nowrap;padding:4px 0;display:inline-block}
 #site-nav a[aria-current="page"],#site-nav a:hover{color:#F4F1E8}
 #site-nav .brand{font-family:"Cormorant Garamond",Georgia,serif;font-weight:500;letter-spacing:.28em;font-size:14px;color:#F4F1E8;margin-right:10px}
@@ -80,7 +80,7 @@ select:disabled,input[type=range]:disabled{opacity:.35;cursor:not-allowed;filter
 .canvas-wrap{top:calc(62px + var(--navh))}
 .ui{top:var(--navh)}
 #lockerPanel{top:calc(76px + var(--navh)) !important;max-height:calc(100vh - 96px - var(--navh)) !important}
-@media (max-width:720px){
+@media (max-width:1100px){
   #site-nav[data-collapsible] .nav-toggle{display:inline-block;margin-left:auto;font:inherit;font-size:14px;padding:6px 14px;border-radius:999px;border:1px solid rgba(244,239,230,.16);background:#101114;color:#F4F1E8;cursor:pointer}
   #site-nav[data-collapsible] .nav-links{display:none}
   #site-nav[data-collapsible].open{height:auto;flex-wrap:wrap;padding:10px 18px}
