@@ -1514,7 +1514,7 @@ window.addEventListener("pageshow",function(e){
 });
 // History: every change is one step; slider drags and typing are grouped into one step.
 const hist={stack:[],at:-1,timer:0,max:80};
-function snap(){ return JSON.stringify({a:active,f:figs}); }
+function snap(){ return JSON.stringify(figs); }
 function commitNow(){
   clearTimeout(hist.timer); hist.timer=0;
   const s=snap();
@@ -1525,8 +1525,11 @@ function commitNow(){
 }
 function scheduleCommit(){ clearTimeout(hist.timer); hist.timer=setTimeout(commitNow,450); }
 function restore(s){
+  // Undo/redo changes the figures only; it shows the mannequin that changed.
   const d=JSON.parse(s);
-  figs[0]=d.f[0]; figs[1]=d.f[1]; active=d.a;
+  const ch=[0,1].filter(function(i){ return JSON.stringify(figs[i])!==JSON.stringify(d[i]); });
+  figs[0]=d[0]; figs[1]=d[1];
+  if(ch.length===1) active=ch[0];
   writeForm(); resetCycleAttempt(); updateSpec(); draw(); paintHist();
 }
 function paintHist(){
