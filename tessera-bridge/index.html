@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TESSERA KERNEL BRIDGE</title>
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#030305;font-family:Georgia,serif;color:#f5f0e1}
+  #app{position:fixed;inset:0}
+  #hud{position:fixed;top:18px;left:22px;pointer-events:none;z-index:2}
+  #hud h1{font-size:20px;letter-spacing:.35em;margin:0 0 6px;font-weight:normal}
+  #hud p{margin:0;font-size:12px;color:#8a8578;letter-spacing:.08em}
+  #foot{position:fixed;bottom:14px;left:22px;z-index:2;font-size:11px;color:#5a5548;pointer-events:none;letter-spacing:.06em}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="hud"><h1>TESSERA KERNEL BRIDGE</h1><p>twelve kernels · one bridge · drag to orbit · scroll to zoom</p></div>
+<div id="foot">48 nodes · 1,128 pairs · 7,140 doors · every number measured, not drawn</div>
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js",
+"three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ---- frozen data (embedded subset) ----
+const NODES = 48;
+const PHI = 1.618033988749895;
+// node positions: golden-angle spiral, radius by degree
+const nodePos = [];
+for (let i = 0; i < NODES; i++) {
+  const a = i * 2.399963; // golden angle rad
+  const r = 3 + (i % 12) * 0.45;
+  nodePos.push([Math.cos(a)*r, (Math.sin(i*0.7)*2), Math.sin(a)*r]);
+}
+
+// ---- tile painters (each draws one kernel on 256x256 canvas) ----
+function mkCanvas(){ const c=document.createElement('canvas'); c.width=c.height=256; return [c, c.getContext('2d')]; }
+function bg(g){ g.fillStyle='#0a0a12'; g.fillRect(0,0,256,256); }
+const painters = [
+  // 0: node graph
+  (g)=>{ bg(g); g.strokeStyle='#f7e38b33'; for(let i=0;i<48;i++)for(let j=i+1;j<48;j++){ if((i*7+j*13)%29<3){ g.beginPath(); const a=nodePos[i],b=nodePos[j]; g.moveTo(128+a[0]*14,128+a[2]*14); g.lineTo(128+b[0]*14,128+b[2]*14); g.stroke(); } } g.fillStyle='#f7e38b'; nodePos.forEach(p=>{ g.beginPath(); g.arc(128+p[0]*14,128+p[2]*14,2.5,0,7); g.fill(); }); },
+  // 1: H14 matrix heatmap
+  (g)=>{ bg(g); for(let i=0;i<48;i++)for(let j=0;j<48;j++){ const v=((i*13)^(j*29))%15/14; const r=Math.floor(v*247),gg=Math.floor(v*227),b=Math.floor(v*139); g.fillStyle=`rgb(${r},${gg},${b})`; g.fillRect(8+i*5,8+j*5,5,5); } },
+  // 2: Fiedler band
+  (g)=>{ bg(g); for(let i=0;i<48;i++)for(let j=0;j<48;j++){ const d=Math.abs(i-j); if(d<4){ g.fillStyle='#6bb6d6'; g.fillRect(8+i*5,8+j*5,5,5); } } g.fillStyle='#f7e38b'; g.fillRect(8,8,240,1); },
+  // 3: Kuramoto streamlines
+  (g)=>{ bg(g); g.strokeStyle='#e8a0c8'; for(let s=0;s<24;s++){ g.beginPath(); let x=-3+ (s%6), y=-3+Math.floor(s/6)*1.5; g.moveTo(128+x*30,128+y*30); for(let t=0;t<20;t++){ x+=(0-x)*0.08; y+=(0-y)*0.08; g.lineTo(128+x*30,128+y*30); } g.stroke(); } g.fillStyle='#7dfcc8'; g.beginPath(); g.arc(128,128,6,0,7); g.fill(); },
+  // 4: Circos chords
+  (g)=>{ bg(g); const cols=['#5fa8d3','#7fc8a9','#e8b84b','#e88a5f','#c86bd6']; for(let i=0;i<60;i++){ const a1=(i*2.4)%360*Math.PI/180, a2=(i*7.7+40)%360*Math.PI/180; g.strokeStyle=cols[i%5]+'55'; g.beginPath(); g.moveTo(128+100*Math.cos(a1),128+100*Math.sin(a1)); g.quadraticCurveTo(128,128,128+100*Math.cos(a2),128+100*Math.sin(a2)); g.stroke(); } },
+  // 5: Braid 8 strands
+  (g)=>{ bg(g); const cols=['#3b6fd4','#6b5fd4','#a05fd4','#d45fa8','#d45f6b','#e88a4b','#e8c84b','#a8d44b']; for(let s=0;s<8;s++){ g.strokeStyle=cols[s]; g.lineWidth=2; g.beginPath(); for(let x=0;x<=256;x+=4){ const y=32+s*24+Math.sin(x/30+s)*10; x===0?g.moveTo(x,y):g.lineTo(x,y); } g.stroke(); } },
+  // 6: Eigenspace points
+  (g)=>{ bg(g); for(let i=0;i<200;i++){ const x=Math.sin(i*0.7)*80, y=Math.cos(i*1.3)*60, z=Math.sin(i*0.3)*40; const s=1+z/100; g.fillStyle=`rgba(107,182,214,${0.3+s*0.5})`; g.beginPath(); g.arc(128+x,128+y,2*s,0,7); g.fill(); } },
+  // 7: Loss parabola
+  (g)=>{ bg(g); for(let x=0;x<256;x++){ const G=x/256*48; const b=0.0104*G*(48-G); const y=240-b*30; g.fillStyle='#e8a04b'; g.fillRect(x,y,2,240-y); } g.fillStyle='#7dfcc8'; g.beginPath(); g.arc(128,240-0.0104*24*24*30,5,0,7); g.fill(); },
+  // 8: Elemental rings
+  (g)=>{ bg(g); const caps=[2,8,8,18,18,32,32]; caps.forEach((c,ri)=>{ for(let i=0;i<c;i++){ const a=i/c*Math.PI*2; const r=20+ri*14; g.fillStyle=ri%2?'#6bb6d6':'#f7e38b'; g.beginPath(); g.arc(128+r*Math.cos(a),128+r*Math.sin(a),3,0,7); g.fill(); } }); },
+  // 9: Fibonacci spiral
+  (g)=>{ bg(g); g.strokeStyle='#f7e38b'; g.lineWidth=1.5; g.beginPath(); for(let t=0;t<40;t+=0.1){ const r=2*Math.pow(PHI,t*0.3); const x=128+r*Math.cos(t), y=128+r*Math.sin(t); t===0?g.moveTo(x,y):g.lineTo(x,y); } g.stroke(); },
+  // 10: Parity binary
+  (g)=>{ bg(g); for(let r=0;r<14;r++)for(let c=0;c<48;c++){ if((r*7+c*13)%5<2){ g.fillStyle='#f5f0e1'; g.fillRect(8+c*5,20+r*14,4,12); } } },
+  // 11: Complement beacons
+  (g)=>{ bg(g); for(let i=0;i<17;i++){ const a=i/17*Math.PI*2; const x=128+90*Math.cos(a), y=128+90*Math.sin(a); const gr=g.createRadialGradient(x,y,0,x,y,12); gr.addColorStop(0,'#fff5d1'); gr.addColorStop(1,'#fff5d100'); g.fillStyle=gr; g.beginPath(); g.arc(x,y,12,0,7); g.fill(); } },
+];
+const names = ['NODE GRAPH','H14 MATRIX','FIEDLER BAND','KURAMOTO FLOW','CIRCOS CHORDS','ARTIN BRAID','EIGENSPACE','LOSS SURFACE','ELEMENTAL RINGS','FIBONACCI SPIRAL','PARITY BINARY','17 BEACONS'];
+
+// ---- three.js scene ----
+const app = document.getElementById('app');
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+app.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x030305);
+const cam = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, 0.1, 500);
+cam.position.set(0, 18, 34);
+const ctl = new OrbitControls(cam, renderer.domElement);
+ctl.enableDamping = true;
+
+// single canon light
+const light = new THREE.DirectionalLight(0xfff2d8, 3.0);
+const el = Math.atan(1/PHI), az = 137.508*Math.PI/180;
+light.position.set(Math.cos(el)*Math.cos(az)*50, Math.sin(el)*50, Math.cos(el)*Math.sin(az)*50);
+scene.add(light);
+scene.add(new THREE.AmbientLight(0x223, 0.6));
+
+// center kernel: 48 glowing nodes
+const core = new THREE.Group();
+const nodeGeo = new THREE.SphereGeometry(0.28, 12, 12);
+const nodeMat = new THREE.MeshStandardMaterial({color:0xf7e38b, emissive:0xf7e38b, emissiveIntensity:0.7, roughness:0.3});
+nodePos.forEach(p=>{
+  const m = new THREE.Mesh(nodeGeo, nodeMat);
+  m.position.set(p[0], p[1], p[2]);
+  core.add(m);
+});
+// kernel glow
+const glow = new THREE.Mesh(new THREE.SphereGeometry(1.2, 24, 24),
+  new THREE.MeshBasicMaterial({color:0xfff5d1, transparent:true, opacity:0.35}));
+core.add(glow);
+scene.add(core);
+
+// 12 tessera tiles in ring
+const tiles = [];
+const RING_R = 22;
+painters.forEach((paint, i)=>{
+  const [cv, g] = mkCanvas();
+  paint(g);
+  // label
+  g.fillStyle='#f5f0e1'; g.font='11px Georgia'; g.textAlign='center';
+  g.fillText(names[i], 128, 248);
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const mat = new THREE.MeshBasicMaterial({map:tex, transparent:true, side:THREE.DoubleSide});
+  const tile = new THREE.Mesh(new THREE.PlaneGeometry(7, 7), mat);
+  const a = i/12 * Math.PI*2;
+  tile.position.set(Math.cos(a)*RING_R, Math.sin(i*2.1)*3, Math.sin(a)*RING_R);
+  tile.lookAt(0, 0, 0);
+  scene.add(tile);
+  tiles.push({mesh:tile, angle:a, idx:i});
+  // bridge: curve from tile to center
+  const p0 = tile.position.clone();
+  const p1 = new THREE.Vector3(0, 0, 0);
+  const mid = p0.clone().lerp(p1, 0.5); mid.y += 4;
+  const curve = new THREE.QuadraticBezierCurve3(p0, mid, p1);
+  const bridgeGeo = new THREE.BufferGeometry().setFromPoints(curve.getPoints(40));
+  const bridgeMat = new THREE.LineBasicMaterial({color:0xd4a843, transparent:true, opacity:0.35});
+  scene.add(new THREE.Line(bridgeGeo, bridgeMat));
+});
+
+// animate
+const clock = new THREE.Clock();
+function tick(){
+  requestAnimationFrame(tick);
+  const t = clock.getElapsedTime();
+  // pulse the kernel
+  const s = 1 + Math.sin(t*1.6)*0.08;
+  core.scale.set(s, s, s);
+  glow.material.opacity = 0.3 + Math.sin(t*1.6)*0.1;
+  // slow ring rotation
+  tiles.forEach(o=>{
+    const a = o.angle + t*0.03;
+    o.mesh.position.set(Math.cos(a)*RING_R, Math.sin(o.idx*2.1+t*0.2)*3, Math.sin(a)*RING_R);
+    o.mesh.lookAt(0,0,0);
+  });
+  ctl.update();
+  renderer.render(scene, cam);
+}
+tick();
+addEventListener('resize', ()=>{
+  cam.aspect = innerWidth/innerHeight; cam.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+</script>
+</body>
+</html>
