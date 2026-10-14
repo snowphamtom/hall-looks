@@ -26,6 +26,7 @@ self.addEventListener("fetch", function (e) {
   if (r.method !== "GET") return;
   var scope = new URL(self.registration.scope);
   if (u.origin === scope.origin && u.pathname.indexOf(scope.pathname + "inferno/") === 0) return;
+  if (/\.(webm|mp4)$/.test(u.pathname)) return; // video: leave range requests to the network
   var media = /\.(png|jpe?g|webp|avif|svg|woff2?|mp3)$/.test(u.pathname) || u.host.indexOf("fonts.g") === 0 || /[?&]v=/.test(u.search);
   if (media) {
     e.respondWith(caches.match(r).then(function (hit) {
