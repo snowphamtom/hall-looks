@@ -50,7 +50,7 @@
   }
   function size() {
     dpr = Math.min(window.devicePixelRatio || 1, 2);
-    var pn = sky.querySelector(".sky-pin") || sky; W = pn.clientWidth || window.innerWidth; H = pn.clientHeight || window.innerHeight;
+    W = window.innerWidth; H = window.innerHeight;
     cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     var n = Math.round(Math.min(46, Math.max(14, W * H / 32000)));
