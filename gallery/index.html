@@ -3,53 +3,150 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>3D Gallery — Heavy Is The Crown</title>
+<title>HEAVY IS THE CROWN — 3D Gallery</title>
+<meta name="description" content="Every interactive piece of HEAVY IS THE CROWN in one place: GENESIS 7140, Beam Forest, Cathedral, Workbench, Tessera Bridge and Elemental.">
+<meta name="theme-color" content="#070708">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="apple-touch-icon" href="/hall-looks/images/look-white-samurai-realistic.jpg">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="HEAVY IS THE CROWN">
+<meta property="og:title" content="HEAVY IS THE CROWN — 3D Gallery">
+<meta property="og:description" content="Every interactive piece of HEAVY IS THE CROWN in one place: GENESIS 7140, Beam Forest, Cathedral, Workbench, Tessera Bridge and Elemental.">
+<meta property="og:url" content="https://snowphamtom.github.io/hall-looks/gallery/">
+<meta property="og:image" content="https://snowphamtom.github.io/hall-looks/images/og/gallery.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The 3D Gallery: six tiles, one per interactive piece.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="HEAVY IS THE CROWN — 3D Gallery">
+<meta name="twitter:description" content="Every interactive piece of HEAVY IS THE CROWN in one place: GENESIS 7140, Beam Forest, Cathedral, Workbench, Tessera Bridge and Elemental.">
+<meta name="twitter:image" content="https://snowphamtom.github.io/hall-looks/images/og/gallery.jpg">
+<link rel="canonical" href="https://snowphamtom.github.io/hall-looks/gallery/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Outfit:wght@380;500;650;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../styles.css?v=p0l1sh07">
 <style>
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body { background:#050508; color:#f5f0e1; font-family:Georgia, serif; min-height:100vh; display:flex; flex-direction:column; }
-  header { text-align:center; padding:32px 20px 16px; }
-  header h1 { font-size:1.8em; letter-spacing:0.3em; font-weight:normal; }
-  header p { color:#8a8578; margin-top:8px; letter-spacing:0.1em; font-size:0.9em; }
-  .tabs { display:flex; justify-content:center; flex-wrap:wrap; gap:8px; padding:16px; }
-  .tab { background:#0c0c12; border:1px solid #2a2a35; color:#f5f0e1; padding:10px 20px; border-radius:24px; cursor:pointer; font-family:inherit; font-size:0.9em; letter-spacing:0.05em; transition:all .2s; }
-  .tab:hover { border-color:#d4a843; }
-  .tab.active { background:#d4a843; color:#050508; border-color:#d4a843; font-weight:bold; }
-  .viewer { flex:1; position:relative; min-height:60vh; margin:0 16px; border:1px solid #2a2a35; border-radius:12px; overflow:hidden; background:#000; }
-  .viewer iframe { position:absolute; inset:0; width:100%; height:100%; border:none; }
-  .info-bar { text-align:center; padding:16px; color:#8a8578; font-size:0.95em; max-width:800px; margin:0 auto; line-height:1.6; }
-  .info-bar b { color:#f5f0e1; }
-  footer { text-align:center; padding:24px; color:#555; font-size:0.85em; }
+  .gallery { padding: 36px 7vw 48px; max-width: 1400px; margin: 0 auto; }
+  .gallery h1 { font-family: "Cormorant Garamond", serif; font-weight: 500; font-size: clamp(40px, 6vw, 72px); line-height: 1; margin: 6px 0 12px; }
+  .gallery .lede { max-width: 62ch; opacity: .86; line-height: 1.55; }
+  .g-grid { list-style: none; padding: 0; margin: 28px 0 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 22px; }
+  .g-tile { display: grid; gap: 8px; align-content: start; padding: 12px; border-radius: 14px; background: rgba(10,10,14,.72); border: 1px solid rgba(228,161,90,.22); backdrop-filter: blur(4px); }
+  .g-open { display: grid; gap: 10px; border-radius: 10px; }
+  .g-open img { width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: contain; background: #050508; border-radius: 8px; display: block; transition: transform .25s ease; }
+  .g-open:hover img, .g-open:focus-visible img { transform: translateY(-2px); }
+  .g-open strong { font-family: "Cormorant Garamond", serif; font-size: 26px; font-weight: 600; letter-spacing: .02em; }
+  .g-open strong::after { content: " ↗"; font-size: .7em; opacity: .6; }
+  .g-tile p { margin: 0; font-size: 14px; line-height: 1.5; opacity: .8; }
+  .g-preview { justify-self: start; min-height: 44px; padding: 0 16px; border-radius: 22px; border: 1px solid rgba(228,161,90,.5); background: transparent; color: inherit; font: inherit; font-size: 14px; cursor: pointer; }
+  .g-preview[aria-pressed="true"] { background: #e4a15a; color: #050508; border-color: #e4a15a; }
+  .g-viewer { margin-top: 28px; border-radius: 14px; overflow: hidden; border: 1px solid rgba(228,161,90,.25); background: #000; }
+  .g-viewer[hidden] { display: none; }
+  .g-viewer-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 14px; background: rgba(10,10,14,.9); }
+  .g-viewer-bar a, .g-viewer-bar button { min-height: 40px; display: inline-flex; align-items: center; padding: 0 14px; border-radius: 20px; border: 1px solid rgba(255,255,255,.2); background: transparent; color: inherit; font: inherit; font-size: 14px; cursor: pointer; }
+  .g-viewer iframe { display: block; width: 100%; height: min(75vh, 760px); border: 0; }
+  .g-viewer { scroll-margin-top: calc(var(--navh, 64px) + 12px); }
+  .g-viewer-bar span { display: inline-flex; gap: 8px; flex-wrap: nowrap; }
+  .g-foot { margin-top: 28px; opacity: .6; font-size: 13px; }
+  @media (max-width: 700px) {
+    .gallery { padding: 24px 18px 28px; }
+    .g-grid { grid-template-columns: 1fr; gap: 16px; }
+    .g-viewer iframe { height: 70vh; }
+    .g-viewer-bar { flex-wrap: wrap; }
+    .g-viewer-bar a, .g-viewer-bar button { font-size: 13px; padding: 0 12px; }
+  }
 </style>
 </head>
 <body>
-<header>
-  <h1>3D GALLERY</h1>
-  <p>every interactive dimension — heavy is the crown</p>
-</header>
-<div class="tabs">
-  <button class="tab active" data-src="../genesis-marvel/" data-title="GENESIS 7140" data-desc="<b>GENESIS 7140</b> — 1,128 pairs as golden pillars. 48 nodes, 7,140 doors. Click a node to isolate its world.">🌌 GENESIS</button>
-  <button class="tab" data-src="../genesis-forest/" data-title="Beam Forest" data-desc="<b>Beam Forest</b> — all 1,128 beams as a walkable forest of light. Drag to orbit, scroll to zoom, hover a beam.">🌲 Forest</button>
-  <button class="tab" data-src="../cathedral/" data-title="Cathedral" data-desc="<b>Cathedral — The Design Game</b> — reality-based design with CSG carving, Snow voice guide, and the Book of Doors.">⛪ Cathedral</button>
-  <button class="tab" data-src="../workbench/" data-title="Workbench" data-desc="<b>Workbench</b> — 6 chassis, 10 materials, blueprint-to-hyperreal. PWA offline, measurement platform, turntable.">🔨 Workbench</button>
-  <button class="tab" data-src="../tessera-bridge/" data-title="Tessera Bridge" data-desc="<b>Tessera Kernel Bridge</b> — twelve kernels, one bridge. Every visualization connected to the 48-node core.">🌉 Tessera</button>
-  <button class="tab" data-src="../elemental/" data-title="Elemental" data-desc="<b>Human Body Elemental Recipe</b> — the 118 elements mapped to the human body. Quantum subshells, periodic vault.">🧬 Elemental</button>
-</div>
-<div class="viewer">
-  <iframe id="view" src="../genesis-marvel/" allow="autoplay; fullscreen" title="3D viewer"></iframe>
-</div>
-<div class="info-bar" id="desc"><b>GENESIS 7140</b> — 1,128 pairs as golden pillars. 48 nodes, 7,140 doors. Click a node to isolate its world.</div>
-<footer>every number on these pages is measured, not drawn</footer>
+<div id="sky" aria-hidden="true"><div class="sky-blossom"></div><div class="sky-scrim"></div><div class="sky-schematic"></div></div>
+<nav class="nav" aria-label="Site"><a class='brand' href='../'>HEAVY IS THE CROWN</a><button type="button" class="nav-toggle" aria-expanded="false" aria-controls="nav-links">Menu</button><span class="nav-links" id="nav-links"><a href='../'>Room</a><a href='../foundation/'>Foundation</a><a href='../black-chrome/'>Black Chrome</a><a href='../white-samurai/'>White Samurai</a><a href='../skull-champion/'>Skull Champion</a><a href='../titan-gladiator/'>Titan Gladiator</a><a href='../forge/'>Forge</a><a href='../workbench/'>Workbench</a><a aria-current='page' href='../gallery/'>Gallery</a><a href='../smith/'>Smith</a><a href='../colosseum/'>Colosseum</a><a href='../create/'>Create</a><a href='../help/'>Help</a><a href='../locker/'>Locker</a></span></nav>
+<main class="gallery">
+  <div class="kicker">Every interactive dimension</div>
+  <h1>3D Gallery</h1>
+  <p class="lede">Six working pieces. Open one full page, or preview it here without leaving. Previews load only when you ask, so the page stays light on phones.</p>
+  <ul class="g-grid">
+    <li class="g-tile">
+      <a class="g-open" href="../genesis-marvel/" aria-describedby="g-d-genesis-marvel">
+        <picture><source srcset="img/genesis-marvel.webp" type="image/webp"><img src="img/genesis-marvel-640.jpg" width="640" height="360" alt="A screenshot of GENESIS 7140" loading="eager" decoding="async"></picture>
+        <strong>GENESIS 7140</strong>
+      </a>
+      <p id="g-d-genesis-marvel">1,128 pairs as golden pillars. 48 nodes, 7,140 doors. Click a node to isolate its world.</p>
+      <button type="button" class="g-preview" data-src="../genesis-marvel/" data-title="GENESIS 7140" aria-controls="g-viewer">Preview here</button>
+    </li>
+    <li class="g-tile">
+      <a class="g-open" href="../genesis-forest/" aria-describedby="g-d-genesis-forest">
+        <picture><source srcset="img/genesis-forest.webp" type="image/webp"><img src="img/genesis-forest-640.jpg" width="640" height="360" alt="A screenshot of Beam Forest" loading="eager" decoding="async"></picture>
+        <strong>Beam Forest</strong>
+      </a>
+      <p id="g-d-genesis-forest">All 1,128 beams as a walkable forest of light. Drag to orbit, scroll to zoom, hover a beam.</p>
+      <button type="button" class="g-preview" data-src="../genesis-forest/" data-title="Beam Forest" aria-controls="g-viewer">Preview here</button>
+    </li>
+    <li class="g-tile">
+      <a class="g-open" href="../cathedral/" aria-describedby="g-d-cathedral">
+        <picture><source srcset="img/cathedral.webp" type="image/webp"><img src="img/cathedral-640.jpg" width="640" height="360" alt="A screenshot of Cathedral" loading="lazy" decoding="async"></picture>
+        <strong>Cathedral</strong>
+      </a>
+      <p id="g-d-cathedral">A design game measured against reality: pick a building, carve it, hear the guide.</p>
+      <button type="button" class="g-preview" data-src="../cathedral/" data-title="Cathedral" aria-controls="g-viewer">Preview here</button>
+    </li>
+    <li class="g-tile">
+      <a class="g-open" href="../workbench/" aria-describedby="g-d-workbench">
+        <picture><source srcset="img/workbench.webp" type="image/webp"><img src="img/workbench-640.jpg" width="640" height="360" alt="A screenshot of Workbench" loading="lazy" decoding="async"></picture>
+        <strong>Workbench</strong>
+      </a>
+      <p id="g-d-workbench">Six chassis and ten materials, from blueprint to hyper-real, with a turntable.</p>
+      <button type="button" class="g-preview" data-src="../workbench/" data-title="Workbench" aria-controls="g-viewer">Preview here</button>
+    </li>
+    <li class="g-tile">
+      <a class="g-open" href="../tessera-bridge/" aria-describedby="g-d-tessera-bridge">
+        <picture><source srcset="img/tessera-bridge.webp" type="image/webp"><img src="img/tessera-bridge-640.jpg" width="640" height="360" alt="A screenshot of Tessera Bridge" loading="lazy" decoding="async"></picture>
+        <strong>Tessera Bridge</strong>
+      </a>
+      <p id="g-d-tessera-bridge">Twelve kernels, one bridge. Every visualization tied to the 48-node core.</p>
+      <button type="button" class="g-preview" data-src="../tessera-bridge/" data-title="Tessera Bridge" aria-controls="g-viewer">Preview here</button>
+    </li>
+    <li class="g-tile">
+      <a class="g-open" href="../elemental/" aria-describedby="g-d-elemental">
+        <picture><source srcset="img/elemental.webp" type="image/webp"><img src="img/elemental-640.jpg" width="640" height="360" alt="A screenshot of Elemental" loading="lazy" decoding="async"></picture>
+        <strong>Elemental</strong>
+      </a>
+      <p id="g-d-elemental">The 118 elements mapped to the human body, with quantum subshells and a periodic vault.</p>
+      <button type="button" class="g-preview" data-src="../elemental/" data-title="Elemental" aria-controls="g-viewer">Preview here</button>
+    </li>
+  </ul>
+  <section class="g-viewer" id="g-viewer" hidden aria-label="Preview">
+    <div class="g-viewer-bar"><strong id="g-title"></strong><span><a id="g-full" href="#">Open full page</a> <button type="button" id="g-close">Close preview</button></span></div>
+    <iframe id="g-frame" title="Preview" allow="autoplay; fullscreen" loading="lazy"></iframe>
+  </section>
+  <p class="g-foot">Every number on these pages is measured, not drawn.</p>
+</main>
 <script>
-  const view = document.getElementById('view');
-  const desc = document.getElementById('desc');
-  document.querySelectorAll('.tab').forEach(t => {
-    t.addEventListener('click', () => {
-      document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
-      t.classList.add('active');
-      view.src = t.dataset.src;
-      desc.innerHTML = t.dataset.desc;
+(function () {
+  var viewer = document.getElementById("g-viewer"), frame = document.getElementById("g-frame");
+  var title = document.getElementById("g-title"), full = document.getElementById("g-full");
+  var btns = [].slice.call(document.querySelectorAll(".g-preview")), last = null;
+  function close() {
+    viewer.hidden = true; frame.removeAttribute("src");
+    btns.forEach(function (b) { b.setAttribute("aria-pressed", "false"); b.textContent = "Preview here"; });
+    if (last) last.focus();
+  }
+  btns.forEach(function (b) {
+    b.setAttribute("aria-pressed", "false");
+    b.addEventListener("click", function () {
+      if (b.getAttribute("aria-pressed") === "true") { last = b; close(); return; }
+      btns.forEach(function (x) { x.setAttribute("aria-pressed", x === b ? "true" : "false"); x.textContent = x === b ? "Close preview" : "Preview here"; });
+      last = b; title.textContent = b.dataset.title; full.href = b.dataset.src;
+      frame.title = b.dataset.title + " preview"; frame.src = b.dataset.src; viewer.hidden = false;
+      viewer.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
     });
   });
+  document.getElementById("g-close").addEventListener("click", close);
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !viewer.hidden) close(); });
+})();
 </script>
+<script src="../locker-field.js"></script>
+<script src="../interaction.js"></script>
+<script src="../nav.js"></script>
 </body>
 </html>
