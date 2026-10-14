@@ -7,6 +7,7 @@
 <meta name="description" content="Two figures on a canvas: start from one of four looks or the blank figure, change armor, weapon and body, save to the site locker, or save a picture.">
 <meta name="theme-color" content="#070708">
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="manifest" href="../manifest.webmanifest">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="HEAVY IS THE CROWN">
 <meta property="og:title" content="HEAVY IS THE CROWN — Forge">
@@ -48,6 +49,7 @@ select{width:100%;padding:8px;border-radius:10px;border:1px solid #E8E8E8;font-s
 .dots{display:flex;gap:8px;flex-wrap:wrap}
 .dot{width:26px;height:26px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #E8E8E8;cursor:pointer}
 .dot.active{box-shadow:0 0 0 2px #0A0A0B}
+picture{display:contents}
 .presets-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 /* Look cards use the shared card (/card.css); Forge sets sizes only. */
 .presets-grid .hc-card__plate em{font-size:10.5px}
@@ -69,7 +71,7 @@ select:disabled,input[type=range]:disabled{opacity:.35;cursor:not-allowed;filter
 /* Site nav (added for the hall site). Same look as the other pages' nav. */
 :root{--navh:52px}
 #site-nav{position:fixed;top:0;left:0;right:0;height:var(--navh);z-index:40;display:flex;flex-wrap:nowrap;gap:0 20px;align-items:center;padding:0 24px;background:rgba(7,7,8,.86);backdrop-filter:blur(16px);border-bottom:1px solid rgba(244,239,230,.16);font-family:"Outfit","Avenir Next","Segoe UI",sans-serif;overflow-x:auto;scrollbar-width:none}
-#site-nav a{color:rgba(244,241,232,.62);text-decoration:none;font-size:14px;white-space:nowrap}
+#site-nav a{color:rgba(244,241,232,.62);text-decoration:none;font-size:14px;white-space:nowrap;padding:4px 0;display:inline-block}
 #site-nav a[aria-current="page"],#site-nav a:hover{color:#F4F1E8}
 #site-nav .brand{font-family:"Cormorant Garamond",Georgia,serif;font-weight:500;letter-spacing:.28em;font-size:14px;color:#F4F1E8;margin-right:10px}
 #site-nav .nav-links{display:contents}
@@ -154,10 +156,10 @@ input[type=range]:disabled::-webkit-slider-thumb{border-color:#999}
 <div class="quiet kbd-hint">Keys: Ctrl+Z / Ctrl+Y undo and redo · R random · , and . switch mannequin</div>
 <div class="label">Four looks — already drawn</div>
 <div class="presets-grid">
-<div class="preset-card hc-card hc-card--sm" role="button" tabindex="0" style="--tier:#8a78e8;--pos:50% 30%" onclick="selectPreset(0)" id="p0"><span class="hc-card__art"><img alt="Black Chrome" src="img/card/black-chrome.webp" data-full="img/black-chrome.webp" width="360" height="720" decoding="async"></span><span class="hc-card__sheen" aria-hidden="true"></span><span class="hc-card__rank"><b>14</b><span>Royal</span></span><span class="hc-card__plate"><strong>Black Chrome</strong><em>Black armor + cyan seams</em></span></div>
-<div class="preset-card hc-card hc-card--sm selected" role="button" tabindex="0" style="--tier:#f06a28;--pos:50% 30%" onclick="selectPreset(1)" id="p1"><span class="hc-card__art"><img alt="White Samurai" src="img/card/white-samurai.webp" data-full="img/white-samurai.webp" width="360" height="720" decoding="async"></span><span class="hc-card__sheen" aria-hidden="true"></span><span class="hc-card__rank"><b>21</b><span>Ember</span></span><span class="hc-card__plate"><strong>White Samurai</strong><em>Cracked white plates + katana</em></span></div>
-<div class="preset-card hc-card hc-card--sm" role="button" tabindex="0" style="--tier:#2fce86;--pos:50% 30%" onclick="selectPreset(2)" id="p2"><span class="hc-card__art"><img alt="Skull Champion" src="img/card/skull-champion.webp" data-full="img/skull-champion.webp" width="360" height="720" decoding="async"></span><span class="hc-card__sheen" aria-hidden="true"></span><span class="hc-card__rank"><b>8</b><span>Jade</span></span><span class="hc-card__plate"><strong>Skull Champion</strong><em>Bone fused armor</em></span></div>
-<div class="preset-card hc-card hc-card--sm" role="button" tabindex="0" style="--tier:#5eb6ee;--pos:50% 30%" onclick="selectPreset(3)" id="p3"><span class="hc-card__art"><img alt="Titan Gladiator" src="img/card/titan-gladiator.webp" data-full="img/titan-gladiator.webp" width="360" height="720" decoding="async"></span><span class="hc-card__sheen" aria-hidden="true"></span><span class="hc-card__rank"><b>11</b><span>Azure</span></span><span class="hc-card__plate"><strong>Titan Gladiator</strong><em>Heavy dark plates</em></span></div>
+<div class="preset-card hc-card hc-card--sm" role="button" tabindex="0" style="--tier:#8a78e8;--pos:50% 30%" onclick="selectPreset(0)" id="p0"><span class="hc-card__art"><picture><source srcset="img/card/black-chrome.avif" type="image/avif"><img alt="Black Chrome" src="img/card/black-chrome.webp" data-full="img/black-chrome.webp" width="360" height="720" decoding="async"></picture></span><span class="hc-card__sheen" aria-hidden="true"></span><span class="hc-card__rank"><b>14</b><span>Royal</span></span><span class="hc-card__plate"><strong>Black Chrome</strong><em>Black armor + cyan seams</em></span></div>
+<div class="preset-card hc-card hc-card--sm selected" role="button" tabindex="0" style="--tier:#f06a28;--pos:50% 30%" onclick="selectPreset(1)" id="p1"><span class="hc-card__art"><picture><source srcset="img/card/white-samurai.avif" type="image/avif"><img alt="White Samurai" src="img/card/white-samurai.webp" data-full="img/white-samurai.webp" width="360" height="720" decoding="async"></picture></span><span class="hc-card__sheen" aria-hidden="true"></span><span class="hc-card__rank"><b>21</b><span>Ember</span></span><span class="hc-card__plate"><strong>White Samurai</strong><em>Cracked white plates + katana</em></span></div>
+<div class="preset-card hc-card hc-card--sm" role="button" tabindex="0" style="--tier:#2fce86;--pos:50% 30%" onclick="selectPreset(2)" id="p2"><span class="hc-card__art"><picture><source srcset="img/card/skull-champion.avif" type="image/avif"><img alt="Skull Champion" src="img/card/skull-champion.webp" data-full="img/skull-champion.webp" width="360" height="720" decoding="async"></picture></span><span class="hc-card__sheen" aria-hidden="true"></span><span class="hc-card__rank"><b>8</b><span>Jade</span></span><span class="hc-card__plate"><strong>Skull Champion</strong><em>Bone fused armor</em></span></div>
+<div class="preset-card hc-card hc-card--sm" role="button" tabindex="0" style="--tier:#5eb6ee;--pos:50% 30%" onclick="selectPreset(3)" id="p3"><span class="hc-card__art"><picture><source srcset="img/card/titan-gladiator.avif" type="image/avif"><img alt="Titan Gladiator" src="img/card/titan-gladiator.webp" data-full="img/titan-gladiator.webp" width="360" height="720" decoding="async"></picture></span><span class="hc-card__sheen" aria-hidden="true"></span><span class="hc-card__rank"><b>11</b><span>Azure</span></span><span class="hc-card__plate"><strong>Titan Gladiator</strong><em>Heavy dark plates</em></span></div>
 </div>
 <div class="control" style="margin-top:12px">
 <div class="label">Armor — Customize</div>

@@ -104,6 +104,8 @@
   if (!links) return;
   var b = document.createElement("button");
   b.type = "button"; b.className = "nav-sound";
+  // Fixed name + pressed state, so a screen reader says "Sound, toggle, pressed" instead of contradicting itself.
+  b.setAttribute("aria-label", "Sound"); b.title = "Interface sounds";
   function paint() { b.textContent = on ? "Sound on" : "Sound off"; b.setAttribute("aria-pressed", on ? "true" : "false"); }
   paint();
   b.addEventListener("click", function () {

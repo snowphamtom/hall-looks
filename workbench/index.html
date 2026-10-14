@@ -127,7 +127,7 @@ main>*{min-width:0}
 <button id="turnToggle" title="Turntable rotation" aria-label="Turntable rotation">⟳</button>
 <button id="galleryBtn" title="Design gallery" aria-label="Design gallery">◈</button>
 </div>
-<a href="../">← HALL</a>
+<a href="../" style="display:inline-block;padding:6px 4px">← HALL</a>
 </header>
 <main>
 <aside class="left">
@@ -194,7 +194,7 @@ main>*{min-width:0}
 <div class="materialize">
 <div class="row">
 <span>BLUEPRINT</span>
-<input type="range" id="matSlider" min="0" max="100" value="0">
+<input type="range" id="matSlider" aria-label="Blueprint to hyper-real" min="0" max="100" value="0">
 <span>HYPER-REAL</span>
 </div>
 <div class="export-row">
@@ -219,15 +219,15 @@ main>*{min-width:0}
 </div>
 <h2>LIGHTING</h2>
 <div class="ctrl">
-<label>LIGHT ANGLE <b id="vLightA">45°</b></label>
+<label for="rLightA">LIGHT ANGLE <b id="vLightA">45°</b></label>
 <input type="range" id="rLightA" min="0" max="360" value="45">
 </div>
 <div class="ctrl">
-<label>INTENSITY <b id="vLightI">80%</b></label>
+<label for="rLightI">INTENSITY <b id="vLightI">80%</b></label>
 <input type="range" id="rLightI" min="0" max="100" value="80">
 </div>
 <div class="ctrl">
-<label>WARM — COOL <b id="vLightT">50%</b></label>
+<label for="rLightT">WARM — COOL <b id="vLightT">50%</b></label>
 <input type="range" id="rLightT" min="0" max="100" value="50">
 </div>
 <h2>CAPE</h2>

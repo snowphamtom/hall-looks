@@ -1028,3 +1028,9 @@ a:focus-visible, textarea:focus-visible, input:focus-visible, select:focus-visib
 .nav-sound:focus-visible { outline: 2px solid #e4a15a; outline-offset: 2px; }
 /* Bigger tap targets on phones (WCAG 2.5.8) */
 @media (max-width: 720px) { .nav[data-collapsible].open .nav-links a, .nav-sound { min-height: 32px; display: inline-flex; align-items: center; } }
+/* AVIF <picture> wrappers lay out like the bare <img>. */
+picture{display:contents}
+.stage-still > picture:first-child > img { width: 100%; max-height: none; object-fit: contain; object-position: center center; }
+/* Polish 2: nav links meet the 24px target size. */
+#site-nav .nav-links a, #site-nav .brand{padding:4px 0;display:inline-block}
+#site-nav .nav-sound{min-height:28px}
