@@ -114,3 +114,76 @@
 .hc-card__plate em { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .hc-card--sm .hc-card__plate strong { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .hc-card--sm .hc-card__plate strong::after { display: none; }
+
+/* ===== Card realism v2: photoreal collectible-card frame (local) =====
+   Layered metal bezel + foil inner lip, cardstock grain, depth shadows, crisp plate.
+   Figures are shown whole (contain, no hover zoom). Holo stays on .hc-card--prism only. */
+.hc-card {
+  --bez: 7px;
+  --paper: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .48 0 0 0 0 .44 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  border-radius: 13px;
+  background:
+    var(--paper),
+    linear-gradient(145deg,
+      color-mix(in srgb, var(--tier) 35%, #f6f1e2) 0%,
+      color-mix(in srgb, var(--tier) 70%, #3a3328) 18%,
+      color-mix(in srgb, var(--tier) 30%, #1a1814) 38%,
+      color-mix(in srgb, var(--tier) 80%, #fff6da) 52%,
+      color-mix(in srgb, var(--tier) 45%, #241f18) 70%,
+      color-mix(in srgb, var(--tier) 65%, #c9c2ae) 100%);
+  background-size: 160px 160px, 100% 100%;
+  background-blend-mode: overlay, normal;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.35), inset 0 -1px 0 rgba(0,0,0,.55),
+    0 1px 1px rgba(0,0,0,.6), 0 4px 8px -2px rgba(0,0,0,.55), 0 22px 38px -18px rgba(0,0,0,.9);
+}
+.hc-card:hover, .hc-card:focus-visible {
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.4), inset 0 -1px 0 rgba(0,0,0,.55),
+    0 2px 2px rgba(0,0,0,.6), 0 10px 16px -6px rgba(0,0,0,.6), 0 34px 54px -20px rgba(0,0,0,.95);
+}
+/* art window sits inside the bezel; whole figure, never cropped */
+.hc-card__art {
+  inset: var(--bez); border-radius: 7px; overflow: hidden;
+  background: var(--paper), radial-gradient(ellipse at 50% 38%, #1b1c21, #060607 72%);
+  background-size: 160px 160px, 100% 100%; background-blend-mode: soft-light, normal;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.7), inset 0 2px 6px rgba(0,0,0,.8);
+}
+.hc-card__art img, .hc-card__art canvas { object-fit: contain !important; object-position: 50% 50% !important; }
+.hc-card:hover .hc-card__art img { transform: none; }
+.hc-card::before { inset: var(--bez); border-radius: 7px;
+  background:
+    linear-gradient(180deg, rgba(5,5,6,.45) 0%, rgba(5,5,6,0) 18%),
+    linear-gradient(0deg, rgba(5,5,6,.92) 0%, rgba(5,5,6,.62) 17%, rgba(5,5,6,0) 38%); }
+/* foil inner lip: thin bright metal edge with a fine engraved line */
+.hc-card:not(.hc-card--prism)::after {
+  inset: calc(var(--bez) - 2px); border-radius: 8px; border: 2px solid transparent;
+  background: linear-gradient(160deg, rgba(255,250,230,.9), color-mix(in srgb, var(--tier) 70%, #000) 40%, rgba(255,246,214,.85) 60%, color-mix(in srgb, var(--tier) 55%, #000)) border-box;
+  -webkit-mask: linear-gradient(#000 0 0) padding-box exclude, linear-gradient(#000 0 0);
+          mask: linear-gradient(#000 0 0) padding-box exclude, linear-gradient(#000 0 0);
+  box-shadow: none;
+}
+.hc-card__sheen { inset: var(--bez); border-radius: 7px; }
+/* nameplate: engraved metal bar with crisp type */
+.hc-card__plate { left: var(--bez); right: var(--bez); bottom: var(--bez); padding: 0 14px 13px; }
+.hc-card__plate strong {
+  font-weight: 700; letter-spacing: .06em; text-rendering: geometricPrecision; -webkit-font-smoothing: antialiased;
+  padding: 6px 10px 5px; margin: 0 -4px; border-radius: 3px;
+  background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,0) 45%), linear-gradient(90deg, rgba(10,10,12,.82), rgba(18,17,15,.7));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tier) 55%, transparent), inset 0 1px 0 rgba(255,255,255,.12), 0 2px 4px rgba(0,0,0,.6);
+  text-shadow: 0 1px 0 rgba(0,0,0,.95), 0 -1px 0 rgba(255,255,255,.06);
+}
+.hc-card__plate strong::after { display: none; }
+.hc-card__rank { top: calc(var(--bez) + 8px); left: calc(var(--bez) + 8px); }
+.hc-card__rank b { filter: drop-shadow(0 1px 1px rgba(0,0,0,.8)); }
+.hc-card[aria-pressed="true"], .hc-card.selected {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 0 0 2px #e4c56a, 0 24px 44px -18px rgba(0,0,0,.9), 0 0 26px rgba(228,197,106,.28);
+}
+.hc-card--sm { --bez: 5px; border-radius: 10px; }
+.hc-card--sm .hc-card__plate { padding: 0 8px 8px; }
+.hc-card--sm .hc-card__plate strong { padding: 4px 7px 3px; margin: 0; }
+.hc-picks .hc-card { --bez: 4px; }
+.hc-picks .hc-card__plate { padding: 0 5px 6px; }
+/* Prism keeps the holo; its bezel becomes iridescent metal */
+.hc-card--prism { background: var(--paper), conic-gradient(from 210deg at 50% 50%, #e9d2ff, #9fe9ff, #fff4c0, #c8b8ff, #aaffdc, #ffc4ec, #e9d2ff); background-size: 160px 160px, 100% 100%; background-blend-mode: overlay, normal; }
+.hc-card--prism .hc-card__foil { inset: var(--bez); border-radius: 7px; }
