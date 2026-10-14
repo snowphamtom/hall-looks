@@ -89,7 +89,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 // beams [x,z,h,r,g,b,a,b,ham,doors,cls(0/1/2),universe,comp?]
 const {nodes, beams} = await (await fetch('data.json')).json();
 const CLSNAME = ['DOOR','ALIAS','NEVER'];
-const compOf = b => (b.length > 13 ? b[13] : 0);
+const compOf = b => (b[10]===0 ? b[12] : 0);
 const doors = beams.filter(b=>b[10]===0 && !compOf(b));
 const comps = beams.filter(b=>b[10]===0 && compOf(b));
 const aliases = beams.filter(b=>b[10]===1);
