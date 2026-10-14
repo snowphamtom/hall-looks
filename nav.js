@@ -25,13 +25,19 @@
 // tab is hidden; reduced-motion visitors get a single still frame.
 (function () {
   var sky = document.getElementById("sky");
+  if (sky && !sky.querySelector(".sky-pin")) {
+    var pin = document.createElement("div");
+    pin.className = "sky-pin";
+    while (sky.firstChild) pin.appendChild(sky.firstChild);
+    sky.appendChild(pin);
+  }
   if (!sky || !window.requestAnimationFrame) return;
   var cv = document.createElement("canvas");
   var ctx = cv.getContext && cv.getContext("2d");
   if (!ctx) return;
   cv.className = "sky-canvas";
   cv.setAttribute("aria-hidden", "true");
-  sky.appendChild(cv);
+  (sky.querySelector(".sky-pin") || sky).appendChild(cv);
   document.documentElement.classList.add("sky-live");
   var mq = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
   var W = 0, H = 0, dpr = 1, petals = [], raf = 0, last = 0;
@@ -44,7 +50,7 @@
   }
   function size() {
     dpr = Math.min(window.devicePixelRatio || 1, 2);
-    W = sky.clientWidth || window.innerWidth; H = sky.clientHeight || window.innerHeight;
+    var pn = sky.querySelector(".sky-pin") || sky; W = pn.clientWidth || window.innerWidth; H = pn.clientHeight || window.innerHeight;
     cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     var n = Math.round(Math.min(46, Math.max(14, W * H / 32000)));
