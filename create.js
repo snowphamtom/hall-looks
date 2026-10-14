@@ -515,8 +515,8 @@
       "<p id=\"figure-summary\" class=\"figure-summary\" aria-live=\"polite\"></p>" +
       "<div class=\"figure-actions\">" +
       "<button type=\"button\" class=\"go\" id=\"create-random\" aria-label=\"Randomize every choice\">Randomize</button>" +
-      "<button type=\"button\" class=\"go\" id=\"create-save\" aria-label=\"Save this character to the locker on this device\">Save to locker</button>" +
-      "<button type=\"button\" class=\"go\" id=\"create-png\" aria-label=\"Download the figure as a PNG\">Download PNG</button>" +
+      "<button type=\"button\" class=\"go\" id=\"create-save\" title=\"Save this character to the locker on this device\">Save to locker</button>" +
+      "<button type=\"button\" class=\"go\" id=\"create-png\" title=\"Download the figure as a PNG\">Download PNG</button>" +
       "</div><p id=\"figure-status\" class=\"figure-status\" role=\"status\"></p></div>";
     figCanvas = panel.querySelector("#figure-canvas");
     sumEl = panel.querySelector("#figure-summary");

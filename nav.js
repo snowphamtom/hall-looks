@@ -77,6 +77,8 @@
   }
   function frame(now) {
     raf = 0;
+    // 30 fps is plenty for drifting petals and halves the main-thread cost.
+    if (last && now - last < 31) { raf = requestAnimationFrame(frame); return; }
     var dt = last ? Math.min((now - last) / 1000, 0.05) : 0.016; last = now;
     draw(dt, now / 1000);
     if (!document.hidden && !(mq && mq.matches)) raf = requestAnimationFrame(frame);
@@ -84,7 +86,10 @@
   function start() { if (!raf && !document.hidden) { last = 0; raf = requestAnimationFrame(frame); } }
   function stop() { if (raf) { cancelAnimationFrame(raf); raf = 0; } }
   size();
-  if (mq && mq.matches) draw(0, 0); else start();
+  // Petals begin after the page has loaded and settled, so they never compete with first paint.
+  var begin = function () { if (mq && mq.matches) draw(0, 0); else start(); };
+  var later = function () { setTimeout(function () { (window.requestIdleCallback || setTimeout)(begin, { timeout: 1500 }); }, 1200); };
+  if (document.readyState === "complete") later(); else window.addEventListener("load", later, { once: true });
   window.addEventListener("resize", function () { size(); if (mq && mq.matches) draw(0, 0); });
   document.addEventListener("visibilitychange", function () { document.hidden ? stop() : start(); });
   if (mq && mq.addEventListener) mq.addEventListener("change", function () { mq.matches ? (stop(), draw(0, 0)) : start(); });

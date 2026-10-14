@@ -218,13 +218,13 @@ function chooseRank(n, item) {
 const ladder = document.getElementById("rank-ladder");
 if (ladder) {
   TIERS.forEach((tier) => {
-    const li = document.createElement("li");
-    li.className = tierClass(tier);
+    const li = document.createElement("div");
+    li.className = "rk " + tierClass(tier);
     li.dataset.tier = String(tier.n);
     li.setAttribute("role", "button");
     li.setAttribute("tabindex", "0");
     li.setAttribute("aria-pressed", "false");
-    li.setAttribute("aria-label", "Filter roster to " + tier.name + ", rank " + tier.n);
+    li.title = "Show only " + tier.name + " in the roster";
     li.style.setProperty("--tier", tier.tint);
     li.innerHTML = "<i class='tier-pip' aria-hidden='true'></i><span class='rank-no'></span><strong></strong><em></em>";
     li.querySelector(".rank-no").textContent = tier.n === 24 ? "1st" : String(tier.n).padStart(2, "0");

@@ -41,7 +41,7 @@ body{font-family:system-ui,sans-serif;background:var(--bg);color:#fff;height:100
 .badge.dark{background:rgba(10,10,11,.8);color:#fff;border:1px solid rgba(255,255,255,.15);backdrop-filter:blur(10px)}
 .bottom{pointer-events:auto;display:grid;grid-template-columns:380px 1fr 380px;gap:14px;align-items:end}
 .panel{background:rgba(255,255,255,.96);color:#0A0A0B;border-radius:18px;padding:14px;border:1px solid rgba(0,0,0,.06);box-shadow:0 20px 50px rgba(0,0,0,.45);max-height:84vh;overflow:auto;backdrop-filter:blur(16px)}
-.label{font-size:9px;font-weight:800;letter-spacing:1.3px;opacity:.55;text-transform:uppercase;margin-bottom:8px}
+.label{font-size:11px;font-weight:800;letter-spacing:1.3px;opacity:.78;text-transform:uppercase;margin-bottom:8px}
 .control{margin-bottom:12px;display:flex;flex-direction:column;gap:7px}
 .row{display:flex;align-items:center;justify-content:space-between;font-size:11px}
 input[type=range]{width:100%;accent-color:#0A0A0B}
@@ -54,7 +54,7 @@ picture{display:contents}
 /* Look cards use the shared card (/card.css); Forge sets sizes only. */
 .presets-grid .hc-card__plate em{font-size:10.5px}
 .presets-grid .hc-card__plate strong{font-size:15px}
-.spec{font-family:ui-monospace,monospace;font-size:9px;line-height:1.5;background:#f5f5f4;padding:10px;border-radius:10px;max-height:150px;overflow:auto;white-space:pre-wrap}
+.spec{font-family:ui-monospace,monospace;font-size:11px;line-height:1.5;background:#f5f5f4;padding:10px;border-radius:10px;max-height:150px;overflow:auto;white-space:pre-wrap}
 textarea{width:100%;min-height:80px;padding:10px;border-radius:12px;border:1px solid #E8E8E8;font-family:ui-monospace,monospace;font-size:10px;line-height:1.4;resize:vertical;background:#FCFCFB}
 .btn{width:100%;background:#0A0A0B;color:#fff;border:none;padding:12px;border-radius:12px;font-weight:800;font-size:12px;cursor:pointer}
 .btn:hover{background:#000}
@@ -63,8 +63,8 @@ textarea{width:100%;min-height:80px;padding:10px;border-radius:12px;border:1px s
 .figpick{display:flex;gap:8px;margin:0 0 10px}
 .figpick button{flex:1;border:1px solid #E8E8E8;background:#fff;color:#0A0A0B;border-radius:10px;padding:8px 6px;font-size:10px;font-weight:800;cursor:pointer}
 .figpick button.on{background:#0A0A0B;color:#fff;border-color:#0A0A0B}
-.quiet{font-family:ui-monospace,monospace;font-size:9px;line-height:1.4;opacity:.45;margin-top:6px}
-.note{font-family:ui-monospace,monospace;font-size:9px;opacity:.55;margin-top:6px;min-height:12px}
+.quiet{font-family:ui-monospace,monospace;font-size:11px;line-height:1.4;opacity:.72;margin-top:6px}
+.note{font-family:ui-monospace,monospace;font-size:11px;opacity:.75;margin-top:6px;min-height:12px}
 .lock-note{font-size:12px;line-height:1.35;font-weight:700;color:#0A0A0B;opacity:1;margin:0 0 4px;white-space:pre-line}
 select:disabled,input[type=range]:disabled{opacity:.35;cursor:not-allowed;filter:grayscale(1)}
 
@@ -136,14 +136,14 @@ input[type=range]:disabled::-webkit-slider-thumb{border-color:#999}
 </div>
 <div class="ui">
 <div class="top">
-<div><div class="logo">FOUNDATION // GLADIATOR FORGE</div><div class="mono" style="font-size:9px;opacity:.6;color:#fff;margin-top:4px">Armor, weapon, and finish — the looks are already here.<br>Words only shift a flat reading. Not a new picture.</div></div>
+<div><div class="logo">FOUNDATION // GLADIATOR FORGE</div><div class="mono" style="font-size:11px;opacity:.75;color:#fff;margin-top:4px">Armor, weapon, and finish — the looks are already here.<br>Words only shift a flat reading. Not a new picture.</div></div>
 <div style="display:flex;gap:8px"><div class="badge dark">PRESETS</div></div>
 </div>
 <div class="bottom">
 <div class="panel">
 <div class="label">Base — Room with 2 Mannequins</div>
 <img class="blank-ref" id="blankRef" alt="The room with two blank mannequins" src="img/blank-duo.jpg" width="1024" height="1365" fetchpriority="high">
-<div class="mono" style="font-size:9px;opacity:.5;margin-bottom:10px">Left: a preset. Right: the blank figure.</div>
+<div class="mono" style="font-size:11px;opacity:.72;margin-bottom:10px">Left: a preset. Right: the blank figure.</div>
 <div class="figpick">
 <button type="button" id="fig0" class="on" aria-pressed="true" onclick="pickFig(0)">Left · hand on hip</button>
 <button type="button" id="fig1" aria-pressed="false" onclick="pickFig(1)">Right · pointing</button>
