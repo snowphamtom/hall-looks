@@ -239,8 +239,32 @@ input[type=range]{accent-color:#c9a227}
 #buildStamp{letter-spacing:0.08em}
 </style>
 
+<link rel="manifest" href="../manifest.webmanifest">
+<style id="site-nav-style">
+/* Shared site nav (Polish 3), scoped to #site-nav so it does not touch this page's own UI. */
+:root{--navh:52px}
+#site-nav{position:fixed;top:0;left:0;right:0;height:var(--navh);z-index:90;display:flex;flex-wrap:nowrap;gap:0 16px;align-items:center;padding:0 24px;background:rgba(7,7,8,.88);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border-bottom:1px solid rgba(244,239,230,.16);font-family:"Outfit","Avenir Next","Segoe UI",system-ui,sans-serif;line-height:1.2;text-shadow:none;letter-spacing:0;box-sizing:border-box}
+#site-nav *{box-sizing:border-box}
+#site-nav a{color:rgba(244,241,232,.62);text-decoration:none;font-size:14px;white-space:nowrap;padding:4px 0;display:inline-block;font-family:inherit}
+#site-nav a[aria-current="page"],#site-nav a:hover{color:#F4F1E8}
+#site-nav .brand{font-family:"Cormorant Garamond",Georgia,serif;font-weight:500;letter-spacing:.24em;font-size:14px;color:#F4F1E8;margin-right:6px}
+#site-nav .nav-links{display:contents}
+#site-nav .nav-toggle{display:none}
+#site-nav .nav-sound{font:inherit;font-size:13px;min-height:28px;padding:4px 12px;border-radius:999px;border:1px solid rgba(244,239,230,.16);background:transparent;color:rgba(244,241,232,.62);cursor:pointer;white-space:nowrap;margin-left:auto}
+#site-nav .nav-sound[aria-pressed="true"]{color:#F4F1E8;border-color:rgba(228,161,90,.6)}
+#site-nav a:focus-visible,#site-nav button:focus-visible{outline:2px solid #e4a15a;outline-offset:2px}
+@media (max-width:1100px){
+  #site-nav[data-collapsible] .nav-toggle{display:inline-block;margin-left:auto;font:inherit;font-size:14px;padding:6px 14px;min-height:32px;border-radius:999px;border:1px solid rgba(244,239,230,.16);background:#101114;color:#F4F1E8;cursor:pointer}
+  #site-nav[data-collapsible] .nav-links{display:none}
+  #site-nav[data-collapsible].open{height:auto;flex-wrap:wrap;padding:10px 18px}
+  #site-nav[data-collapsible].open .nav-links{display:flex;flex-wrap:wrap;gap:8px 16px;width:100%;padding:8px 0}
+  #site-nav .nav-sound{margin-left:0}
+}
+#hint{top:calc(12px + var(--navh)) !important}
+</style>
 </head>
 <body>
+<nav class="nav" id="site-nav" aria-label="Site"><a class='brand' href='../'>HEAVY IS THE CROWN</a><button type="button" class="nav-toggle" aria-expanded="false" aria-controls="nav-links">Menu</button><span class="nav-links" id="nav-links"><a href='../'>Room</a><a href='../foundation/'>Foundation</a><a href='../black-chrome/'>Black Chrome</a><a href='../white-samurai/'>White Samurai</a><a href='../skull-champion/'>Skull Champion</a><a href='../titan-gladiator/'>Titan Gladiator</a><a href='../forge/'>Forge</a><a href='../workbench/'>Workbench</a><a href='../smith/'>Smith</a><a href='../colosseum/'>Colosseum</a><a href='../create/'>Create</a><a href='../help/'>Help</a><a href='../locker/'>Locker</a></span></nav>
 <canvas id="cv"></canvas>
 
 <div id="boot">
@@ -4998,5 +5022,6 @@ document.getElementById('buildStamp').innerHTML = 'BUILD <b>v46</b> · LIVE — 
 _setState('CSG CARVING \u2014 FORMAT now carries the carve: mark a base, select a tool, and UNION, SUBTRACT or INTERSECT. The library was proved offline before it shipped: two 64 m\u00b3 cubes carve to exactly 32, 96 and 32.');
 
 </script>
+<script src="../nav.js"></script>
 </body>
 </html>
