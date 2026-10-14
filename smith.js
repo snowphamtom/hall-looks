@@ -8,10 +8,10 @@ const lookBtns = [...document.querySelectorAll("#looks [data-look]")];
 const weaponBtns = [...document.querySelectorAll("#weapons [data-weapon]")];
 
 const weaponSrc = {
-  hammer: "../images/weapon-hammer.jpg",
-  katana: "../images/weapon-katana.jpg",
-  axe: "../images/weapon-axe.jpg",
-  warhammer: "../images/weapon-warhammer.jpg"
+  hammer: "../images/weapon-hammer.webp",
+  katana: "../images/weapon-katana.webp",
+  axe: "../images/weapon-axe.webp",
+  warhammer: "../images/weapon-warhammer.webp"
 };
 const weaponAlt = {
   hammer: "Black Chrome hammer",

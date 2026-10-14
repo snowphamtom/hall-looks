@@ -806,7 +806,7 @@ function haptic() {
   lastHap = now;
   const l = document.getElementById('hapLabel');
   if (l) { try { l.click(); } catch (e) {} }
-  if (navigator.vibrate) { try { navigator.vibrate(10); } catch (e) {} }
+  if (navigator.vibrate && (!navigator.userActivation || navigator.userActivation.hasBeenActive)) { try { navigator.vibrate(10); } catch (e) {} }
 }
 function addItem(type, x, z, rotY = 0, scl = null, matName = 'stone') {
   const def = PARTS[type];
@@ -4090,8 +4090,8 @@ setInterval(() => {
   if (!solvLine) return;
   let brief = {};
   try { brief = JSON.parse(localStorage.getItem('cathBrief') || '{}'); } catch (e) { brief = {}; }
-  const seatsNow = items.reduce((a, it) => a + (PARTS[it.type].seats || 0), 0);
-  const stoneNow = items.reduce((a, it) => a + PARTS[it.type].vol * it.scale[0] * it.scale[1] * it.scale[2], 0);
+  const seatsNow = items.reduce((a, it) => a + ((PARTS[it.type] && PARTS[it.type].seats) || 0), 0);
+  const stoneNow = items.reduce((a, it) => { const p = PARTS[it.type], sc = it.scale || [1, 1, 1]; return a + (p && p.vol ? p.vol * sc[0] * sc[1] * sc[2] : 0); }, 0);
   const claims = [];
   if (brief.seats) claims.push(['seats', brief.seats, seatsNow]);
   if (brief.stone) claims.push(['stone m³', brief.stone, Math.round(stoneNow)]);

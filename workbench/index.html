@@ -113,6 +113,8 @@ aside.right{border-left:none;border-top:1px solid var(--line)}
 .chassis{grid-template-columns:repeat(6,110px);grid-auto-flow:column;overflow-x:auto;padding-bottom:6px}
 .chassis button img{height:74px}
 .canvas-stack{min-height:46vh}
+header{flex-wrap:wrap;gap:8px 12px;padding:12px 14px}
+main>*{min-width:0}
 }
 </style>
 </head>
@@ -122,8 +124,8 @@ aside.right{border-left:none;border-top:1px solid var(--line)}
 <div style="display:flex;gap:8px;align-items:center">
 <div id="wbReadout">BLUEPRINT — 0%</div>
 <button id="gridToggle" title="3D measurement grid">3D&nbsp;GRID</button>
-<button id="turnToggle" title="Turntable rotation">⟳</button>
-<button id="galleryBtn" title="Design gallery">◈</button>
+<button id="turnToggle" title="Turntable rotation" aria-label="Turntable rotation">⟳</button>
+<button id="galleryBtn" title="Design gallery" aria-label="Design gallery">◈</button>
 </div>
 <a href="../">← HALL</a>
 </header>

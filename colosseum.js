@@ -29,7 +29,7 @@ function setPressed(list, active) {
 
 function fightSrc(a, b) {
   const pair = [a, b].sort();
-  return "../images/fight-" + pair[0] + "-" + pair[1] + ".png";
+  return "../images/fight-" + pair[0] + "-" + pair[1] + ".webp";
 }
 
 aBtns.forEach((btn) => {

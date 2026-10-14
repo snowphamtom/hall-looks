@@ -15,7 +15,7 @@ const roster = [
     id: "foundation",
     name: "Foundation",
     note: "The earned piece. White mosaic plates over black armor with gold trim, and a see-through cape that shows rainbow light.",
-    img: "../images/foundation.jpg",
+    img: "../images/foundation.webp",
     pos: "55% 50%",
     href: "../foundation/"
   },
@@ -37,7 +37,7 @@ const roster = [
     id: "skull-champion",
     name: "Skull Champion",
     note: "Skull helmet, black armor, axe.",
-    img: "../images/look-skull-champion-realistic.jpg",
+    img: "../images/look-skull-champion-realistic.webp",
     pos: "49% 50%",
     href: "../skull-champion/"
   },

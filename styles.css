@@ -1016,3 +1016,15 @@ a:focus-visible, textarea:focus-visible, input:focus-visible, select:focus-visib
 /* Locker: crowns and board lines (reads the same keys as Forge). */
 .locker-honours { display: grid; gap: 12px; margin: 18px 0 8px; }
 .locker-honours p { margin: 0; color: var(--muted); }
+
+/* ===== Polish v3 ===== */
+/* Cross-document View Transitions: pages cross-fade; the nav stays put. Browsers without support just navigate. */
+@view-transition { navigation: auto; }
+.nav { view-transition-name: site-nav; }
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: .28s; animation-timing-function: cubic-bezier(.2,.7,.2,1); }
+@media (prefers-reduced-motion: reduce) { @view-transition { navigation: none; } }
+.nav-sound { font: inherit; font-size: 13px; padding: 4px 12px; border-radius: 999px; border: 1px solid rgba(244,239,230,.16); background: transparent; color: var(--muted, rgba(244,241,232,.62)); cursor: pointer; white-space: nowrap; }
+.nav-sound[aria-pressed="true"] { color: var(--ink, #F4F1E8); border-color: rgba(228,161,90,.6); }
+.nav-sound:focus-visible { outline: 2px solid #e4a15a; outline-offset: 2px; }
+/* Bigger tap targets on phones (WCAG 2.5.8) */
+@media (max-width: 720px) { .nav[data-collapsible].open .nav-links a, .nav-sound { min-height: 32px; display: inline-flex; align-items: center; } }

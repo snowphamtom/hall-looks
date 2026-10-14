@@ -187,3 +187,27 @@
 /* Prism keeps the holo; its bezel becomes iridescent metal */
 .hc-card--prism { background: var(--paper), conic-gradient(from 210deg at 50% 50%, #e9d2ff, #9fe9ff, #fff4c0, #c8b8ff, #aaffdc, #ffc4ec, #e9d2ff); background-size: 160px 160px, 100% 100%; background-blend-mode: overlay, normal; }
 .hc-card--prism .hc-card__foil { inset: var(--bez); border-radius: 7px; }
+
+/* ===== Polish v3: specular glint, skeleton loading, press feel ===== */
+/* A tight specular hot-spot rides over the soft sheen; brighter toward the card edge (like light on a real foil card). */
+.hc-card__sheen {
+  background:
+    radial-gradient(circle at var(--mx) var(--my), rgba(255,255,255,calc(.18 + var(--spec, 0) * .22)) 0, rgba(255,250,235,.08) 9%, transparent 22%),
+    radial-gradient(circle at var(--mx) var(--my), rgba(255,250,235,.20), rgba(255,250,235,.05) 30%, transparent 58%),
+    linear-gradient(calc(100deg + var(--ry, 0deg) * 4), transparent 35%, rgba(255,255,255,calc(var(--spec, 0) * .10)) 50%, transparent 65%);
+}
+.hc-card { will-change: transform; }
+.hc-card:active { transition-duration: .12s; }
+/* skeleton while the picture decodes */
+.hc-card.is-loading .hc-card__art::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(100deg, transparent 30%, rgba(244,241,232,.07) 50%, transparent 70%) 0 0 / 220% 100%;
+  animation: hc-skel 1.3s linear infinite;
+}
+.hc-card__art img { opacity: 1; transition: opacity .35s ease; }
+.hc-card.is-loading .hc-card__art img { opacity: 0; }
+@keyframes hc-skel { from { background-position: 120% 0; } to { background-position: -120% 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .hc-card.is-loading .hc-card__art::after { animation: none; }
+  .hc-card__art img { transition: none; }
+}

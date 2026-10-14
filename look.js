@@ -16,7 +16,7 @@ let style = "realistic";
 
 // Realistic pictures are JPEG photos; the other styles are small PNGs.
 function srcFor() {
-  return `../images/look-${look}-${style}.${style === "realistic" ? "jpg" : "png"}`;
+  return `../images/look-${look}-${style}.webp`;
 }
 
 function fillText() {

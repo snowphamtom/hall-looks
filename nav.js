@@ -83,3 +83,40 @@
   document.addEventListener("visibilitychange", function () { document.hidden ? stop() : start(); });
   if (mq && mq.addEventListener) mq.addEventListener("change", function () { mq.matches ? (stop(), draw(0, 0)) : start(); });
 })();
+// Optional UI sound: a soft synthesized click on card presses. Off by default;
+// the visitor turns it on with the Sound button in the nav (kept in this browser).
+(function () {
+  var KEY = "hc-sound", on = false, ac = null;
+  try { on = localStorage.getItem(KEY) === "on"; } catch (e) {}
+  window.HallSound = {
+    tick: function () {
+      if (!on) return;
+      try {
+        ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+        var t = ac.currentTime, o = ac.createOscillator(), g = ac.createGain();
+        o.type = "triangle"; o.frequency.setValueAtTime(880, t); o.frequency.exponentialRampToValueAtTime(420, t + .06);
+        g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.06, t + .005); g.gain.exponentialRampToValueAtTime(.0001, t + .09);
+        o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + .1);
+      } catch (e) {}
+    }
+  };
+  var links = document.querySelector(".nav .nav-links");
+  if (!links) return;
+  var b = document.createElement("button");
+  b.type = "button"; b.className = "nav-sound";
+  function paint() { b.textContent = on ? "Sound on" : "Sound off"; b.setAttribute("aria-pressed", on ? "true" : "false"); }
+  paint();
+  b.addEventListener("click", function () {
+    on = !on; try { localStorage.setItem(KEY, on ? "on" : "off"); } catch (e) {}
+    paint(); window.HallSound.tick();
+  });
+  links.appendChild(b);
+})();
+// Offline: a small service worker keeps the pages and pictures you have opened.
+if ("serviceWorker" in navigator && location.protocol !== "file:") {
+  addEventListener("load", function () {
+    var base = document.querySelector('link[rel="manifest"]');
+    var url = base ? new URL("sw.js", base.href).href : null;
+    if (url) navigator.serviceWorker.register(url, { scope: new URL("./", url).pathname }).catch(function () {});
+  });
+}
