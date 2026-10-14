@@ -1092,6 +1092,8 @@ document.getElementById('resetBtn').addEventListener('click', () => {
 /* ============ THE LEDGER — every part counted, every ratio audited ============ */
 let fpsEMA = 60;
 let lastExtents = null;
+// Shape poles (v25) and the default build (v27) call refreshExtents(); recount() is what measures the extents.
+function refreshExtents() { if (typeof recount === 'function') recount(); }
 function drift(cur, canon) {
   const d = (cur - canon) / canon * 100;
   return Math.abs(d) <= 2.5 ? '<b>✓ CANON</b>' : '<b class="drift">DRIFT ' + (d >= 0 ? '+' : '') + d.toFixed(1) + '%</b>';
@@ -4470,7 +4472,7 @@ haptic = function (kind) {
   if (kind === 'commit') {
     _hapClick();
     setTimeout(_hapClick, 75);
-    if (navigator.vibrate) { try { navigator.vibrate([12, 40, 18]); } catch (e) {} }
+    if (navigator.vibrate && (!navigator.userActivation || navigator.userActivation.hasBeenActive)) { try { navigator.vibrate([12, 40, 18]); } catch (e) {} }
     _hapState.last = now;
     return;
   }
@@ -4478,14 +4480,14 @@ haptic = function (kind) {
     _hapClick();
     setTimeout(_hapClick, 85);
     setTimeout(_hapClick, 190);
-    if (navigator.vibrate) { try { navigator.vibrate([28, 50, 28, 50, 40]); } catch (e) {} }
+    if (navigator.vibrate && (!navigator.userActivation || navigator.userActivation.hasBeenActive)) { try { navigator.vibrate([28, 50, 28, 50, 40]); } catch (e) {} }
     _hapState.last = now;
     return;
   }
   if (now - _hapState.last < 65) return;
   _hapState.last = now;
   _hapClick();
-  if (navigator.vibrate) { try { navigator.vibrate(8); } catch (e) {} }
+  if (navigator.vibrate && (!navigator.userActivation || navigator.userActivation.hasBeenActive)) { try { navigator.vibrate(8); } catch (e) {} }
 };
 /* every touch, answered — buttons, tabs, hotbar, sheet, toggles, canvas */
 document.addEventListener('pointerdown', e => {
