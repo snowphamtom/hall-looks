@@ -242,7 +242,8 @@ function nodePos(p){
 function curPos(p){
   const target = nodePos(p);
   if (!layFrom || layK >= 1) return target;
-  const f = layFrom[p.m], e = layK < .5 ? 2 * layK * layK : 1 - Math.pow(-2 * layK + 2, 2) / 2;
+  const f = layFrom[p.m]; if (!f) return target;
+  const e = layK < .5 ? 2 * layK * layK : 1 - Math.pow(-2 * layK + 2, 2) / 2;
   return [f[0] + (target[0] - f[0]) * e, f[1] + (target[1] - f[1]) * e, f[2] + (target[2] - f[2]) * e];
 }
 function projXYZ(x, y, z, t){
@@ -512,7 +513,7 @@ function showReadout(p){
 }
 // ---- controls
 function group(name, fn){ document.querySelectorAll('[data-' + name + ']').forEach(b => b.addEventListener('click', () => { document.querySelectorAll('[data-' + name + ']').forEach(x => x.classList.remove('on')); b.classList.add('on'); fn(b.dataset[name]); haptic(1); })); }
-group('layout', v => { layFrom = {}; P3.forEach(p => layFrom[p.m] = curPos(p)); S.layout = v; layK = 0; lastAct = performance.now(); });
+group('layout', v => { const from = {}; P3.forEach(p => from[p.m] = curPos(p)); layFrom = from; S.layout = v; layK = 0; lastAct = performance.now(); });
 group('scheme', v => { SCH = SCHEMES[v]; document.body.style.background = SCH.bg; });
 group('estyle', v => S.estyle = v);
 group('ecolor', v => S.ecolor = v);
