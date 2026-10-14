@@ -1,0 +1,6 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>Fault Constellation</title>
+<style>body{background:#030305;color:#d4a843;font-family:Georgia,serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}</style>
+</head><body><div>Loading...</div><script>
+(async()=>{const n=3;let h='';for(let i=1;i<=n;i++){const r=await fetch('part'+i+'.txt');h+=await r.text();}
+document.open();document.write(h);document.close();})();
+</script></body></html>
