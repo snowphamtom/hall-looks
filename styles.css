@@ -1072,3 +1072,25 @@ html { position: relative; min-height: 100%; }
 #sky .sky-canvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; }
 #sky .sky-schematic { bottom: auto; height: 100vh; }
 @media (max-width: 700px) { .page { padding-bottom: 28px; } }
+/* No layout shift as the page grows: the blossom layer is pinned at top/left 0
+   and gets its drift margin from scale, not a negative inset. */
+#sky .sky-blossom { inset: 0; transform: scale(1.08); }
+@keyframes blossom-drift {
+  from { transform: translate3d(-1.2%, -.8%, 0) scale(1.08); }
+  to { transform: translate3d(1.2%, .8%, 0) scale(1.12); }
+}
+
+/* Round 6: locker export/import, per-save share link, steady layout. */
+.vault-io { display: inline-flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+label.clear { cursor: pointer; position: relative; }
+.sr-file { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; clip: rect(0 0 0 0); }
+label.clear:focus-within { outline: 2px solid #e4a15a; outline-offset: 2px; }
+.vault-slot { display: grid; gap: 6px; align-content: start; }
+.slot-share { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; opacity: .78; text-decoration: underline; text-underline-offset: 3px; padding: 4px 2px; justify-self: start; }
+.slot-share:hover, .slot-share:focus-visible { opacity: 1; }
+/* Reserve the rank ladder's height before locker.js fills it (was the locker's layout shift). */
+.rank-ladder:empty { min-height: 792px; }
+@media (max-width: 1100px) { .rank-ladder:empty { min-height: 810px; } }
+@media (max-width: 700px) { .rank-ladder:empty { min-height: 2077px; } }
+/* One visible keyboard ring everywhere it was missing. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible { outline: 2px solid #e4a15a; outline-offset: 2px; }

@@ -151,6 +151,7 @@ input[type=range]:disabled::-webkit-slider-thumb{border-color:#999}
 <button type="button" class="tool" id="undoBtn" onclick="undo()" disabled title="Undo (Ctrl+Z)" aria-keyshortcuts="Control+Z">↶ Undo</button>
 <button type="button" class="tool" id="redoBtn" onclick="redo()" disabled title="Redo (Ctrl+Y or Ctrl+Shift+Z)" aria-keyshortcuts="Control+Y">↷ Redo</button>
 <button type="button" class="tool" id="randBtn" onclick="randomize()" title="Random armor, finish, weapon and body for the selected mannequin (R)" aria-keyshortcuts="R">⚄ Random</button>
+<button type="button" class="tool" id="shareBtn" onclick="copyShare()" title="Copy a link that opens this exact build">🔗 Share</button>
 <button type="button" class="tool" id="resetBtn" onclick="resetFig()" title="Put the selected mannequin back to its starting look">Reset</button>
 </div>
 <div class="quiet kbd-hint">Keys: Ctrl+Z / Ctrl+Y undo and redo · R random · , and . switch mannequin</div>
@@ -327,6 +328,45 @@ function fromPreset(idx){
 let active=0;
 let color="#FFFFFF";
 const figs=[fromPreset(1), blankFig()];
+// Shareable builds: #b=<base64url JSON {v:1,a:active,f:[fig,fig]}>. Only known keys
+// of the expected type are taken, so a link can never inject anything else.
+const SHARE_KEY="b";
+function b64uEnc(str){ return btoa(unescape(encodeURIComponent(str))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""); }
+function b64uDec(str){ str=str.replace(/-/g,"+").replace(/_/g,"/"); while(str.length%4) str+="="; return decodeURIComponent(escape(atob(str))); }
+function cleanFig(raw){
+  const t=blankFig(), out=blankFig();
+  if(!raw||typeof raw!=="object") return null;
+  Object.keys(t).forEach(function(k){
+    const v=raw[k];
+    if(k==="preset"||k==="basePreset"){ if(v===null||(Number.isInteger(v)&&v>=0&&v<4)) out[k]=v; return; }
+    if(typeof t[k]==="number"){ if(typeof v==="number"&&isFinite(v)) out[k]=Math.max(0,Math.min(100,v)); return; }
+    if(typeof t[k]==="boolean"){ if(typeof v==="boolean") out[k]=v; return; }
+    if(typeof t[k]==="string"||t[k]===null){ if(typeof v==="string") out[k]=/color$/i.test(k)?(/^#[0-9a-f]{3,8}$/i.test(v)?v:t[k]):v.slice(0,600); return; }
+  });
+  return out;
+}
+function shareURL(){
+  const u=new URL(location.href); u.hash=SHARE_KEY+"="+b64uEnc(JSON.stringify({v:1,a:active,f:figs})); return u.href;
+}
+(function readShare(){
+  const m=/^#b=([A-Za-z0-9_-]{8,20000})$/.exec(location.hash||""); if(!m) return;
+  try{
+    const d=JSON.parse(b64uDec(m[1]));
+    if(!d||d.v!==1||!Array.isArray(d.f)) return;
+    const slot=d.f.length===1?(d.a===1?1:0):null;
+    d.f.slice(0,2).forEach(function(raw,i){ const f=cleanFig(raw); if(f) figs[slot==null?i:slot]=f; });
+    if(d.a===0||d.a===1) active=d.a;
+    window.__sharedBuild=true;
+  }catch(e){}
+})();
+window.copyShare=function(){
+  if(typeof readForm==="function") readForm();
+  const url=shareURL();
+  const done=function(){ say("Share link copied. It holds both mannequins; nothing is uploaded."); };
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done,function(){ say("Copy this link: "+url); });
+  else say("Copy this link: "+url);
+  try{ history.replaceState(null,"",url); }catch(e){}
+};
 let ready=false, W=1024, H=1365, ctx, masks, erases, inks, hits, scratch;
 function measureResidual(f){
   const out=[];

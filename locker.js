@@ -103,7 +103,7 @@ function render() {
   saved = load();
   slots.innerHTML = "";
   const tools = document.getElementById("vault-tools");
-  if (tools) tools.hidden = list().length < 2;
+  if (tools) tools.hidden = false;
   const shown = shownList();
   const shownEl = document.getElementById("vault-shown");
   if (shownEl) shownEl.textContent = vaultSrc === "all" ? "" : "Showing " + shown.length + " of " + list().length;
@@ -122,7 +122,16 @@ function render() {
     card.dataset.id = entry.id;
     if (seenAt && (+new Date(entry.at) || 0) > seenAt) { card.classList.add("is-new"); card.setAttribute("aria-description", "New since your last visit"); }
     card.addEventListener("click", () => removeEntry(entry));
-    slots.appendChild(card);
+    const wrap = document.createElement("div");
+    wrap.className = "vault-slot";
+    wrap.appendChild(card);
+    const share = document.createElement("a");
+    share.className = "slot-share";
+    share.href = shareHref(entry);
+    share.textContent = "Open in Forge";
+    share.title = "Opens this save on Forge; the link itself holds the build, so you can send it";
+    wrap.appendChild(share);
+    slots.appendChild(wrap);
   });
   empty.hidden = list().length > 0;
   empty.textContent = readOk() ? "Locker empty. Save a character from the roster below, or from Forge." : "The saved locker could not be read. It was left as it is.";
@@ -272,3 +281,46 @@ if (vaultSort) vaultSort.addEventListener("change", render);
 window.addEventListener("storage", (e) => { if (e.key === null || (e.key || "").indexOf("foundation-locker") === 0) render(); });
 
 render();
+
+// Share, export and import (HeroForge-style share links; a portable backup file).
+function b64u(str) { return btoa(unescape(encodeURIComponent(str))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); }
+function shareHref(entry) {
+  const fig = entry.fig === 1 ? 1 : 0;
+  return "../forge/#b=" + b64u(JSON.stringify({ v: 1, a: fig, f: [entry.state] }));
+}
+document.getElementById("export").addEventListener("click", () => {
+  const data = { kind: "heavy-is-the-crown-locker", v: 1, at: new Date().toISOString(), entries: list(), crowns: L.crowns() || [], board: L.board() || [] };
+  const blob = new Blob([JSON.stringify(data, null, 1)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "locker-" + localDay(data.at) + ".json";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  say("Exported " + list().length + " saves to a file.");
+});
+document.getElementById("import").addEventListener("change", (ev) => {
+  const file = ev.target.files && ev.target.files[0];
+  ev.target.value = "";
+  if (!file) return;
+  if (file.size > 8e6) { say("That file is too large to be a locker export."); return; }
+  file.text().then((txt) => {
+    let data;
+    try { data = JSON.parse(txt); } catch (e) { say("That file is not a locker export."); return; }
+    const incoming = Array.isArray(data) ? data : data && Array.isArray(data.entries) ? data.entries : null;
+    if (!incoming) { say("That file is not a locker export."); return; }
+    const cur = L.entries();
+    if (cur === null) { say("The saved locker could not be read, so nothing was imported."); return; }
+    const have = new Set(cur.map((e) => e.id));
+    const ok = incoming.filter((e) => e && typeof e.id === "string" && e.state && typeof e.state === "object" && !have.has(e.id))
+      .map((e) => ({ id: e.id.slice(0, 80), at: String(e.at || new Date().toISOString()).slice(0, 40), fig: e.fig === 1 ? 1 : 0,
+        label: String(e.label || "").slice(0, 120), residual: null, state: e.state,
+        thumb: typeof e.thumb === "string" && e.thumb.indexOf("data:image/") === 0 ? e.thumb : "",
+        source: typeof e.source === "string" ? e.source.slice(0, 20) : undefined, look: typeof e.look === "string" ? e.look.slice(0, 40) : null }));
+    const room = L.CAPACITY - cur.length;
+    const take = ok.slice(0, Math.max(0, room));
+    try { localStorage.setItem(L.KEY, JSON.stringify(cur.concat(take))); }
+    catch (e) { say("Browser storage is full, so nothing was imported."); return; }
+    say("Imported " + take.length + (ok.length > take.length ? " (" + (ok.length - take.length) + " left out: the locker holds " + L.CAPACITY + ")" : "") + (incoming.length > ok.length ? "; " + (incoming.length - ok.length) + " already here or unreadable" : "") + ".");
+    render();
+  });
+});

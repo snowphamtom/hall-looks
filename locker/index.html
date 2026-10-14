@@ -44,9 +44,13 @@
   <section class="vault" id="vault">
     <div class="vault-bar">
       <strong>Locker <span id="saved-count">0 / 24</span> saved</strong>
-      <button type="button" id="clear" class="clear">Clear locker</button>
+      <span class="vault-io">
+        <button type="button" id="export" class="clear" title="Download every save as a file you keep">Export</button>
+        <label class="clear" title="Load saves from an exported file; existing saves stay">Import<input type="file" id="import" class="sr-file" accept="application/json,.json"></label>
+        <button type="button" id="clear" class="clear">Clear locker</button>
+      </span>
     </div>
-    <div class="vault-tools" id="vault-tools" hidden>
+    <div class="vault-tools" id="vault-tools">
       <div class="chips" role="group" aria-label="Show saves from">
         <button type="button" class="chip" data-src="all" aria-pressed="true">All</button>
         <button type="button" class="chip" data-src="forge" aria-pressed="false">Forge</button>
