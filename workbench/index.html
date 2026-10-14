@@ -314,7 +314,7 @@ body{padding-top:var(--navh);box-sizing:border-box;height:100vh;height:100dvh;ov
       card.className = 'gcard';
       var img = document.createElement('img');
       img.src = d.thumb || '';
-      img.alt = d.name;
+      img.alt = ""; // the name is printed right beside it
       var meta = document.createElement('div');
       meta.className = 'gmeta';
       var nm = document.createElement('span');
