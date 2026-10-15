@@ -1,6 +1,6 @@
 /* Throne Room 3D hall. three.js r160 vendored in ./vendor (MIT, see THREE-LICENSE.txt). */
 import * as THREE from "./vendor/three-0.160.0.module.min.js";
-import { upgrade, tierFor } from "./throne-fx.js?v=p0l1sh20";
+import { upgrade, tierFor } from "./throne-fx.js?v=p0l1sh21";
 
 export function start(statues) {
   const canvas = document.getElementById("hall");
@@ -20,7 +20,7 @@ export function start(statues) {
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x07060a);
-  scene.fog = new THREE.Fog(0x07060a, 14, 46);
+  scene.fog = new THREE.Fog(0x140828, 14, 46);
   const camera = new THREE.PerspectiveCamera(62, 1, 0.1, 80);
 
   const N = statues.length;
@@ -33,7 +33,7 @@ export function start(statues) {
   const midZ = (startZ + throneZ) / 2;
 
   // ---------- light ----------
-  const hemi = new THREE.HemisphereLight(0xb0a4cc, 0x2a1d10, 0.75);
+  const hemi = new THREE.HemisphereLight(0xb0a4cc, 0x2a1d10, 0.15);   // low fill: contrast comes from the neon key, the canon sun stays at 3.0
   scene.add(hemi);
   // Light canon: directional, elevation 31.7175 deg, azimuth 137.508 deg, #fff2d8, intensity 3.0.
   // Compass for the hall: north points down the aisle toward the throne (-z), east is +x; azimuth runs clockwise from north.
@@ -224,7 +224,7 @@ export function start(statues) {
         if (prev >= 0) idx.push(prev, prev + 1, cur, prev + 1, cur + 1, cur);
         prev = cur;
         // hairline branches, emitted in order so the ignition reaches them as it passes
-        if (branches && i > 1 && i < pts.length - 2 && r() < 0.32) {
+        if (branches && i > 1 && i < pts.length - 2 && r() < 0.18) {
           const side = r() < 0.5 ? -1 : 1, bl = [], steps = 3 + (r() * 4 | 0);
           let bx = p.x, bz = p.z, ang = Math.atan2(dz, dx) + side * (0.6 + r() * 0.7);
           for (let k = 0; k <= steps; k++) { bl.push({ x: bx, z: bz }); ang += (r() - 0.5) * 0.8; const st = 0.12 + r() * 0.18; bx += Math.cos(ang) * st; bz += Math.sin(ang) * st; }
@@ -249,7 +249,7 @@ export function start(statues) {
       veinGroup.add(ch, lp);
     }
     const g = crackGeo(points, halo ? width * 0.55 : core, halo ? 0.007 : 0.009, !halo);
-    const c = new THREE.Color(0xffd27a).multiplyScalar(0.5 + 2.2 * brightness);
+    const c = new THREE.Color(0xffd27a).multiplyScalar(0.45 + 1.4 * brightness);
     const mat = new THREE.MeshBasicMaterial({ map: heatTex, color: c, transparent: true, opacity: halo ? 0.18 * (0.3 + brightness) : 0.6 + 0.4 * brightness,
       blending: THREE.AdditiveBlending, side: THREE.DoubleSide, depthWrite: false, toneMapped: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 });
     const mesh = new THREE.Mesh(g, mat);

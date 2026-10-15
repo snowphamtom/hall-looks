@@ -114,6 +114,8 @@ export function upgrade(o) {
     lamp(0xd6a740, 8, 2, new THREE.Vector3(0, -6, 0), 0.9);
     lamp(0xff2fb3, 6, 8, new THREE.Vector3(12, 4, 14), 2.2);   // neon key
     lamp(0x19d3d3, 6, 8, new THREE.Vector3(-14, 4, -10), 2.0); // neon rim                                       // gold bounce off the floor veins
+    lamp(0xff2bd6, 30, 0.6, new THREE.Vector3(0, 7, 18), 4); lamp(0xff2bd6, 0.6, 14, new THREE.Vector3(16, 4, 4), 3.5);   // neon strips the gold can reflect
+    lamp(0x19e6d2, 30, 0.6, new THREE.Vector3(0, 7, -24), 3); lamp(0x19e6d2, 0.6, 14, new THREE.Vector3(-16, 4, -4), 3);
     const pm = new THREE.PMREMGenerator(renderer);
     scene.environment = pm.fromScene(env, 0.035).texture;
     pm.dispose();
@@ -133,9 +135,9 @@ export function upgrade(o) {
   if (ewMat) { ewMat.normalMap.repeat.copy(o.eastWall.material.map.repeat); ewMat.roughnessMap.repeat.copy(o.eastWall.material.map.repeat); }
   nStone.repeat.set(1.5, 1); rStone.repeat.set(1.5, 1);
   const stoneMat = new THREE.MeshPhysicalMaterial({ color: 0x4a4450, normalMap: nStone, roughnessMap: rStone, roughness: 1, envMapIntensity: 0.6 });
-  const goldMat = new THREE.MeshPhysicalMaterial({ color: 0xe0b24c, metalness: 1, roughness: 0.2, clearcoat: 1, clearcoatRoughness: 0.06, envMapIntensity: 1.35, emissive: 0x1a1000 });
+  const goldMat = new THREE.MeshPhysicalMaterial({ color: 0xffc356, metalness: 1, roughness: 0.22, clearcoat: 1, clearcoatRoughness: 0.06, envMapIntensity: 1.5 });
   const brushed = new THREE.MeshPhysicalMaterial({ color: 0xd6a740, metalness: 1, roughness: 0.38, anisotropy: 0.8, envMapIntensity: 1.2 });
-  const wornGold = new THREE.MeshPhysicalMaterial({ color: 0xc99a3e, metalness: 1, roughness: 0.3, roughnessMap: tex(roughFrom(256, 41, 0.15, 0.85)), clearcoat: 0.6, clearcoatRoughness: 0.25, envMapIntensity: 1.25 });
+  const wornGold = new THREE.MeshPhysicalMaterial({ color: 0xffc356, metalness: 1, roughness: 0.28, roughnessMap: tex(roughFrom(256, 41, 0.15, 0.85)), clearcoat: 0.6, clearcoatRoughness: 0.25, envMapIntensity: 1.5 });
   const wood = new THREE.MeshPhysicalMaterial({ color: 0x2a140c, roughness: 0.55, clearcoat: 1, clearcoatRoughness: 0.08, envMapIntensity: 0.8 });
   { // lacquered wood grain
     const c = canvas(256), g = c.getContext("2d"), r = rng(77); g.fillStyle = "#3a1d10"; g.fillRect(0, 0, 256, 256);
@@ -296,9 +298,10 @@ export function upgrade(o) {
   const MAG = 0xff2fb3, TEAL = 0x19d3d3;
   // Procedural marble: white/grey base, strong dark noise veins, finer secondary veins, hairline cracks.
   // Low saturation, so the magenta/teal comes only from the lights. u wraps around (sampled on a cylinder).
-  function marbleMaps(n, seed, b0) {
+  function marbleMaps(n, seed, b0, dark) {
     b0 = b0 || [232, 229, 225];
     const W = n, Hh = n / 2, mk = () => { const c = canvas(W); c.height = Hh; const g = c.getContext("2d"); return [c, g, g.createImageData(W, Hh)]; };
+    const [ec, eg, eim] = mk(), ed = eim.data;
     const [c, g, img] = mk(), [hc, hg, him] = mk(), [rc, rg, rim] = mk(), d = img.data, hd = him.data, rd = rim.data;
     for (let y = 0; y < Hh; y++) for (let x = 0; x < W; x++) {
       const a = x / W * 6.2832, cx = Math.cos(a) * 1.6, cz = Math.sin(a) * 1.6, cy = y / Hh * 2.2 + seed;
@@ -307,11 +310,13 @@ export function upgrade(o) {
       const v2 = Math.pow(Math.abs(Math.sin((cz * 2.6 - cy * 1.4 + t * 1.6) * 2.9)), 0.12);
       const cloud = fbm(cx * 3 + 9, cy * 3, cz * 3, 3);
       const k = Math.min(v1, 0.35 + 0.65 * v2) * (0.86 + 0.18 * cloud), i = (y * W + x) * 4, tone = 0.25 + 0.75 * k;
-      d[i] = b0[0] * tone; d[i + 1] = b0[1] * tone; d[i + 2] = b0[2] * tone + (1 - k) * 6; d[i + 3] = 255;
+      if (dark) { const vv = Math.pow(1 - k, 1.6); d[i] = b0[0] + vv * 150; d[i + 1] = b0[1] + vv * 120; d[i + 2] = b0[2] + vv * 150; ed[i] = vv * 255; ed[i + 1] = vv * 90; ed[i + 2] = vv * 230; }
+      else { d[i] = b0[0] * tone; d[i + 1] = b0[1] * tone; d[i + 2] = b0[2] * tone + (1 - k) * 6; }
+      d[i + 3] = 255; ed[i + 3] = 255;
       hd[i] = hd[i + 1] = hd[i + 2] = 128 + (k - 1) * 40 + cloud * 14; hd[i + 3] = 255;
       rd[i] = rd[i + 1] = rd[i + 2] = (0.14 + (1 - k) * 0.35 + cloud * 0.12) * 255; rd[i + 3] = 255;
     }
-    g.putImageData(img, 0, 0); hg.putImageData(him, 0, 0); rg.putImageData(rim, 0, 0);
+    g.putImageData(img, 0, 0); eg.putImageData(eim, 0, 0); hg.putImageData(him, 0, 0); rg.putImageData(rim, 0, 0);
     const r = rng(seed * 977 + 13);
     for (let k = 0; k < 6; k++) {
       let x = r() * W, y = r() * Hh, dd = r() * 6.283;
@@ -320,13 +325,13 @@ export function upgrade(o) {
       for (let j = 0; j < 30; j++) { dd += (r() - 0.5) * 1.1; x += Math.cos(dd) * 5; y += Math.sin(dd) * 5; [g, hg, rg].forEach((q) => q.lineTo(x, y)); }
       [g, hg, rg].forEach((q) => q.stroke());
     }
-    return { map: tex(c, null, true), normal: tex(normalFrom(hc, 3)), rough: tex(rc) };
+    return { map: tex(c, null, true), normal: tex(normalFrom(hc, 3)), rough: tex(rc), emissive: dark ? tex(ec, null, true) : null };
   }
-  const MB = marbleMaps(lo ? 256 : 512, 3), MG = marbleMaps(lo ? 256 : 512, 7, [178, 174, 172]);
+  const MB = marbleMaps(lo ? 256 : 512, 3, [18, 10, 26], true), MG = marbleMaps(lo ? 256 : 512, 7, [178, 174, 172]);
   const marble = new THREE.MeshPhysicalMaterial({ map: MB.map, normalMap: MB.normal, roughnessMap: MB.rough, roughness: 1, metalness: 0,
-    clearcoat: 0.5, clearcoatRoughness: 0.12, sheen: 0.3, sheenColor: new THREE.Color(0xffffff), sheenRoughness: 0.7, envMapIntensity: 0.9 });
+    emissiveMap: MB.emissive, emissive: 0xffffff, emissiveIntensity: 1.25, clearcoat: 1, clearcoatRoughness: 0.05, sheen: 0.3, sheenColor: new THREE.Color(0xffffff), sheenRoughness: 0.7, envMapIntensity: 0.9 });
   marble.normalScale.set(0.8, 0.8);
-  const marbleGrey = marble.clone(); marbleGrey.map = MG.map; marbleGrey.normalMap = MG.normal; marbleGrey.roughnessMap = MG.rough; marbleGrey.clearcoat = 0.2;
+  const marbleGrey = marble.clone(); marbleGrey.map = MG.map; marbleGrey.normalMap = MG.normal; marbleGrey.roughnessMap = MG.rough; marbleGrey.emissiveMap = null; marbleGrey.emissive = new THREE.Color(0); marbleGrey.clearcoatRoughness = 0.1; marbleGrey.clearcoat = 0.2;
   // chipped plinths: a finer cylinder with broken rims and a few gouges, one per plinth (seeded)
   let pk = 0;
   scene.traverse((m) => {
@@ -358,11 +363,13 @@ export function upgrade(o) {
     }
   });
   // marble framing around each statue picture (the picture itself is untouched, uncropped)
-  if (o.frames) o.frames.forEach((f) => { f.material = marble; });
+  const darkGold = new THREE.MeshPhysicalMaterial({ color: 0x7a5418, metalness: 1, roughness: 0.3, clearcoat: 0.6, clearcoatRoughness: 0.15, envMapIntensity: 1.5 });
+  if (o.frames) o.frames.forEach((f) => { f.material = darkGold; });
   // two-tone neon rim: magenta key from the front-right, teal fill/rim from the left; the canon stays the hero light
-  const key = new THREE.DirectionalLight(MAG, 0.95); key.position.set(6, 5, 8); key.target.position.set(0, 1.5, 0);
-  const rim = new THREE.DirectionalLight(TEAL, 0.85); rim.position.set(-8, 4, -6); rim.target.position.set(0, 1.5, 0);
-  scene.add(key, key.target, rim, rim.target);
+  const key = new THREE.SpotLight(0xff2bd6, 3.2, 0, 0.9, 0.6, 0); key.position.set(HALF_W + 2, 7, midZ + 2); key.target.position.set(-1, 1, midZ - 3);   // raking from the side, so its highlight stays off the floor in front of the camera
+  const rim = new THREE.DirectionalLight(0x19e6d2, 3.2 * 0.25); rim.position.set(-8, 4, -6); rim.target.position.set(0, 1.5, 0);
+  const throneRim = new THREE.SpotLight(0xff2bd6, 5, 0, 0.45, 0.6, 0); throneRim.position.set(0, 5, throneZ - 3.5); throneRim.target.position.set(0, 1.4, throneZ + 0.5);
+  scene.add(key, key.target, rim, rim.target, throneRim, throneRim.target);
   // no purple fill: the magenta/teal live only in the two neon lights, the stone albedo stays neutral
   // night sky through the broken ceiling: deep purple nebula and stars
   if (o.skyMat) {
@@ -378,10 +385,10 @@ export function upgrade(o) {
     o.skyMat.map = st; o.skyMat.toneMapped = false; o.skyMat.needsUpdate = true;
     if (o.sky) o.sky.scale.set(2.2, 2.2, 1);
     // bright stars well above the break, so the night reads clearly through it
-    const SN = lo ? 300 : 900, sp = new Float32Array(SN * 3);
+    const SN = lo ? 4000 : 7000, sp = new Float32Array(SN * 3);
     for (let i = 0; i < SN; i++) { sp[i * 3] = (Math.random() - 0.5) * 60; sp[i * 3 + 1] = H + 12 + Math.random() * 20; sp[i * 3 + 2] = midZ + (Math.random() - 0.5) * hallLen * 2; }
     const sg = new THREE.BufferGeometry(); sg.setAttribute("position", new THREE.BufferAttribute(sp, 3));
-    const stars = new THREE.Points(sg, new THREE.PointsMaterial({ size: 0.16, color: 0xf2eaff, transparent: true, opacity: 0.95, depthWrite: false, toneMapped: false, fog: false }));
+    const stars = new THREE.Points(sg, new THREE.PointsMaterial({ size: 0.11, color: 0xf2eaff, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false, fog: false }));
     stars.frustumCulled = false; scene.add(stars);
   }
   // ---------- stone realism: varied floor slabs, stone walls, fluted marble columns with carved capitals, broken marble rubble ----------
@@ -423,7 +430,7 @@ export function upgrade(o) {
     }
     if (o.rub) { o.rub.geometry = chunkGeo(0.35, 9); o.rub.material = marbleGrey; }
   }
-  scene.background = new THREE.Color(0x0a0614); if (scene.fog) scene.fog.color.set(0x0a0614);
+  scene.background = new THREE.Color(0x0c0518); if (scene.fog) scene.fog.color.set(0x140828);
   // embers drifting up alongside the petals
   const EMB = hi ? 220 : lo ? 50 : 120;
   const ePos = new Float32Array(EMB * 3), eVel = new Float32Array(EMB);
@@ -443,12 +450,15 @@ export function upgrade(o) {
   let composer = null, ssao = null, bokeh = null, bloom = null;
   function buildComposer() {
     if (composer) { composer.dispose && composer.dispose(); composer = null; }
-    if (tier === "low") return;
     const w = renderer.domElement.width, h = renderer.domElement.height;
+    if (tier === "low") {   // cheap half-res bloom so the neon still glows
+      composer = new EffectComposer(renderer); composer.setPixelRatio(1); composer.setSize(w, h); composer.addPass(new RenderPass(scene, camera));
+      bloom = new UnrealBloomPass(new THREE.Vector2(w / 2, h / 2), 0.7, 0.4, 0.85); composer.addPass(bloom); composer.addPass(new OutputPass()); ssao = null; bokeh = null; return;
+    }
     composer = new EffectComposer(renderer); composer.setPixelRatio(1); composer.setSize(w, h);
     composer.addPass(new RenderPass(scene, camera));
     if (tier === "high") { ssao = new SSAOPass(scene, camera, w, h); ssao.kernelRadius = 0.5; ssao.minDistance = 0.0015; ssao.maxDistance = 0.06; composer.addPass(ssao); } else ssao = null;
-    bloom = new UnrealBloomPass(new THREE.Vector2(w, h), 0.32, 0.45, 0.92); composer.addPass(bloom);   // high threshold: only gilt highlights and flames
+    bloom = new UnrealBloomPass(new THREE.Vector2(w, h), 0.7, 0.45, 0.85); composer.addPass(bloom);   // high threshold: only gilt highlights and flames
     bokeh = new BokehPass(scene, camera, { focus: 10, aperture: 0.0018, maxblur: 0.009 }); bokeh.enabled = false; composer.addPass(bokeh);
     composer.addPass(new OutputPass());
   }
