@@ -61,7 +61,7 @@ button{flex:1;padding:13px;border:none;border-radius:12px;font-size:15px;font-we
 <input type="range" id="zoom" min="10" max="40" step="1" value="10">
 </div>
 <div class="ctl">
-<label>Rotation — <b id="rotVal">0.0°</b> <span style="color:#666;font-size:11px">(R=(1/5)[[3,−4],[4,3]] · 53.13° base)</span></label>
+<label>Rotation — <b id="rotVal">0.0°</b> <span style="color:#666;font-size:11px">(base 15.13° loop always on)</span></label>
 <input type="range" id="rot" min="0" max="360" step="1" value="0">
 </div>
 <div class="btnrow">
@@ -105,7 +105,11 @@ function render() {
   const depth = currentDepth;
 
   const z = zoomF;
-  const rot = rotDeg * Math.PI / 180;
+  // TAYLOR'S NECESSARY ROTATION: the lynchpin loop is intrinsic, not optional.
+  // 53.130102° (3-4-5) − 38.0° (stagger) = 15.130102° (loop)
+  // The fractal space itself is rotated by the loop angle; user slider adds on top.
+  const LYNCHPIN_LOOP = 15.130102 * Math.PI / 180;
+  const rot = LYNCHPIN_LOOP + rotDeg * Math.PI / 180;
   const cosR = Math.cos(rot), sinR = Math.sin(rot);
   // 3-4-5 rotation components: cos(53.130102°)=3/5, sin=4/5
   const c345 = 3/5, s345 = 4/5;
