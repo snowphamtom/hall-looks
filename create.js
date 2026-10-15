@@ -595,6 +595,62 @@
 
   buildPanel();
   restore();
+
+  /* Share link: #c=<ancestry>.<origin>.<build>.<weapon>.<rank>.<finish>~<name>.
+     Only ids from the lists above are accepted. */
+  var KEYS = ["ancestry", "origin", "build", "weapon", "rank", "finish"];
+  function lists() { return { ancestry: ancestry, origin: origin, build: build, weapon: weapon, rank: rankList, finish: finish }; }
+  function linkHash() {
+    var ids = KEYS.map(function (k) { return pick[k] ? encodeURIComponent(pick[k].id) : ""; }).join(".");
+    var nm = charName();
+    return "#c=" + ids + (nm ? "~" + encodeURIComponent(nm.slice(0, 40)) : "");
+  }
+  function readLink() {
+    var m = /^#c=([^~]*)(?:~(.*))?$/.exec(location.hash || "");
+    if (!m) return;
+    try {
+      var parts = m[1].split("."), L = lists();
+      KEYS.forEach(function (k, i) {
+        var id = decodeURIComponent(parts[i] || "");
+        var hit = id && L[k].filter(function (x) { return String(x.id) === id; })[0];
+        if (hit) select(k, hit);
+      });
+      if (m[2]) document.getElementById("create-name").value = decodeURIComponent(m[2]).slice(0, 40);
+    } catch (e) { /* a bad link leaves the page as it is */ }
+  }
+
+  /* Live dock: while the figure panel is out of view, a small copy of the figure
+     and the step count ride along, so every tap shows its result. */
+  var dock, dockCv, dockCount;
+  function buildDock() {
+    var panel = document.getElementById("create-figure");
+    if (!panel || !window.IntersectionObserver) return;
+    dock = document.createElement("button");
+    dock.type = "button"; dock.className = "create-dock"; dock.hidden = true;
+    dock.innerHTML = "<canvas width=\"96\" height=\"128\" aria-hidden=\"true\"></canvas><span><b class=\"dock-count\"></b><em>See your character</em></span>";
+    dockCv = dock.querySelector("canvas"); dockCount = dock.querySelector(".dock-count");
+    dock.addEventListener("click", function () { panel.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center" }); });
+    document.body.appendChild(dock);
+    new IntersectionObserver(function (es) { dock.hidden = es[0].isIntersecting; }, { threshold: 0.25 }).observe(panel);
+    paintDock();
+  }
+  function paintDock() {
+    if (!dock) return;
+    var n = KEYS.filter(function (k) { return k !== "finish" && pick[k]; }).length;
+    dockCount.textContent = n + " of 5 chosen";
+    dock.setAttribute("aria-label", "See your character, " + n + " of 5 steps chosen");
+    var g = dockCv.getContext("2d"); g.clearRect(0, 0, 96, 128);
+    try { g.drawImage(figCanvas, 0, 0, 96, 128); } catch (e) {}
+  }
+  var baseRender = render;
+  render = function () {
+    baseRender();
+    paintDock();
+    try { if (location.hash || KEYS.some(function (k) { return pick[k]; })) history.replaceState(null, "", linkHash()); } catch (e) {}
+  };
+  readLink();
+  buildDock();
+  document.getElementById("create-name").addEventListener("input", function () { paintDock(); try { history.replaceState(null, "", linkHash()); } catch (e) {} });
   render();
 
   document.getElementById("copy-sheet").addEventListener("click", function () {

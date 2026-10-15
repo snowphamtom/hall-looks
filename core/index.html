@@ -279,6 +279,9 @@ setInterval(() => { document.getElementById('tick').textContent = TICKS[tickI++ 
 const t0 = performance.now(); let lastF = performance.now();
 const ripples = [];
 function frame(now){
+  // 120 Hz screens: draw at most ~60 times a second (same picture as a 60 Hz screen, half the work).
+  if (frame.__last && now - frame.__last < 15.5) { requestAnimationFrame(frame); return; }
+  frame.__last = now;
   const t = (now - t0) / 1000, dt = Math.max(1, now - lastF); lastF = now; fpsEMA += (1000 / dt - fpsEMA) * 0.05;
   if (layK < 1) layK = Math.min(1, layK + dt / 650);
   const idle = now - lastAct > 6000 && !gyro.live;
