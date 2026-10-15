@@ -1,4 +1,5 @@
-@import url("blossom-bg.css?v=299c0f85");
+/* Blossom picture as its own file (was a 94 KB render-blocking @import of base64). */
+:root { --blossom-img: url("images/blossom-sky.webp?v=299c0f85"); }
 
 :root {
   --bg: #070708;
