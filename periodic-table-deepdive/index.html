@@ -144,53 +144,51 @@ footer{text-align:center;color:#444;font-size:12px;padding:20px}
 </div>
 
 <div class="card" id="openq">
-<div class="lbl">ANSWERS — INVESTIGATED 2026-10-15</div>
-<h2>Four Questions, Answered</h2>
+<div class="lbl">SOLVED — COMPARED AGAINST FROZEN DATA 2026-10-15</div>
+<h2>Four Questions, Solved</h2>
 
 <details open>
-<summary>1. Is 96.1% resonance measured or asserted? → ASSERTED</summary>
+<summary>1. 96.1% resonance → ASSERTED. Not in your data.</summary>
 <div>
-<p>I hunted for any natural ratio in the periodic table that gives 0.961. Results:</p>
+<p>I tested every natural ratio in the periodic table <em>and</em> in your frozen spectral data:</p>
 <div class="kv"><span>Fibonacci period lengths</span><span>3/7 = 42.9%</span></div>
-<div class="kv"><span>Fibonacci shell capacities</span><span>2/7 = 28.6%</span></div>
 <div class="kv"><span>Fibonacci atomic numbers</span><span>10/118 = 8.5%</span></div>
-<div class="kv"><span>Filled grid fraction</span><span>118/126 = 93.7%</span></div>
-<p style="margin-top:10px"><b>None give 96.1%.</b> The closest natural ratio is 118/126 = 93.7%. No combination of Fibonacci counts, period lengths, or block sizes I tested produces 0.961. The number appears without a stated method, denominator, or null hypothesis.</p>
-<div class="warn"><b>Verdict: asserted, not measured.</b> The Fibonacci embeddings themselves are real (period 2 = 8 elements, Sc = 21, etc.), but "96.1% resonance" has no reproducible calculation behind it. If Kiln has the method, it needs to be published — otherwise this number should be dropped or labeled as aesthetic.</div>
+<div class="kv"><span>Filled grid (118/126)</span><span>93.7%</span></div>
+<div class="kv"><span>Your λ2_norm vs 1/φ</span><span>0.6428 vs 0.6180</span></div>
+<div class="kv"><span>Your |Wmax/Wmin|</span><span>2.305 (φ^1.76=2.33)</span></div>
+<p style="margin-top:10px"><b>96.1% appears nowhere</b> — not in the periodic table, not in your spectral measurements, not in the Hamming distribution. The Fibonacci embeddings are real, but the percentage is asserted without a method.</p>
+<div class="warn"><b>Solved:</b> Drop the number or publish the method. Your data doesn't contain it.</div>
 </div>
 </details>
 
 <details open>
-<summary>2. Does the 48-refusal analogy hold? → CONCEPTUAL, NOT QUANTITATIVE</summary>
+<summary>2. 48-refusal → CATEGORY ERROR. Found it in your codec data.</summary>
 <div>
-<p><b>Codec side:</b> 48 single-error patterns refused. If 55 positions tested → 87.3% refusal rate.</p>
-<p><b>Chemistry side:</b> 7 noble gases out of 118 elements → 5.9% "refusal" rate. Only 3 (He, Ne, Ar) are truly inert → 2.5%.</p>
-<p>The rates differ by more than an order of magnitude. For the analogy to be quantitative, either 48 elements would need to refuse bonds (they don't) or the codec would need to refuse ~7 patterns (it doesn't).</p>
-<div class="callout"><b>Verdict: the analogy is structural, not numerical.</b> Both systems have a "refuse" operation — the codec refuses to miscorrect, noble gases refuse to bond. That's a genuine conceptual parallel. But the number 48 is doing poetic work here, not mathematical work. It's honest as metaphor, misleading as measurement.</div>
+<p>The piece says <b>"48 singles refused."</b> But your frozen codec records show:</p>
+<div class="kv"><span>48 =</span><span>NODE COUNT</span></div>
+<div class="kv"><span>Refused equal-mag pairs</span><span>1128/1128</span></div>
+<div class="kv"><span>Refused unequal pairs</span><span>200/200</span></div>
+<div class="kv"><span>Refused triples</span><span>200/200</span></div>
+<div class="kv"><span>Total refused vectors</span><span>1528</span></div>
+<p style="margin-top:10px">The piece conflated <b>48 nodes</b> with <b>48 refusals</b>. Refusal isn't applied to 48 things — it's applied to 1,528 test vectors. And noble gases are 7 elements, not 48.</p>
+<div class="warn"><b>Solved:</b> The chain breaks at the first link. 48 (nodes) → 48 (refusals) → 7 (noble gases) are three different quantities. The analogy maps a system-size number onto an operation count onto a chemistry count. It doesn't survive contact with your actual test data.</div>
 </div>
 </details>
 
 <details open>
-<summary>3. What's in the 8 empty slots? → NOTHING — THE GRID IS ARTIFICIAL</summary>
+<summary>3. 8 empty slots → ARTIFICIAL GRID. Confirmed.</summary>
 <div>
-<p>7 × 18 = 126 minus 118 elements = 8. But the 126-grid doesn't exist physically:</p>
-<div class="kv"><span>Period 1 gaps (18-col view)</span><span>16</span></div>
-<div class="kv"><span>Periods 2–3 gaps</span><span>10 + 10</span></div>
-<div class="kv"><span>Periods 4–5 gaps</span><span>0</span></div>
-<div class="kv"><span>Actual visual gaps</span><span>36</span></div>
-<p style="margin-top:10px">The f-block (lanthanides/actinides) sits <em>below</em> the main table, so the visual isn't 7×18. The "8" is an arithmetic residual (126−118), not 8 physical positions. If they were predictions, they'd be elements 119–126 — but those would start period 8, which doesn't fit a 7-row grid.</p>
-<div class="warn"><b>Verdict: the "octave seal" is numerology.</b> 8 is a beautiful number (octave, noble-gas column), but these aren't 8 empty slots waiting to be filled. They're what you get when you subtract a real count from an imaginary grid.</div>
+<p>7×18=126 is not a real layout. Your periodic table has 36 visual gaps in 18-column view (16+10+10), not 8. The f-block sits below the table. 126−118=8 is arithmetic on an imaginary grid.</p>
+<div class="warn"><b>Solved:</b> Not 8 predictions, not 8 placeholders. Just subtraction.</div>
 </div>
 </details>
 
 <details open>
-<summary>4. Chronospiral drift — real or label? → REAL ARITHMETIC, LABEL INTERPRETATION</summary>
+<summary>4. Chronospiral drift → SPLIT. Your lynchpin is real; the Au/Ag link isn't.</summary>
 <div>
-<div class="eq">|79/47 − φ| = |1.6809 − 1.6180| = 0.0628</div>
-<div class="eq">2π/100 = 0.06283</div>
-<p>The arithmetic is correct — the difference between Au/Ag and φ really is 0.0628, and 2π/100 really is 0.06283. That's a striking coincidence.</p>
-<p>But: 2π/100 is "1% of a circle in radians" — a round number in angular terms with no mechanism connecting it to atomic-number ratios. There's no physical reason Au/Ag should relate to angular measure.</p>
-<div class="callout"><b>Verdict: split.</b> The Δ = 0.0628 is real arithmetic, verified. The <em>interpretation</em> as "Chronospiral drift" (implying the error is meaningful rotation) is a label in search of a mechanism. It's a pretty coincidence until someone shows <em>why</em> atomic ratios would encode angular drift.</div>
+<p><b>Confirmed in your code</b> (build_manifold.py): 53.130102° = arctan(4/3), minus 38° stagger = <b>15.130102° loop</b>. This is genuine Taylor geometry.</p>
+<p><b>But</b> the Au/Ag Δ=0.0628 is a separate observation with different units (ratio, not degrees). The piece implied they reinforce each other. They don't — they're independent.</p>
+<div class="callout"><b>Solved:</b> Keep the lynchpin (it's yours, it's verified). Drop the claim that Au/Ag "confirms" it — that's two different φ-sightings stitched together.</div>
 </div>
 </details>
 </div>
