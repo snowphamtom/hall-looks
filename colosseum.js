@@ -82,8 +82,36 @@ document.getElementById("start").addEventListener("click", () => {
     hero.hidden = false;
     empty.hidden = true;
     front();
+    reveal(fighterA, fighterB);
   };
   hero.alt = line;
   hero.src = src;
   front();
 });
+
+// Matchup reveal (fighting-game "VS" beat): both portraits slide in, VS stamps,
+// then the fight picture settles in. Sound stays off unless the visitor turned it on.
+const reduceMotion = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+function portrait(look) {
+  const btn = aBtns.find((b) => b.dataset.look === look);
+  const img = btn && btn.querySelector("img");
+  return img ? (img.currentSrc || img.src) : "";
+}
+function reveal(a, b) {
+  stage.classList.remove("is-revealing");
+  const old = stage.querySelector(".vs-banner");
+  if (old) old.remove();
+  if (reduceMotion) return;
+  const v = document.createElement("div");
+  v.className = "vs-banner";
+  v.setAttribute("aria-hidden", "true");
+  v.innerHTML = "<span class='vs-side vs-a'><img alt=''><b></b></span><i class='vs-mark'>VS</i><span class='vs-side vs-b'><img alt=''><b></b></span>";
+  v.querySelector(".vs-a img").src = portrait(a); v.querySelector(".vs-a b").textContent = titles[a];
+  v.querySelector(".vs-b img").src = portrait(b); v.querySelector(".vs-b b").textContent = titles[b];
+  stage.appendChild(v);
+  void stage.offsetWidth;
+  stage.classList.add("is-revealing");
+  setTimeout(() => { if (window.HallSound) window.HallSound.tick(); if (window.heavyPulse) window.heavyPulse(22); }, 420);
+  setTimeout(() => { v.classList.add("is-out"); }, 1250);
+  setTimeout(() => { v.remove(); stage.classList.remove("is-revealing"); }, 1800);
+}

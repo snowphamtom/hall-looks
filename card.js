@@ -118,6 +118,15 @@
       t.click();
     }
   });
+  // Keyboard parity: Enter/Space give the same press depth and sound tick as a tap.
+  document.addEventListener("keydown", function (e) {
+    var t = e.target;
+    if ((e.key === "Enter" || e.key === " ") && t.classList && t.classList.contains("hc-card") && !e.repeat) {
+      t.classList.add("is-pressed");
+      if (window.HallSound) window.HallSound.tick();
+      setTimeout(function () { t.classList.remove("is-pressed"); }, 160);
+    }
+  });
   document.addEventListener("pointermove", onMove, { passive: true });
   document.addEventListener("pointerout", onLeave, { passive: true });
   window.HallCard = { make: make, skeleton: skel };

@@ -218,3 +218,21 @@
   .tier-grid .hc-card__plate { padding: 0 8px 8px; gap: 3px; }
   .tier-grid .hc-card__plate em { -webkit-line-clamp: 1; font-size: 12px; }
 }
+/* Round 9 micro-interactions: one press depth for pointer and keyboard, a single
+   glint pass when a card takes keyboard focus. Reduced motion keeps only the ring. */
+.hc-card:active, .hc-card.is-pressed {
+  transform: perspective(900px) translateY(0) scale(.975);
+  box-shadow: 0 1px 0 rgba(255,255,255,.05) inset, 0 8px 16px -10px rgba(0,0,0,.9), 0 0 0 1px color-mix(in srgb, var(--tier) 55%, transparent);
+  transition-duration: .1s;
+}
+.hc-card__art::before {
+  content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none; opacity: 0;
+  background: linear-gradient(105deg, transparent 38%, rgba(255,248,230,.28) 50%, transparent 62%) 0 0 / 260% 100% no-repeat;
+  background-position: 130% 0;
+}
+.hc-card:focus-visible .hc-card__art::before { animation: hc-glint .9s cubic-bezier(.3,.6,.2,1) 1; }
+@keyframes hc-glint { 0% { opacity: 1; background-position: 130% 0; } 100% { opacity: 1; background-position: -30% 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .hc-card:focus-visible .hc-card__art::before { animation: none; }
+  .hc-card:active, .hc-card.is-pressed { transform: none; transition: none; }
+}
