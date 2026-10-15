@@ -32,10 +32,19 @@ export function start(statues) {
   const midZ = (startZ + throneZ) / 2;
 
   // ---------- light ----------
-  scene.add(new THREE.HemisphereLight(0xb0a4cc, 0x2a1d10, 1.15));
-  const sun = new THREE.DirectionalLight(0xffe2c4, 2.2);
-  sun.position.set(1.5, 14, midZ + 2); sun.target.position.set(0, 0, midZ);
+  const hemi = new THREE.HemisphereLight(0xb0a4cc, 0x2a1d10, 0.75);
+  scene.add(hemi);
+  // Light canon: directional, elevation 31.7175 deg, azimuth 137.508 deg, #fff2d8, intensity 3.0.
+  // Compass for the hall: north points down the aisle toward the throne (-z), east is +x; azimuth runs clockwise from north.
+  const EL = THREE.MathUtils.degToRad(31.7175), AZ = THREE.MathUtils.degToRad(137.508);
+  const toSun = new THREE.Vector3(Math.sin(AZ) * Math.cos(EL), Math.sin(EL), -Math.cos(AZ) * Math.cos(EL)).normalize();
+  const SEAT = new THREE.Vector3(0, 1.6, throneZ);
+  const sun = new THREE.DirectionalLight(0xfff2d8, 3.0);
+  sun.position.copy(SEAT).addScaledVector(toSun, 30); sun.target.position.copy(SEAT);
   scene.add(sun, sun.target);
+  // where the beam crosses the east wall (x = HALF_W): that is the breach
+  const tWall = (HALF_W - SEAT.x) / toSun.x;
+  const BREACH = SEAT.clone().addScaledVector(toSun, tWall);
   const throneLight = new THREE.PointLight(0xffc35a, 9, 14, 2);
   throneLight.position.set(0, 5.5, throneZ + 4);
   scene.add(throneLight);
@@ -71,10 +80,29 @@ export function start(statues) {
   floor.rotation.x = -Math.PI / 2; floor.position.z = midZ;
   scene.add(floor);
   const H = 9;
-  for (const sx of [-1, 1]) {
+  const OUT_C = new THREE.Color(0xf6dcc8);
+  const outMat = new THREE.MeshBasicMaterial({ color: OUT_C.clone(), fog: false });
+  {
     const w = new THREE.Mesh(new THREE.PlaneGeometry(hallLen, H), wallMat);
-    w.position.set(sx * HALF_W, H / 2, midZ); w.rotation.y = -sx * Math.PI / 2;
+    w.position.set(-HALF_W, H / 2, midZ); w.rotation.y = Math.PI / 2;
     scene.add(w);
+    // east wall as a shape with a notch broken out of its top edge
+    const uc = BREACH.z - midZ, L2 = hallLen / 2, vb = BREACH.y;
+    const sh = new THREE.Shape();
+    sh.moveTo(-L2, 0); sh.lineTo(L2, 0); sh.lineTo(L2, H);
+    const notch = [[2.9, H], [2.3, H - 0.8], [2.0, vb + 0.4], [1.2, vb - 1.1], [0.3, vb - 1.5], [-0.6, vb - 1.25], [-1.5, vb - 0.6], [-2.1, vb + 0.5], [-2.6, H - 0.5], [-3.1, H]];
+    for (const [du, v] of notch) sh.lineTo(uc + du, v);   // local u runs along +z here
+    sh.lineTo(-L2, H); sh.lineTo(-L2, 0);
+    const geo = new THREE.ShapeGeometry(sh);
+    const ewTex = wallTex.clone(); ewTex.repeat.set(1 / 3, 3 / H); ewTex.needsUpdate = true;
+    const ew = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: ewTex, roughness: 0.95 }));
+    ew.position.set(HALF_W, 0, midZ); ew.rotation.y = -Math.PI / 2;
+    ew.material.side = THREE.DoubleSide;
+    scene.add(ew);
+    // pale evening sky outside the breach
+    const out = new THREE.Mesh(new THREE.PlaneGeometry(14, 10), outMat);
+    out.position.set(HALF_W + 5, vb + 2, BREACH.z); out.rotation.y = -Math.PI / 2;
+    scene.add(out);
   }
   const back = new THREE.Mesh(new THREE.PlaneGeometry(HALF_W * 2, H), wallMat);
   back.position.set(0, H / 2, throneZ - 2.5); scene.add(back);
@@ -97,7 +125,7 @@ export function start(statues) {
   const rr = () => ((sd = (sd * 16807) % 2147483647) / 2147483647);
   for (let z = startZ + 2.5; z > throneZ - 2.5; z -= 1.5) {
     for (let x = -HALF_W + 0.75; x < HALF_W; x += 1.5) {
-      const inHole = z < holeA && z > holeB && Math.abs(x) < 3.2 + Math.sin(z * 1.7) * 1.2;
+      const inHole = (z < holeA && z > holeB && Math.abs(x) < 3.2 + Math.sin(z * 1.7) * 1.2) || (x > 2.2 + Math.abs(z - BREACH.z) * 0.6 && Math.abs(z - BREACH.z) < 3.4);
       if (inHole) continue;
       slabs.push([x, H + (rr() - 0.5) * 0.25, z, (rr() - 0.5) * 0.12]);
     }
@@ -124,14 +152,41 @@ export function start(statues) {
     g.fillStyle = gr; g.fillRect(0, 0, 4, 128);
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
   })();
-  const shaftMat = new THREE.MeshBasicMaterial({ map: shaftTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.32, side: THREE.DoubleSide, fog: false });
-  for (let i = 0; i < 3; i++) {
-    const sh = new THREE.Mesh(new THREE.PlaneGeometry(5.5, H), shaftMat);
-    sh.position.set(0, H / 2, midZ); sh.rotation.y = (i * Math.PI) / 3;
-    scene.add(sh);
+  // the canon beam: a soft cone from the breach down onto the throne
+  const beamLen = BREACH.distanceTo(SEAT) + 1.2;
+  const beamGeo = new THREE.CylinderGeometry(1.25, 1.75, beamLen, 24, 1, true);
+  beamGeo.translate(0, -beamLen / 2, 0);
+  const beamMat = new THREE.MeshBasicMaterial({ map: shaftTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.5, side: THREE.DoubleSide, fog: false, color: 0xfff2d8, toneMapped: false });
+  const beam = new THREE.Mesh(beamGeo, beamMat);
+  beam.position.copy(BREACH).addScaledVector(toSun, 0.6);
+  beam.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), toSun);
+  scene.add(beam);
+  const pool = new THREE.Mesh(new THREE.CircleGeometry(2.6, 32), new THREE.MeshBasicMaterial({ color: 0xfff2d8, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }));
+  pool.rotation.x = -Math.PI / 2; pool.position.set(SEAT.x + 0.4, 0.915, SEAT.z + 0.7); pool.scale.set(0.62, 0.8, 1);
+  scene.add(pool);
+  // dust motes living inside the beam
+  const DUST = coarse ? 90 : 160;
+  const dPos = new Float32Array(DUST * 3), dPar = new Float32Array(DUST * 3);
+  const perpA = new THREE.Vector3().crossVectors(toSun, new THREE.Vector3(0, 1, 0)).normalize();
+  const perpB = new THREE.Vector3().crossVectors(toSun, perpA).normalize();
+  for (let i = 0; i < DUST; i++) { dPar[i * 3] = Math.random(); dPar[i * 3 + 1] = Math.random() * Math.PI * 2; dPar[i * 3 + 2] = Math.sqrt(Math.random()); }
+  const dGeo = new THREE.BufferGeometry(); dGeo.setAttribute("position", new THREE.BufferAttribute(dPos, 3));
+  const dustMat = new THREE.PointsMaterial({ size: 0.05, color: 0xfff2d8, transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false });
+  const dust = new THREE.Points(dGeo, dustMat); dust.frustumCulled = false; scene.add(dust);
+  function updDust(t) {
+    for (let i = 0; i < DUST; i++) {
+      const j = i * 3;
+      const u = (dPar[j] + t * 0.004) % 1, a = dPar[j + 1] + t * 0.15, r = dPar[j + 2] * (1.1 + 0.5 * u);
+      const k = beamLen * (0.08 + 0.9 * u);
+      dPos[j] = BREACH.x - toSun.x * k + (perpA.x * Math.cos(a) + perpB.x * Math.sin(a)) * r;
+      dPos[j + 1] = BREACH.y - toSun.y * k + (perpA.y * Math.cos(a) + perpB.y * Math.sin(a)) * r + Math.sin(t * 0.6 + i) * 0.05;
+      dPos[j + 2] = BREACH.z - toSun.z * k + (perpA.z * Math.cos(a) + perpB.z * Math.sin(a)) * r;
+    }
+    dGeo.attributes.position.needsUpdate = true;
   }
   // sky above the hole
-  const skyMat = new THREE.MeshBasicMaterial({ color: 0xf2d6e0, fog: false });
+  const SKY_C = new THREE.Color(0xf2d6e0);
+  const skyMat = new THREE.MeshBasicMaterial({ color: SKY_C.clone(), fog: false });
   const sky = new THREE.Mesh(new THREE.PlaneGeometry(14, hallLen * 0.5), skyMat);
   sky.rotation.x = Math.PI / 2; sky.position.set(0, H + 2.5, midZ); scene.add(sky);
 
@@ -152,7 +207,9 @@ export function start(statues) {
     const mat = new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.55 + 0.45 * brightness, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false });
     const mesh = new THREE.Mesh(g, mat);
     mesh.userData.base = 0.55 + 0.45 * brightness; mesh.userData.b = brightness;
+    mesh.userData.total = idx.length;
     veinGroup.add(mesh);
+    return mesh;
   }
   function wiggle(ax, az, bx, bz, segs, amp, seed) {
     let s = seed; const r = () => ((s = (s * 48271) % 2147483647) / 2147483647 - 0.5);
@@ -163,8 +220,11 @@ export function start(statues) {
     }
     return out;
   }
-  vein(wiggle(0, startZ + 2, 0, throneZ + 2.2, 60, 0.6, 11), 0.8, 0.22);
-  vein(wiggle(0, startZ + 2, 0, throneZ + 2.2, 60, 0.6, 11), 0.25, 0.9);
+  // spine runs from the throne out to the entrance so it can ignite outward
+  const spinePts = wiggle(0, throneZ + 2.2, 0, startZ + 2, 60, 0.6, 11);
+  const spine = [vein(spinePts, 0.8, 0.22), vein(spinePts, 0.25, 0.9)];
+  const plinthVeins = [];
+  const lit = [];
 
   // ---------- plinths + statues ----------
   const loader = new THREE.TextureLoader();
@@ -220,8 +280,8 @@ export function start(statues) {
     scene.add(g);
     // vein from the aisle spine to this plinth
     const vp = wiggle(0, z + 1.6, x - side * 1.1, z, 12, 0.5, 97 + i * 13);
-    vein(vp, b, 0.12 + 0.14 * b);
-    vein(vp, b * 0.35, 0.5 + 0.5 * b);
+    plinthVeins[i] = [vein(vp, b, 0.12 + 0.14 * b), vein(vp, b * 0.35, 0.5 + 0.5 * b)];
+    lit[i] = { pic, capMat, glow, glowBase: glow.material.opacity, emBase: capMat.emissive.clone(), holder, frame, setSize, fit };
   });
 
   // ---------- throne ----------
@@ -253,6 +313,15 @@ export function start(statues) {
   let pCount = soft ? 60 : PMAX;
   const pPos = new Float32Array(PMAX * 3), pVel = new Float32Array(PMAX * 3);
   const spawn = (i, anyY) => {
+    if (i % 2) {   // half the petals blow in through the breach and ride the beam down
+      const k = anyY ? Math.random() * beamLen * 0.9 : Math.random() * 1.5, a = Math.random() * 6.283, r = Math.random() * 1.1;
+      pPos[i * 3] = BREACH.x - toSun.x * k + (perpA.x * Math.cos(a) + perpB.x * Math.sin(a)) * r - 0.3;
+      pPos[i * 3 + 1] = BREACH.y - toSun.y * k + (perpA.y * Math.cos(a) + perpB.y * Math.sin(a)) * r;
+      pPos[i * 3 + 2] = BREACH.z - toSun.z * k + (perpA.z * Math.cos(a) + perpB.z * Math.sin(a)) * r;
+      const sp = 0.45 + Math.random() * 0.3;
+      pVel[i * 3] = -toSun.x * sp; pVel[i * 3 + 1] = -toSun.y * sp - 0.08; pVel[i * 3 + 2] = -toSun.z * sp;
+      return;
+    }
     pPos[i * 3] = (Math.random() - 0.5) * 6;
     pPos[i * 3 + 1] = anyY ? Math.random() * H : H + Math.random() * 1.5;
     pPos[i * 3 + 2] = holeB + Math.random() * (holeA - holeB);
@@ -302,7 +371,8 @@ export function start(statues) {
   const endDrag = (e) => {
     if (!drag || drag.id !== e.pointerId) return;
     const tap = !drag.moved; drag = null;
-    if (tap && e.type === "pointerup") pick(e.clientX, e.clientY);
+    if (swallowTap) { swallowTap = false; return; }
+    if (tap && e.type === "pointerup" && !reveal) pick(e.clientX, e.clientY);
   };
   canvas.addEventListener("pointerup", endDrag);
   canvas.addEventListener("pointercancel", endDrag);
@@ -342,9 +412,168 @@ export function start(statues) {
   }
 
   document.getElementById("to-throne").addEventListener("click", () => { target = new THREE.Vector3(0, 0, MIN_Z + 0.2); });
-  document.getElementById("hud-hint").textContent = coarse
-    ? "Drag to look · joystick or tap the floor to walk · tap a statue"
-    : "Drag to look · WASD or arrows to walk · click a statue";
+
+
+  // ---------- crown + glint (for Claim the throne) ----------
+  const crown = new THREE.Group();
+  {
+    const ring = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.3, 0.16, 20, 1, true), goldMat);
+    ring.material = goldMat.clone(); ring.material.side = THREE.DoubleSide; ring.material.emissive = new THREE.Color(0x4a3000);
+    crown.add(ring);
+    for (let k = 0; k < 7; k++) {
+      const a = (k / 7) * Math.PI * 2;
+      const sp = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.24, 4), ring.material);
+      sp.position.set(Math.cos(a) * 0.32, 0.18, Math.sin(a) * 0.32); crown.add(sp);
+      const gem = new THREE.Mesh(new THREE.OctahedronGeometry(0.035), new THREE.MeshBasicMaterial({ color: k % 2 ? 0xe23b4a : 0x8fd4f2, toneMapped: false }));
+      gem.position.set(Math.cos(a) * 0.335, 0.02, Math.sin(a) * 0.335); crown.add(gem);
+    }
+  }
+  crown.visible = false; scene.add(crown);
+  const glintTex = (() => {
+    const c = document.createElement("canvas"); c.width = c.height = 128;
+    const g = c.getContext("2d"); g.translate(64, 64);
+    const rg = g.createRadialGradient(0, 0, 0, 0, 0, 22); rg.addColorStop(0, "rgba(255,250,235,1)"); rg.addColorStop(1, "rgba(255,220,150,0)");
+    g.fillStyle = rg; g.beginPath(); g.arc(0, 0, 22, 0, 7); g.fill();
+    g.fillStyle = "rgba(255,246,220,.95)";
+    for (let k = 0; k < 4; k++) { g.rotate(Math.PI / 2); g.beginPath(); g.moveTo(-3, 0); g.lineTo(0, -62); g.lineTo(3, 0); g.fill(); }
+    g.rotate(Math.PI / 4); g.globalAlpha = 0.5;
+    for (let k = 0; k < 4; k++) { g.rotate(Math.PI / 2); g.beginPath(); g.moveTo(-2, 0); g.lineTo(0, -34); g.lineTo(2, 0); g.fill(); }
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+  })();
+  const glint = new THREE.Sprite(new THREE.SpriteMaterial({ map: glintTex, transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending, toneMapped: false, opacity: 0 }));
+  glint.renderOrder = 10; scene.add(glint);
+
+  // ---------- cinematic reveal ----------
+  const REVEAL_KEY = "throne-reveal-seen-v1";
+  const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const forceReveal = /[?&]reveal=1\b/.test(location.search);
+  let seen = false; try { seen = localStorage.getItem(REVEAL_KEY) === "1"; } catch (e) {}
+  const ease = (x) => (x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x));
+  const span = (T, a, b) => ease((T - a) / (b - a));
+  const STEP = Math.min(0.55, 4.4 / Math.max(1, N));
+  const REVEAL_END = 4.0 + N * STEP + 1.8;
+  let reveal = null;        // { t0 }
+  let swallowTap = false;
+  function setScene(T) {    // T = seconds into the reveal; Infinity = fully lit
+    const fb = span(T, 0.6, 3.0);
+    sun.intensity = 3.0 * fb;
+    beamMat.opacity = 0.5 * fb; dustMat.opacity = 0.9 * fb; pool.material.opacity = 0.22 * fb;
+    throneLight.intensity = 9 * span(T, 2.0, 3.6);
+    const fa = span(T, 3.4, REVEAL_END - 0.6);
+    hemi.intensity = 0.03 + 0.72 * fa;
+    skyMat.color.copy(SKY_C).multiplyScalar(0.02 + 0.98 * fa);
+    outMat.color.copy(OUT_C).multiplyScalar(0.05 + 0.95 * fb);
+    goldMat.emissiveIntensity = fa; goldMat.envMapIntensity = 1;
+    const fs = span(T, 3.0, 4.4);
+    for (const m of spine) m.geometry.setDrawRange(0, Math.floor((m.userData.total * fs) / 6) * 6);
+    for (let i = 0; i < N; i++) {
+      const a = 4.0 + i * STEP;
+      const fv = span(T, a, a + 0.7), fl = span(T, a + 0.45, a + 1.15);
+      for (const m of plinthVeins[i] || []) m.geometry.setDrawRange(0, Math.floor((m.userData.total * fv) / 6) * 6);
+      const L = lit[i]; if (!L) continue;
+      L.pic.material.color.setScalar(0.03 + 0.97 * fl);
+      L.capMat.emissive.copy(L.emBase).multiplyScalar(fl);
+      L.glow.material.opacity = L.glowBase * fl;
+    }
+  }
+  const hud = document.getElementById("hud"), hint = document.getElementById("hud-hint");
+  const hintText = () => (coarse ? "Drag to look · joystick or tap the floor to walk · tap a statue" : "Drag to look · WASD or arrows to walk · click a statue");
+  hint.textContent = hintText();
+  function startReveal() {
+    reveal = { t0: performance.now() };
+    pos.set(0, 1.65, startZ + 1); yaw = 0; pitch = 0.1; target = null;
+    hud.classList.add("is-reveal"); hint.textContent = "Tap or press any key to skip";
+    setScene(0);
+    addEventListener("pointerdown", skipReveal, true); addEventListener("keydown", skipReveal, true);
+    document.documentElement.dataset.reveal = "on";
+  }
+  function skipReveal(e) {
+    if (!reveal) return;
+    if (e && e.type === "pointerdown") swallowTap = true;
+    if (e && e.type === "keydown") e.preventDefault();
+    endReveal();
+  }
+  function endReveal() {
+    reveal = null; setScene(Infinity);
+    for (const m of veinGroup.children) m.geometry.setDrawRange(0, Infinity);
+    hud.classList.remove("is-reveal"); hint.textContent = hintText();
+    removeEventListener("pointerdown", skipReveal, true); removeEventListener("keydown", skipReveal, true);
+    try { localStorage.setItem(REVEAL_KEY, "1"); } catch (e) {}
+    document.documentElement.dataset.reveal = "done";
+    if (pos.z > startZ - 2.9) pos.z = startZ - 3;
+    dirty = true;
+  }
+  function stepReveal(now) {
+    const T = (now - reveal.t0) / 1000;
+    setScene(T);
+    const k = ease(T / REVEAL_END);
+    pos.z = startZ + 1 - 4 * k; pitch = 0.1 - 0.12 * k;
+    if (T >= REVEAL_END) endReveal();
+  }
+  document.getElementById("replay").addEventListener("click", (e) => { e.stopPropagation(); if (claim.state !== "none") return; startReveal(); });
+
+  // ---------- claim the throne ----------
+  const claimBtn = document.getElementById("claim");
+  const fromLocker = !!window.THRONE_FROM_LOCKER;
+  const claim = { state: "none", t0: 0, from: null, fromQ: null, parent: null, to: new THREE.Vector3(), toQ: new THREE.Quaternion(), h: 2 };
+  if (!fromLocker) { claimBtn.textContent = "Save a character to claim the throne"; }
+  claimBtn.addEventListener("click", () => {
+    if (!fromLocker) { location.href = "../locker/"; return; }
+    if (reveal) endReveal();
+    const L = lit[0]; if (!L || claim.state === "moving" || claim.state === "returning") return;
+    if (claim.state === "none") {
+      claim.parent = L.holder.parent;
+      claim.home = L.holder.matrixWorld.clone();
+      scene.attach(L.holder);
+      claim.from = L.holder.position.clone(); claim.fromQ = L.holder.quaternion.clone();
+      claim.h = L.pic.scale.y;
+      claim.to.set(SEAT.x, 1.72, throneZ + 0.62); claim.toQ.identity();
+      claim.state = "moving"; claim.t0 = performance.now();
+      target = new THREE.Vector3(0, 0, MIN_Z + 4.2); claim.lookUp = true;
+      claimBtn.textContent = "Return to plinth"; claimBtn.setAttribute("aria-pressed", "true");
+      hint.textContent = statues[0].name + " takes the throne";
+    } else {
+      claim.from = L.holder.position.clone(); claim.fromQ = L.holder.quaternion.clone();
+      const p = new THREE.Vector3(), q2 = new THREE.Quaternion(), sc = new THREE.Vector3();
+      claim.home.decompose(p, q2, sc); claim.to.copy(p); claim.toQ.copy(q2);
+      claim.state = "returning"; claim.t0 = performance.now();
+      crown.visible = false; glint.material.opacity = 0;
+      claimBtn.textContent = "Claim the throne"; claimBtn.setAttribute("aria-pressed", "false");
+      hint.textContent = hintText();
+    }
+  });
+  function stepClaim(now) {
+    const L = lit[0]; if (!L || claim.state === "none") return;
+    const T = (now - claim.t0) / 1000;
+    if (claim.state === "moving" || claim.state === "returning") {
+      const k = ease(T / 2.6);
+      L.holder.position.lerpVectors(claim.from, claim.to, k);
+      L.holder.position.y += Math.sin(Math.PI * k) * 1.6;
+      L.holder.quaternion.slerpQuaternions(claim.fromQ, claim.toQ, k);
+      if (k >= 1) {
+        if (claim.state === "returning") { claim.parent.attach(L.holder); claim.state = "none"; return; }
+        claim.state = "seated"; claim.t0 = now;
+      }
+      return;
+    }
+    // seated: crown descends, then a glint, then a slow twinkle
+    if (claim.lookUp && !drag) { pitch += (0.1 - pitch) * 0.06; let d = -yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); yaw += d * 0.06; if (T > 3) claim.lookUp = false; }
+    const top = claim.to.y + claim.h + 0.16 + 0.14;
+    const kc = ease(T / 1.1);
+    crown.visible = true;
+    crown.position.set(claim.to.x, top + (1 - kc) * 1.4, claim.to.z + 0.08);
+    crown.rotation.y = T * 0.6;
+    const g1 = T < 1.1 ? 0 : T < 1.5 ? (T - 1.1) / 0.4 : Math.max(0, 1 - (T - 1.5) / 0.9);
+    const tw = T > 2.4 ? Math.pow(Math.max(0, Math.sin((T - 2.4) * 1.9)), 24) : 0;
+    const gl2 = Math.max(g1, tw * 0.7);
+    glint.material.opacity = gl2; glint.material.rotation = T * 0.8;
+    glint.scale.setScalar(0.4 + 1.9 * gl2);
+    glint.position.set(crown.position.x + 0.22, top + 0.22, crown.position.z + 0.3);
+    // the veins answer the crown
+    veinBoost = T < 2.2 ? Math.sin(Math.min(1, T / 2.2) * Math.PI) : 0;
+  }
+  let veinBoost = 0;
+  if (!fromLocker) claimBtn.classList.add("is-empty");
 
   // ---------- loop ----------
   let running = true, dirty = true, inView = true, cardOpen = false;
@@ -366,7 +595,7 @@ export function start(statues) {
   function tick(now) {
     if (!running || !inView || cardOpen) return;
     // Walking or looking runs at full rate; standing still drops to ~30 fps (petals only). Software GL stays at ~20.
-    const busy = keys.size || drag || target || stick.x || stick.y;
+    const busy = keys.size || drag || target || stick.x || stick.y || reveal || (claim.state !== "none" && claim.state !== "seated") || claim.state === "seated";
     const minGap = soft ? 48 : busy ? 0 : 31;
     if (now - last < minGap) { requestAnimationFrame(tick); return; }
     const dt = Math.min(0.05, (now - last) / 1000); last = now; t += dt;
@@ -407,9 +636,12 @@ export function start(statues) {
     }
     pGeo.setDrawRange(0, pCount);
     pGeo.attributes.position.needsUpdate = true;
-    // veins breathe, gently
+    if (reveal) stepReveal(now);
+    stepClaim(now);
+    updDust(t);
+    // veins breathe, gently (and flare when a crown lands)
     const br = 0.85 + 0.15 * Math.sin(t * 1.3);
-    for (const v of veinGroup.children) v.material.opacity = v.userData.base * (0.8 + 0.2 * br * (0.5 + v.userData.b));
+    for (const v of veinGroup.children) v.material.opacity = Math.min(1, v.userData.base * (0.8 + 0.2 * br * (0.5 + v.userData.b)) * (1 + 1.2 * veinBoost));
     renderer.render(scene, camera);
     if (loading && !loading.hidden) loading.hidden = true;
     // adaptive quality: watch ~1s windows of frame time
@@ -428,6 +660,7 @@ export function start(statues) {
     }
     requestAnimationFrame(tick);
   }
+  if ((!seen || forceReveal) && !reduceMotion) startReveal();
   requestAnimationFrame(tick);
-  window.__throne = { face: (i) => { const o = pickables[i * 2]; const v = new THREE.Vector3(); o.getWorldPosition(v); pos.x = v.x * 0.15; pos.z = v.z + 3.5; yaw = Math.atan2(-(v.x - pos.x), -(v.z - pos.z)); pitch = 0; }, project: (i) => { const o = pickables[i * 2]; const v = new THREE.Vector3(); o.getWorldPosition(v); v.project(camera); const r = canvas.getBoundingClientRect(); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height, z: v.z }; }, renderer, scene, camera, pos, set: (x, z, y, p) => { pos.x = x; pos.z = z; if (y != null) yaw = y; if (p != null) pitch = p; } };
+  window.__throne = { skip: () => reveal && endReveal(), state: () => ({ reveal: !!reveal, claim: claim.state }), face: (i) => { const o = pickables[i * 2]; const v = new THREE.Vector3(); o.getWorldPosition(v); pos.x = v.x * 0.15; pos.z = v.z + 3.5; yaw = Math.atan2(-(v.x - pos.x), -(v.z - pos.z)); pitch = 0; }, project: (i) => { const o = pickables[i * 2]; const v = new THREE.Vector3(); o.getWorldPosition(v); v.project(camera); const r = canvas.getBoundingClientRect(); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height, z: v.z }; }, renderer, scene, camera, pos, set: (x, z, y, p) => { pos.x = x; pos.z = z; if (y != null) yaw = y; if (p != null) pitch = p; } };
 }

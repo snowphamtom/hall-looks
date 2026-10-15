@@ -45,6 +45,7 @@
   }
   statues.sort(function (a, b) { return b.rank - a.rank; });
   window.THRONE_STATUES = statues;
+  window.THRONE_FROM_LOCKER = fromLocker;
 
   var $ = function (id) { return document.getElementById(id); };
   $("lede").textContent = fromLocker

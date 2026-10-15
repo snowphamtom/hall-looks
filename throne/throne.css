@@ -42,3 +42,10 @@ html.t3d .throne-stage { display: block; }
   .throne-card-inner img { max-height: 42svh; }
 }
 .throne-card-links .go { width: auto; flex: 0 0 auto; margin: 0; }
+.throne-hud.is-reveal .throne-hud-btns { opacity: 0; pointer-events: none; }
+.throne-hud.is-reveal #hud-hint { letter-spacing: .08em; opacity: .8; }
+.throne-hud-btns { flex-wrap: wrap; justify-content: flex-end; transition: opacity .6s ease; }
+.throne-hud .claim { color: #1a1206; background: linear-gradient(#f6dc8c, #c9962e); border-color: #f6dc8c; font-weight: 650; }
+.throne-hud .claim:hover, .throne-hud .claim:focus-visible { background: linear-gradient(#fff0b8, #d9a63e); }
+.throne-hud .claim.is-empty { color: #f4e7c4; background: rgba(20,16,10,.7); border-color: rgba(226,197,106,.55); font-weight: 500; }
+@media (max-width: 600px) { .throne-hud-btns { justify-content: flex-start; } .throne-hud button { padding: .4rem .7rem; } }
