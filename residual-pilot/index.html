@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>RESIDUAL PILOT — Impossible Archive</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    width: 100%; height: 100%; overflow: hidden;
+    background: #05060a; color: #c8d0e0;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    touch-action: none; user-select: none;
+  }
+  #wrap { position: relative; width: 100%; height: 100%; }
+  canvas { display: block; width: 100%; height: 100%; }
+  #hud {
+    position: absolute; top: 0; left: 0; right: 0;
+    padding: calc(12px + env(safe-area-inset-top)) 14px 8px;
+    pointer-events: none;
+    background: linear-gradient(to bottom, rgba(5,6,10,0.85), transparent);
+  }
+  #hud .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  #hud .title { font-size: 11px; letter-spacing: 0.22em; color: #7a889c; text-transform: uppercase; }
+  #hud .val { font-variant-numeric: tabular-nums; font-size: 13px; color: #e8eef8; }
+  #bars { margin-top: 4px; }
+  .bar-label { font-size: 10px; color: #6a7688; margin-bottom: 2px; display: flex; justify-content: space-between; }
+  .bar {
+    height: 6px; border-radius: 3px; background: #12151c; overflow: hidden;
+    border: 1px solid #1c2230;
+  }
+  .bar > i { display: block; height: 100%; width: 0%; transition: width 0.12s linear; }
+  #bar-res > i { background: linear-gradient(90deg, #3d7cff, #6aa0ff); }
+  #bar-head > i { background: linear-gradient(90deg, #2ecf8a, #5dffb0); }
+  #bar-claim > i { background: linear-gradient(90deg, #ff6b3d, #ff9a6a); }
+  #msg {
+    position: absolute; left: 0; right: 0; top: 42%;
+    text-align: center; pointer-events: none;
+    font-size: 14px; letter-spacing: 0.08em; color: #9eb0c8;
+    text-shadow: 0 0 18px rgba(80,120,200,0.5);
+    opacity: 0; transition: opacity 0.35s;
+  }
+  #msg.show { opacity: 1; }
+  #dock {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    padding: 10px 12px calc(14px + env(safe-area-inset-bottom));
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+    background: linear-gradient(to top, rgba(5,6,10,0.92), transparent);
+  }
+  #dock button {
+    pointer-events: auto;
+    border: 1px solid #243044;
+    background: rgba(18,22,32,0.92);
+    color: #c8d4e8;
+    border-radius: 12px;
+    padding: 12px 4px 10px;
+    font-size: 11px; letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  #dock button:active, #dock button.active {
+    background: #1a2740; border-color: #3d6abf; color: #fff;
+  }
+  #dock button .k { display: block; font-size: 15px; margin-bottom: 3px; }
+  #overlay {
+    position: absolute; inset: 0;
+    background: rgba(5,6,10,0.82);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 24px; text-align: center;
+  }
+  #overlay h1 {
+    font-size: 18px; letter-spacing: 0.28em; font-weight: 600;
+    color: #e8eef8; margin-bottom: 10px;
+  }
+  #overlay p { font-size: 13px; line-height: 1.55; color: #8a97ab; max-width: 300px; margin-bottom: 18px; }
+  #overlay .law {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 13px; color: #c9a84c; letter-spacing: 0.06em; margin-bottom: 22px;
+  }
+  #overlay button {
+    border: 1px solid #3d6abf; background: #152038; color: #e8eef8;
+    border-radius: 14px; padding: 14px 28px; font-size: 14px; letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  #overlay.hidden { display: none; }
+  #toast {
+    position: absolute; left: 50%; bottom: 110px; transform: translateX(-50%);
+    background: rgba(20,28,42,0.94); border: 1px solid #2a3a55;
+    color: #d0daf0; font-size: 12px; padding: 8px 14px; border-radius: 20px;
+    opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: nowrap;
+  }
+  #toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="c"></canvas>
+  <div id="hud">
+    <div class="row">
+      <span class="title">Residual Pilot</span>
+      <span class="val" id="wave">WAVE 1</span>
+    </div>
+    <div class="row">
+      <span class="val" id="streak">STREAK 0</span>
+      <span class="val" id="gen">GEN 1 · LINE 0.00</span>
+    </div>
+    <div id="bars">
+      <div class="bar-label"><span>RESIDUAL FIELD</span><span id="resV">0.00</span></div>
+      <div class="bar" id="bar-res"><i></i></div>
+      <div class="bar-label"><span>HEADROOM R+</span><span id="headV">0.00</span></div>
+      <div class="bar" id="bar-head"><i></i></div>
+      <div class="bar-label"><span>CLAIMED</span><span id="claimV">0.00</span></div>
+      <div class="bar" id="bar-claim"><i></i></div>
+    </div>
+  </div>
+  <div id="msg"></div>
+  <div id="toast"></div>
+  <div id="dock">
+    <button id="btn-obs"><span class="k">◎</span>Observe</button>
+    <button id="btn-am"><span class="k">↓</span>Amortize</button>
+    <button id="btn-vec"><span class="k">➔</span>Vector</button>
+    <button id="btn-hold"><span class="k">○</span>Hold</button>
+  </div>
+  <div id="overlay">
+    <h1>RESIDUAL PILOT</h1>
+    <p>You do not shoot. You measure.<br>
+    Claim-asteroids are over-claims. Impact is insolvency.<br>
+    Act only inside headroom. Raise the starting line.</p>
+    <div class="law">claimed ≤ interior</div>
+    <button id="btn-start">Begin Measurement</button>
+  </div>
+</div>
+<script>
+(() => {
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  const overlay = document.getElementById('overlay');
+  const msgEl = document.getElementById('msg');
+  const toastEl = document.getElementById('toast');
+
+  let W, H, dpr;
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth;
+    H = window.innerHeight;
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  // ----- residual state -----
+  const state = {
+    running: false,
+    wave: 1,
+    streak: 0,
+    gen: 1,
+    startingLine: 0,
+    interior: 0.18,
+    claimed: 0,
+    coolOff: 0,
+    skill: 0.35,
+    fieldRes: 0.4,
+    ship: { x: 0, y: 0, vx: 0, vy: 0, a: -Math.PI/2 },
+    claims: [],
+    particles: [],
+    action: 'HOLD',
+    tick: 0,
+    msgTimer: 0,
+    bestStreak: 0,
+  };
+
+  function headroom() { return Math.max(0, state.interior - state.claimed); }
+  function Rminus() { return Math.max(0, state.claimed - state.interior); }
+
+  function admit(cost) {
+    if (state.coolOff > 0) return false;
+    return cost <= headroom() + 1e-9;
+  }
+
+  function toast(t) {
+    toastEl.textContent = t;
+    toastEl.classList.add('show');
+    setTimeout(() => toastEl.classList.remove('show'), 1200);
+  }
+
+  function flash(t) {
+    msgEl.textContent = t;
+    msgEl.classList.add('show');
+    state.msgTimer = 90;
+  }
+
+  function spawnClaim() {
+    const edge = Math.floor(Math.random() * 4);
+    let x, y;
+    if (edge === 0) { x = Math.random()*W; y = -20; }
+    else if (edge === 1) { x = W+20; y = Math.random()*H; }
+    else if (edge === 2) { x = Math.random()*W; y = H+20; }
+    else { x = -20; y = Math.random()*H; }
+    const channels = ['factual','logical','social','tool'];
+    const ch = channels[Math.floor(Math.random()*channels.length)];
+    const mag = 0.02 + Math.random()*0.06 + state.wave*0.004;
+    const speed = 0.35 + Math.random()*0.55 + state.startingLine*0.15;
+    const ang = Math.atan2(state.ship.y - y, state.ship.x - x) + (Math.random()-0.5)*0.8;
+    state.claims.push({
+      x, y,
+      vx: Math.cos(ang)*speed,
+      vy: Math.sin(ang)*speed,
+      mag, ch, r: 10 + mag*180,
+      spin: (Math.random()-0.5)*0.08,
+      rot: Math.random()*Math.PI*2,
+      life: 1
+    });
+  }
+
+  function burst(x, y, color, n=12) {
+    for (let i=0;i<n;i++) {
+      const a = Math.random()*Math.PI*2;
+      const s = 0.5 + Math.random()*2.5;
+      state.particles.push({
+        x, y, vx: Math.cos(a)*s, vy: Math.sin(a)*s,
+        life: 30 + Math.random()*25, color, r: 1+Math.random()*2
+      });
+    }
+  }
+
+  function resetRun(keepGen=false) {
+    state.wave = 1;
+    state.streak = 0;
+    state.interior = 0.18 + state.startingLine*0.04;
+    state.claimed = 0;
+    state.coolOff = 0;
+    state.fieldRes = 0.45;
+    state.claims = [];
+    state.particles = [];
+    state.ship.x = W/2;
+    state.ship.y = H*0.55;
+    state.ship.vx = 0;
+    state.ship.vy = 0;
+    state.ship.a = -Math.PI/2;
+    state.action = 'HOLD';
+    state.tick = 0;
+    if (!keepGen) {
+      // soft fail keeps gen, advances line slightly on learning
+    }
+    for (let i=0;i<5;i++) spawnClaim();
+  }
+
+  function doObserve() {
+    state.action = 'OBSERVE';
+    const cost = 0.01;
+    if (!admit(cost)) { toast('GATE REFUSED · OBSERVE'); state.coolOff = 20; return; }
+    state.claimed += cost;
+    state.fieldRes = Math.max(0.05, state.fieldRes - 0.035);
+    state.skill = Math.min(0.95, state.skill + 0.008);
+    // slow nearest claims
+    state.claims.forEach(c => {
+      const dx = c.x - state.ship.x, dy = c.y - state.ship.y;
+      if (dx*dx+dy*dy < 140*140) { c.vx *= 0.7; c.vy *= 0.7; }
+    });
+    burst(state.ship.x, state.ship.y, 'rgba(100,160,255,0.8)', 8);
+    toast('OBSERVED · residual contracted');
+  }
+
+  function doAmortize() {
+    state.action = 'AMORTIZE';
+    if (state.claimed <= 0.001) { toast('NOTHING TO AMORTIZE'); return; }
+    const before = state.claimed;
+    state.claimed *= 0.55;
+    state.fieldRes = Math.max(0.04, state.fieldRes - 0.02);
+    burst(state.ship.x, state.ship.y, 'rgba(80,220,150,0.85)', 10);
+    toast('AMORTIZED · headroom restored');
+  }
+
+  function doVector() {
+    state.action = 'VECTOR';
+    const cost = 0.025;
+    if (!admit(cost)) { toast('GATE REFUSED · VECTOR'); state.coolOff += 15; return; }
+    state.claimed += cost;
+    // thrust toward safest low-density direction (away from nearest heavy claim)
+    let fx = 0, fy = 0;
+    state.claims.forEach(c => {
+      const dx = state.ship.x - c.x, dy = state.ship.y - c.y;
+      const d = Math.hypot(dx,dy) + 1;
+      const w = (c.mag * 40) / d;
+      fx += (dx/d) * w;
+      fy += (dy/d) * w;
+    });
+    const m = Math.hypot(fx,fy) || 1;
+    state.ship.vx += (fx/m) * 2.2;
+    state.ship.vy += (fy/m) * 2.2;
+    state.ship.a = Math.atan2(state.ship.vy, state.ship.vx);
+    burst(state.ship.x, state.ship.y, 'rgba(200,180,90,0.75)', 6);
+  }
+
+  function doHold() {
+    state.action = 'HOLD';
+    state.ship.vx *= 0.85;
+    state.ship.vy *= 0.85;
+  }
+
+  document.getElementById('btn-obs').onclick = () => { if(state.running) doObserve(); };
+  document.getElementById('btn-am').onclick = () => { if(state.running) doAmortize(); };
+  document.getElementById('btn-vec').onclick = () => { if(state.running) doVector(); };
+  document.getElementById('btn-hold').onclick = () => { if(state.running) doHold(); };
+
+  document.getElementById('btn-start').onclick = () => {
+    overlay.classList.add('hidden');
+    state.running = true;
+    resetRun(true);
+    flash('MEASURE THE FIELD');
+  };
+
+  // touch drag for fine vector
+  let dragging = false, lx=0, ly=0;
+  canvas.addEventListener('touchstart', e => {
+    if (!state.running) return;
+    dragging = true;
+    lx = e.touches[0].clientX; ly = e.touches[0].clientY;
+  }, {passive:true});
+  canvas.addEventListener('touchmove', e => {
+    if (!dragging || !state.running) return;
+    const x = e.touches[0].clientX, y = e.touches[0].clientY;
+    const dx = x - lx, dy = y - ly;
+    if (Math.hypot(dx,dy) > 8) {
+      const cost = 0.012;
+      if (admit(cost)) {
+        state.claimed += cost;
+        state.ship.vx += dx * 0.04;
+        state.ship.vy += dy * 0.04;
+        state.ship.a = Math.atan2(state.ship.vy, state.ship.vx);
+        state.action = 'VECTOR';
+      }
+      lx = x; ly = y;
+    }
+  }, {passive:true});
+  canvas.addEventListener('touchend', () => { dragging = false; });
+
+  function fail(reason) {
+    state.running = false;
+    state.bestStreak = Math.max(state.bestStreak, state.streak);
+    // learning: raise starting line slightly from experience
+    state.startingLine = Math.min(1, state.startingLine + 0.04 + state.skill*0.02);
+    state.gen += 1;
+    state.skill = Math.min(0.95, state.skill + 0.02);
+    overlay.classList.remove('hidden');
+    overlay.querySelector('p').innerHTML =
+      `<b>${reason}</b><br>Streak ${state.streak} · Best ${state.bestStreak}<br>` +
+      `Starting line raised to ${state.startingLine.toFixed(2)} · Gen ${state.gen}`;
+    overlay.querySelector('#btn-start').textContent = 'Continue — Raised Line';
+  }
+
+  function update() {
+    if (!state.running) return;
+    state.tick++;
+
+    if (state.msgTimer > 0) {
+      state.msgTimer--;
+      if (state.msgTimer === 0) msgEl.classList.remove('show');
+    }
+
+    if (state.coolOff > 0) state.coolOff--;
+
+    // passive amortize trickle when holding
+    if (state.action === 'HOLD') {
+      state.claimed = Math.max(0, state.claimed * 0.992);
+      state.ship.vx *= 0.96;
+      state.ship.vy *= 0.96;
+    }
+
+    // ship integrate
+    const sp = Math.hypot(state.ship.vx, state.ship.vy);
+    if (sp > 5.5) {
+      state.ship.vx *= 5.5/sp;
+      state.ship.vy *= 5.5/sp;
+    }
+    state.ship.x += state.ship.vx;
+    state.ship.y += state.ship.vy;
+    state.ship.x = Math.max(18, Math.min(W-18, state.ship.x));
+    state.ship.y = Math.max(100, Math.min(H-120, state.ship.y));
+
+    // spawn
+    const spawnRate = 0.015 + state.wave*0.003;
+    if (Math.random() < spawnRate && state.claims.length < 18) spawnClaim();
+
+    // update claims
+    for (let i = state.claims.length - 1; i >= 0; i--) {
+      const c = state.claims[i];
+      c.x += c.vx; c.y += c.vy;
+      c.rot += c.spin;
+      // residual pressure if near
+      const d = Math.hypot(c.x - state.ship.x, c.y - state.ship.y);
+      if (d < 120) state.fieldRes = Math.min(1, state.fieldRes + c.mag * 0.002);
+
+      // collision = insolvency event
+      if (d < c.r + 8) {
+        if (c.mag > headroom() + 0.01) {
+          burst(c.x, c.y, 'rgba(255,90,60,0.9)', 20);
+          fail('INSOLVENCY · claim exceeded interior');
+          return;
+        } else {
+          // absorb small claim if headroom allows
+          state.claimed += c.mag;
+          state.streak += 1;
+          state.fieldRes = Math.max(0.05, state.fieldRes - 0.03);
+          burst(c.x, c.y, 'rgba(100,200,255,0.85)', 14);
+          state.claims.splice(i, 1);
+          continue;
+        }
+      }
+
+      // offscreen cleanup
+      if (c.x < -80 || c.x > W+80 || c.y < -80 || c.y > H+80) state.claims.splice(i, 1);
+    }
+
+    // particles
+    for (let i = state.particles.length-1; i>=0; i--) {
+      const p = state.particles[i];
+      p.x += p.vx; p.y += p.vy; p.life--;
+      if (p.life <= 0) state.particles.splice(i,1);
+    }
+
+    // wave advance
+    if (state.tick % 900 === 0) {
+      state.wave += 1;
+      state.interior = Math.min(0.32, state.interior + 0.012);
+      flash('WAVE ' + state.wave + ' · INTERIOR EXPANDED');
+    }
+
+    // fail on sustained over-claim
+    if (Rminus() > 0.02) {
+      state.coolOff = Math.max(state.coolOff, 10);
+      state.fieldRes = Math.min(1, state.fieldRes + 0.01);
+      if (Rminus() > 0.08) {
+        fail('SUSTAINED OVER-CLAIM');
+        return;
+      }
+    }
+
+    // HUD
+    document.getElementById('wave').textContent = 'WAVE ' + state.wave;
+    document.getElementById('streak').textContent = 'STREAK ' + state.streak;
+    document.getElementById('gen').textContent = 'GEN ' + state.gen + ' · LINE ' + state.startingLine.toFixed(2);
+    document.getElementById('resV').textContent = state.fieldRes.toFixed(2);
+    document.getElementById('headV').textContent = headroom().toFixed(2);
+    document.getElementById('claimV').textContent = state.claimed.toFixed(2);
+    document.querySelector('#bar-res > i').style.width = (state.fieldRes*100) + '%';
+    document.querySelector('#bar-head > i').style.width = (Math.min(1, headroom()/0.3)*100) + '%';
+    document.querySelector('#bar-claim > i').style.width = (Math.min(1, state.claimed/0.3)*100) + '%';
+  }
+
+  function draw() {
+    // field background
+    const g = ctx.createRadialGradient(state.ship.x, state.ship.y, 20, state.ship.x, state.ship.y, Math.max(W,H)*0.7);
+    const heat = state.fieldRes;
+    g.addColorStop(0, `rgba(${20+heat*40},${24+heat*10},${36},1)`);
+    g.addColorStop(1, '#05060a');
+    ctx.fillStyle = g;
+    ctx.fillRect(0,0,W,H);
+
+    // subtle grid
+    ctx.strokeStyle = 'rgba(60,80,120,0.08)';
+    ctx.lineWidth = 1;
+    const step = 40;
+    for (let x=0;x<W;x+=step) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+    for (let y=0;y<H;y+=step) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+    // claims
+    state.claims.forEach(c => {
+      ctx.save();
+      ctx.translate(c.x, c.y);
+      ctx.rotate(c.rot);
+      const alpha = 0.55 + c.mag*3;
+      ctx.beginPath();
+      ctx.arc(0,0,c.r,0,Math.PI*2);
+      ctx.fillStyle = `rgba(255,${120-c.mag*400},${80},${alpha})`;
+      ctx.fill();
+      ctx.strokeStyle = `rgba(255,180,140,0.5)`;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      // glyph
+      ctx.strokeStyle = 'rgba(255,230,200,0.7)';
+      ctx.beginPath();
+      for (let k=0;k<5;k++) {
+        const a = k/5*Math.PI*2;
+        ctx.lineTo(Math.cos(a)*c.r*0.55, Math.sin(a)*c.r*0.55);
+      }
+      ctx.closePath();
+      ctx.stroke();
+      ctx.restore();
+      // mag label
+      ctx.fillStyle = 'rgba(255,220,200,0.85)';
+      ctx.font = '10px ui-monospace, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(c.mag.toFixed(2), c.x, c.y + c.r + 12);
+    });
+
+    // particles
+    state.particles.forEach(p => {
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle = p.color;
+      ctx.globalAlpha = Math.max(0, p.life/50);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    });
+
+    // ship — measuring stylus
+    const s = state.ship;
+    ctx.save();
+    ctx.translate(s.x, s.y);
+    ctx.rotate(s.a);
+    // glow
+    ctx.beginPath();
+    ctx.arc(0,0,14,0,Math.PI*2);
+    ctx.fillStyle = state.coolOff>0 ? 'rgba(255,80,60,0.25)' : 'rgba(80,140,255,0.2)';
+    ctx.fill();
+    // body
+    ctx.beginPath();
+    ctx.moveTo(12,0);
+    ctx.lineTo(-8,7);
+    ctx.lineTo(-5,0);
+    ctx.lineTo(-8,-7);
+    ctx.closePath();
+    ctx.fillStyle = '#d8e4f8';
+    ctx.fill();
+    ctx.strokeStyle = '#6a9cff';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    // needle tip
+    ctx.beginPath();
+    ctx.moveTo(12,0); ctx.lineTo(18,0);
+    ctx.strokeStyle = '#c9a84c';
+    ctx.stroke();
+    ctx.restore();
+
+    // headroom ring
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, 22 + headroom()*40, 0, Math.PI*2);
+    ctx.strokeStyle = `rgba(80,220,160,${0.15+headroom()})`;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  function loop() {
+    update();
+    draw();
+    requestAnimationFrame(loop);
+  }
+  state.ship.x = window.innerWidth/2;
+  state.ship.y = window.innerHeight*0.55;
+  loop();
+})();
+</script>
+</body>
+</html>
