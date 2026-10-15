@@ -1,8 +1,8 @@
 // HEAVY IS THE CROWN: offline support. Network first for pages (always fresh when online),
 // cache first for pictures, fonts, scripts and styles that carry a version tag.
 // inferno/ is left to the network untouched.
-var CACHE = "hic-v10";
-var SHELL = ["./", "./index.html", "./styles.css?v=p0l1sh09", "./card.css?v=p0l1sh09", "./nav.js", "./card.js", "./favicon.svg"];
+var CACHE = "hic-v11";
+var SHELL = ["./", "./index.html", "./styles.css?v=p0l1sh10", "./card.css?v=p0l1sh10", "./nav.js", "./card.js", "./favicon.svg"];
 self.addEventListener("install", function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(SHELL); }).catch(function () {}).then(function () { return self.skipWaiting(); }));
 });
