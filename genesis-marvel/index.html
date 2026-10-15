@@ -34,7 +34,7 @@
     border-radius:20px;padding:6px 16px;cursor:pointer}
   #hint{position:fixed;bottom:14px;right:16px;z-index:2;font-size:11px;color:#5f563e;font-family:system-ui,sans-serif;pointer-events:none}
 </style>
-<meta property="og:type" content="website"><meta property="og:site_name" content="HEAVY IS THE CROWN"><meta property="og:title" content="HEAVY IS THE CROWN — Genesis 7140"><meta property="og:description" content="A mathematical marvel: thousands of glowing nodes and threads arranged by the golden angle."><meta property="og:url" content="https://snowphamtom.github.io/hall-looks/genesis-marvel/"><meta property="og:image" content="https://snowphamtom.github.io/hall-looks/images/og/home.jpg"><meta name="twitter:card" content="summary_large_image"><link rel="icon" href="../favicon.svg"></head>
+<meta property="og:type" content="website"><meta property="og:site_name" content="HEAVY IS THE CROWN"><meta property="og:title" content="HEAVY IS THE CROWN — Genesis 7140"><meta property="og:description" content="A mathematical marvel: thousands of glowing nodes and threads arranged by the golden angle."><meta property="og:url" content="https://snowphamtom.github.io/hall-looks/genesis-marvel/"><meta property="og:image" content="https://snowphamtom.github.io/hall-looks/images/og/genesis-marvel.jpg"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta name="twitter:card" content="summary_large_image"><link rel="icon" href="../favicon.svg"></head>
 <body>
 <div id="app"></div>
 <div id="title"><h1>GENESIS 7140</h1><p>A MATHEMATICAL MARVEL · CLICK A NODE TO ISOLATE ITS WORLD</p></div>
@@ -105,6 +105,7 @@ cam.position.set(0, 34, 92); // intro start, dollies in
 const renderer = new THREE.WebGLRenderer({antialias:true});
 renderer.setSize(innerWidth, innerHeight);
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.9;
 document.getElementById('app').appendChild(renderer.domElement);
 const controls = new OrbitControls(cam, renderer.domElement);
 controls.target.set(0, 4, 0);
@@ -116,7 +117,7 @@ controls.enabled = false; // during intro
 // bloom — the cathedral glow
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, cam));
-const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.75, 0.55, 0.5);
+const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.5, 0.5, 0.78);
 composer.addPass(bloom);
 composer.addPass(new OutputPass());
 
