@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SERAPHIM — The Curation Engine</title>
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#030305;font-family:Georgia,serif;color:#f5f0e1}
+  #app{position:fixed;inset:0}
+  #hud{position:fixed;top:18px;left:22px;pointer-events:none;z-index:2}
+  #hud h1{font-size:20px;letter-spacing:.35em;margin:0 0 6px;font-weight:normal}
+  #hud h1 .s{color:#d4a843}
+  #hud p{margin:0;font-size:12px;color:#8a8578;letter-spacing:.08em}
+  #verdict{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:2;
+    background:#0a0a12ee;border:1px solid #2a2a35;border-radius:12px;padding:14px 24px;
+    max-width:600px;text-align:center;display:none}
+  #verdict h2{margin:0 0 6px;font-size:16px;letter-spacing:.15em;font-weight:normal}
+  #verdict.admit h2{color:#7dfcc8} #verdict.refuse h2{color:#e88a8a}
+  #verdict p{margin:0;font-size:12px;color:#8a8578;line-height:1.5}
+  #gate{position:fixed;right:22px;top:50%;transform:translateY(-50%);z-index:2;display:flex;
+    flex-direction:column;gap:8px;align-items:center}
+  #gate button{background:#0c0c12;border:1px solid #d4a843;color:#f5f0e1;font-family:inherit;
+    font-size:13px;letter-spacing:.15em;padding:14px 28px;border-radius:10px;cursor:pointer}
+  #gate button:hover{background:#d4a84322}
+  #gate button:disabled{opacity:.3;cursor:default}
+  #stats{position:fixed;left:22px;bottom:20px;z-index:2;font-size:11px;color:#5a5548;letter-spacing:.06em}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="hud"><h1><span class="s">SERAPHIM</span> — THE CURATION ENGINE</h1>
+<p>admit → crystallize · refuse → dissolve · click a piece for its verdict</p></div>
+<div id="gate"><button id="judgeBtn">⚖ JUDGE ALL</button></div>
+<div id="verdict"></div>
+<div id="stats"></div>
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js",
+"three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const pieces = [
+  {name:'PERIODIC TABLE', file:'periodic-table', tokens:['periodic','element','118','vault','examination']},
+  {name:'SUPREME QUAD', file:'supreme-quad', tokens:['quad','coupled','handheld','supreme']},
+  {name:'FAULT CONSTELLATION', file:'fault-constellation', tokens:['fault','refusing','constellation','codec']},
+  {name:'HOLOGRAPHIC', file:'holographic', tokens:['holographic','reflective','hyper','real']},
+  {name:'HOLOGRAM TOUCH', file:'hologram-touch', tokens:['hologram','touch','3d','fill']},
+  {name:'SPATIAL OS', file:'spatial-os', tokens:['spatial','os','pinned','face']},
+  {name:'PLATE INDUSTRY', file:'plate-industry', tokens:['plate','global','industry','full']},
+  {name:'POLYHEDRON PLATE', file:'polyhedron-plate', tokens:['polyhedron','plate','full']},
+  {name:'BRAINS VAULT', file:'brains-vault', tokens:['brains','vault']},
+  {name:'ANATOMY BOOK', file:'anatomy-book', tokens:['anatomy','lost','knowledge','book']},
+  {name:'GEOMETRY VAULT', file:'geometry-vault', tokens:['geometry','challenge','vault']},
+  {name:'TESSERA BRIDGE', file:'tessera-bridge', tokens:['tessera','kernel','bridge','genesis']},
+  {name:'GENESIS MARVEL', file:'genesis-marvel', tokens:['genesis','marvel','7140','nodes']},
+];
+
+const ADMIT_TOKENS = ['genesis','vault','periodic','118','tessera','kernel','constellation','codec','geometry','polyhedron','hologram'];
+function judge(piece){
+  let score = 0; let reasons = [];
+  piece.tokens.forEach(t=>{
+    if(ADMIT_TOKENS.includes(t)){ score += 2; reasons.push('"'+t+'" resonates'); }
+    else { score += 0.5; }
+  });
+  if(piece.tokens.length >= 4){ score += 1; reasons.push('rich token field'); }
+  const admit = score >= 4;
+  return {admit, score, reasons,
+    verdict: admit ? 'CRYSTALLIZE' : 'DISSOLVE',
+    detail: admit
+      ? 'Admitted with score '+score.toFixed(1)+'. '+reasons.join('; ')+'. This piece holds form — it crystallizes into the gallery.'
+      : 'Refused with score '+score.toFixed(1)+'. Insufficient resonance with the core tokens. This piece dissolves — set aside, not destroyed.'};
+}
+
+const app = document.getElementById('app');
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+app.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x030305);
+const cam = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, 0.1, 500);
+cam.position.set(0, 10, 32);
+const ctl = new OrbitControls(cam, renderer.domElement);
+ctl.enableDamping = true;
+scene.add(new THREE.AmbientLight(0x445, 0.8));
+const light = new THREE.DirectionalLight(0xfff2d8, 2.5);
+light.position.set(20, 30, 20);
+scene.add(light);
+
+const orbs = [];
+pieces.forEach((p, i)=>{
+  const a = i * 2.399963;
+  const r = 8 + (i % 5) * 2.5;
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0x444448, emissive: 0x222226, emissiveIntensity: 0.3,
+    roughness: 0.4, metalness: 0.6, transparent: true, opacity: 0.7
+  });
+  const orb = new THREE.Mesh(new THREE.SphereGeometry(1.4, 24, 24), mat);
+  orb.position.set(Math.cos(a)*r, (i - 6) * 1.2, Math.sin(a)*r);
+  orb.userData = {piece: p, idx: i, judged: false};
+  scene.add(orb);
+  orbs.push(orb);
+  const cv = document.createElement('canvas'); cv.width=256; cv.height=48;
+  const g = cv.getContext('2d');
+  g.fillStyle='#8a8578'; g.font='16px Georgia'; g.textAlign='center';
+  g.fillText(p.name, 128, 30);
+  const spr = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: new THREE.CanvasTexture(cv), transparent:true, opacity:0.7}));
+  spr.scale.set(6, 1.1, 1);
+  spr.position.copy(orb.position).add(new THREE.Vector3(0, 2.2, 0));
+  scene.add(spr);
+});
+
+const ray = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+let selected = null;
+renderer.domElement.addEventListener('click', (e)=>{
+  mouse.set((e.clientX/innerWidth)*2-1, -(e.clientY/innerHeight)*2+1);
+  ray.setFromCamera(mouse, cam);
+  const hits = ray.intersectObjects(orbs);
+  const vd = document.getElementById('verdict');
+  if(hits.length){
+    const o = hits[0].object;
+    const p = o.userData.piece;
+    if(!o.userData.judged){
+      vd.style.display='block'; vd.className='';
+      vd.innerHTML = '<h2>'+p.name+'</h2><p>Not yet judged. Press JUDGE ALL to run the Seraphim gate.</p>';
+    } else {
+      const j = o.userData.judgment;
+      vd.style.display='block'; vd.className=j.admit?'admit':'refuse';
+      vd.innerHTML = '<h2>'+j.verdict+' — '+p.name+'</h2><p>'+j.detail+'</p>';
+    }
+    selected = o;
+  } else { vd.style.display='none'; selected = null; }
+});
+
+document.getElementById('judgeBtn').addEventListener('click', function(){
+  const btn = this;
+  btn.disabled = true; btn.textContent = '⚖ JUDGING...';
+  let admitted = 0, refused = 0;
+  orbs.forEach((orb, i)=>{
+    setTimeout(()=>{
+      const j = judge(orb.userData.piece);
+      orb.userData.judged = true;
+      orb.userData.judgment = j;
+      const mat = orb.material;
+      if(j.admit){
+        admitted++;
+        mat.color.set(0x7dfcc8); mat.emissive.set(0x7dfcc8);
+        mat.emissiveIntensity = 0.8; mat.opacity = 1.0;
+        mat.roughness = 0.1; mat.metalness = 0.9;
+      } else {
+        refused++;
+        mat.color.set(0x333338); mat.emissive.set(0x111114);
+        mat.emissiveIntensity = 0.1; mat.opacity = 0.25;
+        mat.roughness = 0.9; mat.metalness = 0.1;
+        orb.scale.set(0.7, 0.7, 0.7);
+      }
+      if(i === orbs.length - 1){
+        document.getElementById('stats').innerHTML =
+          '⚖ '+admitted+' CRYSTALLIZED · '+refused+' DISSOLVED · click any orb for its verdict';
+        btn.textContent = '⚖ JUDGED';
+      }
+    }, i * 250);
+  });
+});
+
+const clock = new THREE.Clock();
+function tick(){
+  requestAnimationFrame(tick);
+  const t = clock.getElapsedTime();
+  orbs.forEach((o, i)=>{
+    o.position.y += Math.sin(t*0.8 + i)*0.002;
+    if(o.userData.judged && o.userData.judgment.admit){
+      const s = 1 + Math.sin(t*2 + i)*0.05;
+      o.scale.set(s, s, s);
+    }
+    if(o === selected) o.rotation.y = t*0.5;
+  });
+  ctl.update();
+  renderer.render(scene, cam);
+}
+tick();
+addEventListener('resize', ()=>{
+  cam.aspect = innerWidth/innerHeight; cam.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+</script>
+</body>
+</html>
