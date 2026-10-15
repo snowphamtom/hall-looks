@@ -125,6 +125,7 @@ input[type=range]:disabled::-webkit-slider-thumb{border-color:#999}
 #site-nav .nav-sound[aria-pressed="true"]{color:#F4F1E8;border-color:rgba(228,161,90,.6)}
 @media (max-width:720px){#site-nav .nav-sound{margin-left:8px}#lockerPanel{left:8px !important;right:8px !important;width:auto !important;transform:none !important}html,body{max-width:100%;overflow-x:hidden}}
 @media (prefers-reduced-motion: reduce){*{transition:none !important;animation:none !important}}
+.spec-load:focus-within{outline:2px solid #e4a15a;outline-offset:2px}
 </style>
 <link rel="canonical" href="https://snowphamtom.github.io/hall-looks/forge/">
 </head>
@@ -215,6 +216,7 @@ input[type=range]:disabled::-webkit-slider-thumb{border-color:#999}
 </div>
 <div class="note mono" id="settingsChanged" style="margin-top:8px">0 settings changed</div>
 <div style="display:flex;gap:8px;margin-top:8px"><button class="btn-ghost btn" style="flex:1" onclick="copySpec()" title="Copies this character's settings as text.">Copy spec</button><button class="btn" style="flex:1" onclick="exportSpec()" title="Downloads this character's settings as a file.">Save spec file</button><button class="btn" style="flex:1" onclick="exportImage()" title="Downloads a picture of this character.">Save picture</button></div>
+<label class="btn btn-ghost spec-load" style="display:block;text-align:center;margin-top:8px;position:relative;cursor:pointer" title="Load a spec file saved from Forge">Load spec file<input type="file" accept=".txt,text/plain" onchange="importSpec(this)" style="position:absolute;width:1px;height:1px;opacity:0;overflow:hidden"></label>
 </div>
 </div>
 </div>
@@ -349,8 +351,8 @@ function cleanFig(raw){
 function shareURL(){
   const u=new URL(location.href); u.hash=SHARE_KEY+"="+b64uEnc(JSON.stringify({v:1,a:active,f:figs})); return u.href;
 }
-(function readShare(){
-  const m=/^#b=([A-Za-z0-9_-]{8,20000})$/.exec(location.hash||""); if(!m) return;
+function applyShare(hash){
+  const m=/#b=([A-Za-z0-9_-]{8,20000})/.exec(hash||""); if(!m) return false;
   try{
     const d=JSON.parse(b64uDec(m[1]));
     if(!d||d.v!==1||!Array.isArray(d.f)) return;
@@ -358,8 +360,10 @@ function shareURL(){
     d.f.slice(0,2).forEach(function(raw,i){ const f=cleanFig(raw); if(f) figs[slot==null?i:slot]=f; });
     if(d.a===0||d.a===1) active=d.a;
     window.__sharedBuild=true;
-  }catch(e){}
-})();
+    return true;
+  }catch(e){ return false; }
+}
+applyShare(location.hash);
 window.copyShare=function(){
   if(typeof readForm==="function") readForm();
   const url=shareURL();
@@ -649,10 +653,20 @@ function trackUrl(u){
   setTimeout(function(){ if(liveUrls.delete(u)) URL.revokeObjectURL(u); },1000);
 }
 window.addEventListener("pagehide",function(){ liveUrls.forEach(function(u){ URL.revokeObjectURL(u); }); liveUrls.clear(); });
+window.importSpec=function(input){
+  const f=input.files&&input.files[0]; input.value=""; if(!f) return;
+  const n=document.getElementById("copyNote");
+  if(f.size>200000){ if(n) n.textContent="That file is too large to be a Forge spec."; return; }
+  f.text().then(function(t){
+    if(!applyShare(t)){ if(n) n.textContent="No build link found in that file. Save a spec file from Forge first."; return; }
+    writeForm(); resetCycleAttempt(); updateSpec(); paintSettingsChanged(); draw(); commitNow();
+    if(n) n.textContent="Loaded the build from "+f.name+".";
+  });
+};
 window.exportSpec=function(){
   readForm();
   updateSpec();
-  const b=new Blob([document.getElementById("spec").textContent+"\n\n"+document.getElementById("prompt").value+"\n\n"+document.getElementById("words").value],{type:"text/plain"});
+  const b=new Blob(["Build link (open it, or load this file on Forge): "+shareURL()+"\n\n"+document.getElementById("spec").textContent+"\n\n"+document.getElementById("prompt").value+"\n\n"+document.getElementById("words").value],{type:"text/plain"});
   const u=URL.createObjectURL(b); const a=document.createElement("a"); a.href=u; a.download="gladiator_custom_spec.txt"; document.body.appendChild(a); a.click(); document.body.removeChild(a);
   trackUrl(u);
   const n=document.getElementById("copyNote");
