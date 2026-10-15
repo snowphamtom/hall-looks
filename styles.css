@@ -1138,3 +1138,7 @@ label.clear:focus-within { outline: 2px solid #e4a15a; outline-offset: 2px; }
 .create-dock b { font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: #e4a15a; }
 .create-dock em { font-style: normal; font-size: 14px; }
 @media (max-width: 700px) { .create-dock { right: 10px; bottom: 10px; padding: 6px 12px 6px 6px; } .create-dock canvas { width: 42px; height: 56px; } }
+
+/* Crown World: "Make active" in the Locker */
+.slot-crown { background: none; border: 0; color: inherit; font-family: inherit; cursor: pointer; }
+.slot-crown[aria-pressed="true"] { color: #e2c56a; opacity: 1; text-decoration: none; cursor: default; }

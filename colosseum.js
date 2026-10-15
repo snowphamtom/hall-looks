@@ -86,6 +86,7 @@ document.getElementById("start").addEventListener("click", () => {
   };
   hero.alt = line;
   hero.src = src;
+  if (window.CrownWorld) window.CrownWorld.ledger.add("fight", { a: titles[fighterA], b: titles[fighterB] });
   front();
 });
 

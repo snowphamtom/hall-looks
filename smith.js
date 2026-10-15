@@ -60,6 +60,7 @@ function showWeapon(id) {
   };
   hero.alt = weaponAlt[id];
   hero.src = weaponSrc[id];
+  if (window.CrownWorld) window.CrownWorld.ledger.add("smith", { weapon: weaponAlt[id] });
   front();
 }
 

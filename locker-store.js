@@ -66,6 +66,11 @@
     });
     return changed ? writeList(BOARD_KEY, board).ok : false;
   }
+  // Crown ledger write, safe before or without js/crown-world.js (same key and event shape).
+  function crownLog(type, data) {
+    if (window.CrownWorld) return window.CrownWorld.ledger.add(type, data);
+    try { var l = JSON.parse(localStorage.getItem("crown-ledger-v1")) || []; l.push({ t: Date.now(), type: type, page: (location.pathname.split("/").filter(Boolean).slice(-1)[0] || "home"), data: data }); localStorage.setItem("crown-ledger-v1", JSON.stringify(l.slice(-500))); } catch (e) {}
+  }
   function add(fields) {
     var list = entries();
     if (list === null) return { ok: false, reason: "The saved locker could not be read, so nothing was replaced." };
@@ -79,11 +84,14 @@
       state: fields.state || blankState(),
       thumb: fields.thumb || "",
       source: fields.source,
-      look: fields.look || null
+      look: fields.look || null,
+      spec: fields.spec || null
     };
     var next = list.concat([entry]);
     var w = writeList(KEY, next);
     if (!w.ok) return w;
+    try { localStorage.setItem("crown-world-active-v1", JSON.stringify(entry.id)); } catch (e) {}
+    crownLog("save", { id: entry.id, name: entry.label, source: entry.source || null });
     return { ok: true, entry: entry, earned: earnBoard(next) };
   }
   function remove(test) {
@@ -96,6 +104,7 @@
   window.HallLocker = {
     KEY: KEY, CROWN_KEY: CROWN_KEY, BOARD_KEY: BOARD_KEY, CAPACITY: CAPACITY, PRESETS: PRESETS,
     entries: entries,
+    log: crownLog,
     crowns: function () { return readList(CROWN_KEY); },
     board: function () { return readList(BOARD_KEY); },
     presetState: presetState,

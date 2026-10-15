@@ -561,6 +561,7 @@
         all.forEach(function (e) { if (e.id === r.entry.id) e.create = rec; });
         localStorage.setItem(L.KEY, JSON.stringify(all));
       } catch (e) { /* the entry is saved without the Create picks */ }
+      if (window.CrownWorld) window.CrownWorld.ledger.add("build", { id: r.entry.id, name: rec.name || "Unnamed" });
       var n = (L.entries() || []).length;
       flash("Saved to the locker in this browser (" + n + " of " + L.CAPACITY + ")." + (r.earned ? " The board gained one line." : ""));
     });

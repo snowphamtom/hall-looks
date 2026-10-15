@@ -133,3 +133,13 @@ if ("serviceWorker" in navigator && location.protocol !== "file:") {
     if (url) navigator.serviceWorker.register(url, { scope: new URL("./", url).pathname }).catch(function () {});
   });
 }
+// Crown World: shared character + crown ledger (js/crown-world.js), loaded once on every page using nav.js.
+(function () {
+  if (window.CrownWorld || document.querySelector("script[src*='crown-world.js']")) return;
+  var me = document.querySelector("script[src*='nav.js']");
+  if (!me) return;
+  var s = document.createElement("script");
+  s.src = new URL("js/crown-world.js?v=p0l1sh16", new URL("./", me.src)).href;
+  s.defer = true;
+  document.head.appendChild(s);
+})();

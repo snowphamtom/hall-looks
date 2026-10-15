@@ -371,6 +371,7 @@ window.copyShare=function(){
   if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(url).then(done,function(){ say("Copy this link: "+url); });
   else say("Copy this link: "+url);
   try{ history.replaceState(null,"",url); }catch(e){}
+  if(window.CrownWorld) window.CrownWorld.ledger.add("share", {name:"Forge build"});
 };
 let ready=false, W=1024, H=1365, ctx, masks, erases, inks, hits, scratch;
 function measureResidual(f){
@@ -1750,6 +1751,11 @@ boot();
     var look = s.preset == null ? "Blank clay" : ((presets[s.preset] && presets[s.preset].name) || "Preset");
     return look + " · " + s.helmet + " / " + s.chest + " / " + weaponName(s);
   }
+  // Crown ledger: the newest save becomes the active character and is remembered (js/crown-world.js).
+  function crownSaved(entry){
+    try{ localStorage.setItem("crown-world-active-v1", JSON.stringify(entry.id)); }catch(e){}
+    if(window.CrownWorld) window.CrownWorld.ledger.add("forge", {id:entry.id, name:entry.label});
+  }
   function saveCurrent(){
     loadEntries();
     if(!readOk) return {ok:false, reason:"The saved locker could not be read, so nothing was replaced."};
@@ -1761,11 +1767,12 @@ boot();
     if(!w.ok && entry.thumb){
       entry.thumb = "";
       w = writeList(KEY, next);
-      if(w.ok){ entries = next; shown = entry; askPersist(); return {ok:true, noThumb:true, earned:earnBoard()}; }
+      if(w.ok){ entries = next; shown = entry; crownSaved(entry); askPersist(); return {ok:true, noThumb:true, earned:earnBoard()}; }
     }
     if(!w.ok) return w;
     entries = next;
     shown = entry;
+    crownSaved(entry);
     askPersist();
     var earned = earnBoard();
     return {ok:true, earned:earned};

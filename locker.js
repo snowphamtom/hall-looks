@@ -131,6 +131,21 @@ function render() {
     share.textContent = "Open in Forge";
     share.title = "Opens this save on Forge; the link itself holds the build, so you can send it";
     wrap.appendChild(share);
+    const cw = window.CrownWorld, act = cw && cw.character.active();
+    const crown = document.createElement("button");
+    crown.type = "button";
+    crown.className = "slot-share slot-crown";
+    const isActive = !!(act && act.id === entry.id);
+    crown.textContent = isActive ? "♛ Active character" : "Make active";
+    crown.setAttribute("aria-pressed", isActive ? "true" : "false");
+    crown.title = "The active character is the one the Hall carries into every room";
+    crown.addEventListener("click", () => {
+      if (!window.CrownWorld) return;
+      window.CrownWorld.character.setActive(entry.id);
+      say((entry.label || "That character") + " now wears the crown.");
+      render();
+    });
+    wrap.appendChild(crown);
     slots.appendChild(wrap);
   });
   empty.hidden = list().length > 0;
@@ -324,3 +339,6 @@ document.getElementById("import").addEventListener("change", (ev) => {
     render();
   });
 });
+
+// Crown World loads after this page script; repaint once so "Make active" appears.
+document.addEventListener("crownworld:ready", () => render());
