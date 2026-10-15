@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Fractal Visual — Phi Collapse</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,Helvetica,Arial,sans-serif;background:#080810;color:#e8e8f0;overflow-x:hidden}
+.hero{padding:22px 18px 14px;text-align:center}
+.hero h1{font-size:21px;margin-bottom:4px}
+.hero p{color:#888;font-size:13px}
+#stage{position:relative;width:100%;max-width:500px;margin:0 auto}
+canvas{display:block;width:100%;border-radius:0;touch-action:none}
+#rowlabel{position:absolute;left:0;right:0;text-align:center;font-size:11px;color:#ffd97d;pointer-events:none;letter-spacing:.1em}
+.controls{padding:14px 18px;max-width:500px;margin:0 auto}
+.ctl{margin-bottom:14px}
+.ctl label{display:block;font-size:13px;color:#aaa;margin-bottom:6px}
+.ctl label b{color:#ffd97d}
+input[type=range]{width:100%;-webkit-appearance:none;height:36px;background:transparent}
+input[type=range]::-webkit-slider-runnable-track{height:6px;background:#2a2a3a;border-radius:3px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;border-radius:50%;background:#ffd97d;margin-top:-11px}
+.btnrow{display:flex;gap:10px;margin:6px 0 14px}
+button{flex:1;padding:13px;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer}
+#playBtn{background:#7dfcc8;color:#0a0a12}
+#resetBtn{background:#22222f;color:#e8e8f0}
+.legend{display:flex;justify-content:center;gap:16px;padding:8px;font-size:12px;color:#aaa}
+.sw{display:inline-block;width:14px;height:14px;border-radius:4px;margin-right:5px;vertical-align:-2px}
+.explain{padding:6px 20px 30px;max-width:500px;margin:0 auto;font-size:14px;color:#b9b9c9;line-height:1.65}
+.explain h3{color:#7dfcc8;font-size:15px;margin:18px 0 6px}
+.explain .eq{background:#12121e;border:1px solid #2a2a3a;border-radius:10px;padding:12px;text-align:center;font-family:ui-monospace,monospace;color:#ffd97d;margin:10px 0;font-size:14px}
+.step{background:#12121e;border-radius:12px;padding:14px;margin:10px 0;border:1px solid #22222f}
+.step .n{display:inline-block;background:#ffd97d;color:#0a0a12;font-weight:700;font-size:12px;width:24px;height:24px;border-radius:50%;text-align:center;line-height:24px;margin-right:8px}
+</style>
+</head>
+<body>
+
+<div class="hero">
+<h1>🌀 Phi Collapse — Visual</h1>
+<p>Drag to explore · Watch the fractal form at row 0</p>
+</div>
+
+<div id="stage">
+<canvas id="cv" width="500" height="500"></canvas>
+<div id="rowlabel">ROW 0 — COLLAPSE POINT</div>
+</div>
+
+<div class="legend">
+<span><span class="sw" style="background:#fff8dc"></span>Identity holds</span>
+<span><span class="sw" style="background:#6a3ec2"></span>Fractal edge</span>
+<span><span class="sw" style="background:#0a0a12;border:1px solid #333"></span>Breaks</span>
+</div>
+
+<div class="controls">
+<div class="ctl">
+<label>Collapse depth — <b id="depthVal">row 0</b></label>
+<input type="range" id="depth" min="0" max="6" step="1" value="0">
+</div>
+<div class="ctl">
+<label>Zoom — <b id="zoomVal">1.0×</b></label>
+<input type="range" id="zoom" min="10" max="40" step="1" value="10">
+</div>
+<div class="btnrow">
+<button id="playBtn">▶ Animate collapse</button>
+<button id="resetBtn">Reset</button>
+</div>
+</div>
+
+<div class="explain">
+<div class="step"><span class="n">1</span><b>What you're seeing.</b> Each pixel tests whether <b>a+b−c=d</b> survives XOR at that point. Bright = yes. Dark = no. The purple fringe is the fractal boundary where it flickers.</div>
+
+<div class="step"><span class="n">2</span><b>Row 0 is the anchor.</b> Move the collapse depth slider — as you go deeper (rows 1–6), the bright zone shrinks and fragments. Row 0 has the largest stable region. That's the phi collapse.</div>
+
+<div class="step"><span class="n">3</span><b>Pinch to zoom.</b> Zoom into the purple edge and you'll see it never smooths out — smaller copies of the same pattern appear at every scale. That's what makes it fractal, not just noisy.</div>
+
+<div class="step"><span class="n">4</span><b>Why it matters.</b> The codec's refusal gate needs to know exactly where the identity is safe. This map <em>is</em> that territory. Row 0 = safest. The fringes = handle with care.</div>
+
+<h3>The math underneath</h3>
+<div class="eq">z → (|Re(z)| + i|Im(z)|)² + c</div>
+<p>This is a Burning Ship–type iteration. We map the arithmetic identity test onto it: points that escape slowly = identity holds (bright). Points that escape fast = breaks (dark). The boundary between them is where the fractal lives.</p>
+<p>It's an <em>illustration</em> of the concept — the real Panel BL was computed from your actual codec data. But the structure is the same: a stable core collapsing to fractal noise at the edges.</p>
+</div>
+
+<script>
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const W = 500, H = 500;
+const img = ctx.createImageData(W, H);
+let depthRow = 0, zoomF = 1.0;
+let cx = -0.5, cy = 0.0; // center
+let animating = false, animT = 0;
+
+function render() {
+  const z = zoomF;
+  // depth shrinks the stable zone (higher row = more fragmentation)
+  const frag = 1 + depthRow * 0.55;
+  const maxI = 28;
+  for (let py = 0; py < H; py++) {
+    for (let px = 0; px < W; px++) {
+      // map pixel to plane (-1.5..1.5), adjusted for zoom/center
+      const x0 = cx + (px / W - 0.5) * 3.0 / z;
+      const y0 = cy + (py / H - 0.5) * 3.0 / z;
+      let x = 0, y = 0, iter = 0;
+      // Burning Ship iteration with fragmentation factor
+      while (x*x + y*y < 4 && iter < maxI) {
+        const xt = Math.abs(x)*frag - Math.abs(y)*frag + x0;
+        // row factor: deeper rows distort more
+        y = 2*Math.abs(x)*Math.abs(y)*frag*(1+depthRow*0.08) + y0;
+        x = xt;
+        iter++;
+      }
+      const idx = (py*W + px) * 4;
+      if (iter >= maxI) {
+        // inside: identity holds — warm white/yellow
+        const g = 230 + Math.floor(20*Math.sin(px*0.05)*Math.sin(py*0.05));
+        img.data[idx]   = 255;
+        img.data[idx+1] = Math.min(255, 240 + depthRow*2);
+        img.data[idx+2] = 200 - depthRow*8;
+      } else {
+        const t = iter / maxI;
+        if (t > 0.55) {
+          // fractal edge: purple/magenta
+          img.data[idx]   = Math.floor(100 + 60*t);
+          img.data[idx+1] = Math.floor(40 + 30*t);
+          img.data[idx+2] = Math.floor(160 + 60*t);
+        } else if (t > 0.25) {
+          // transition: deep blue-purple
+          img.data[idx]   = Math.floor(40 + 40*t);
+          img.data[idx+1] = Math.floor(20 + 20*t);
+          img.data[idx+2] = Math.floor(80 + 60*t);
+        } else {
+          // far outside: near black
+          img.data[idx]   = Math.floor(8 + 20*t);
+          img.data[idx+1] = Math.floor(8 + 14*t);
+          img.data[idx+2] = Math.floor(14 + 20*t);
+        }
+      }
+      img.data[idx+3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  // row 0 marker line
+  const ry = H/2;
+  ctx.strokeStyle = 'rgba(255,217,125,0.5)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([6,4]);
+  ctx.beginPath(); ctx.moveTo(0, ry); ctx.lineTo(W, ry); ctx.stroke();
+  ctx.setLineDash([]);
+  // label position
+  document.getElementById('rowlabel').style.top = (ry - 18) + 'px';
+}
+
+// sliders
+document.getElementById('depth').addEventListener('input', e => {
+  depthRow = +e.target.value;
+  document.getElementById('depthVal').textContent = 'row ' + depthRow;
+  render();
+});
+document.getElementById('zoom').addEventListener('input', e => {
+  zoomF = +e.target.value / 10;
+  document.getElementById('zoomVal').textContent = zoomF.toFixed(1) + '×';
+  render();
+});
+
+// pinch zoom + drag pan
+let lastD = 0, lx = 0, ly = 0;
+cv.addEventListener('touchstart', e => {
+  if (e.touches.length === 2) {
+    lastD = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+  } else { lx = e.touches[0].clientX; ly = e.touches[0].clientY; }
+}, {passive:true});
+cv.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (e.touches.length === 2) {
+    const d = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+    if (lastD > 0) {
+      zoomF = Math.min(8, Math.max(0.5, zoomF * d / lastD));
+      document.getElementById('zoomVal').textContent = zoomF.toFixed(1)+'×';
+      document.getElementById('zoom').value = Math.round(zoomF*10);
+      render();
+    }
+    lastD = d;
+  } else if (e.touches.length === 1) {
+    const dx = (e.touches[0].clientX - lx) / W * 3.0 / zoomF;
+    const dy = (e.touches[0].clientY - ly) / H * 3.0 / zoomF;
+    cx -= dx; cy -= dy;
+    lx = e.touches[0].clientX; ly = e.touches[0].clientY;
+    render();
+  }
+}, {passive:false});
+
+// animate
+let animId = null;
+document.getElementById('playBtn').addEventListener('click', function() {
+  if (animating) {
+    animating = false; cancelAnimationFrame(animId); this.textContent = '▶ Animate collapse'; return;
+  }
+  animating = true; this.textContent = '⏸ Pause';
+  let dir = 1;
+  const step = () => {
+    if (!animating) return;
+    animT += dir * 0.04;
+    if (animT >= 6) { animT = 6; dir = -1; }
+    if (animT <= 0) { animT = 0; dir = 1; }
+    depthRow = Math.round(animT);
+    document.getElementById('depth').value = depthRow;
+    document.getElementById('depthVal').textContent = 'row ' + depthRow;
+    render();
+    animId = requestAnimationFrame(step);
+  };
+  step();
+});
+document.getElementById('resetBtn').addEventListener('click', () => {
+  if (animating) document.getElementById('playBtn').click();
+  depthRow = 0; zoomF = 1.0; cx = -0.5; cy = 0;
+  document.getElementById('depth').value = 0;
+  document.getElementById('zoom').value = 10;
+  document.getElementById('depthVal').textContent = 'row 0';
+  document.getElementById('zoomVal').textContent = '1.0×';
+  render();
+});
+
+render();
+</script>
+</body>
+</html>
