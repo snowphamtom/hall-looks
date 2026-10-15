@@ -139,7 +139,7 @@ if ("serviceWorker" in navigator && location.protocol !== "file:") {
   var me = document.querySelector("script[src*='nav.js']");
   if (!me) return;
   var s = document.createElement("script");
-  s.src = new URL("js/crown-world.js?v=p0l1sh19", new URL("./", me.src)).href;
+  s.src = new URL("js/crown-world.js?v=p0l1sh22", new URL("./", me.src)).href;
   s.defer = true;
   document.head.appendChild(s);
 })();
