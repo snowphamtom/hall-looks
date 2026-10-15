@@ -1,0 +1,102 @@
+/* HEAVY IS THE CROWN: ornament system. Vector only (ornament/*.svg), additive to styles.css.
+   html[data-orn="full"]  = Kiln pages: frame, nav, headings, drop caps, cards, buttons, footer.
+   .orn-frame.lite        = 3D and Lab pieces: frame chrome only. */
+:root {
+  --orn-gold: #e9c77e; --orn-gold-hi: #fff1c8; --orn-gold-lo: #6e4a1c;
+  --orn-bark: #2a1410; --orn-blossom: #f2b8c6; --orn-holo: #7dffb2;
+  --orn-bevel: linear-gradient(180deg, #fff1c8 0, #e9c77e 18%, #b8862f 52%, #f3d590 80%, #6e4a1c 100%);
+}
+/* Page frame: four engraved corners with rosettes, hairline double rules, blossom border. */
+.orn-frame { position: fixed; inset: 6px; pointer-events: none; z-index: 40; }
+.orn-frame::after { content: ""; position: absolute; inset: 0; }
+/* mirror the three non-origin corners */
+.orn-frame > i { position: absolute; width: var(--orn-c, 104px); height: var(--orn-c, 104px); background: url("ornament/corner.svg") 0 0 / 100% no-repeat; }
+.orn-frame > i:nth-child(1) { left: 0; top: 0; }
+.orn-frame > i:nth-child(2) { right: 0; top: 0; transform: scaleX(-1); }
+.orn-frame > i:nth-child(3) { left: 0; bottom: 0; transform: scaleY(-1); }
+.orn-frame > i:nth-child(4) { right: 0; bottom: 0; transform: scale(-1); }
+.orn-frame::after {
+  inset: 3px;
+  border: 1px solid rgba(233,199,126,.32);
+  outline: 1px solid rgba(110,74,28,.55); outline-offset: 3px;
+}
+.orn-frame > b { position: absolute; left: calc(var(--orn-c,104px) - 10px); right: calc(var(--orn-c,104px) - 10px); height: 8px; background: url("ornament/border.svg") 0 0 / 32px 8px repeat-x; opacity: .8; }
+.orn-frame > b:nth-of-type(1) { top: 2px; } .orn-frame > b:nth-of-type(2) { bottom: 2px; transform: scaleY(-1); }
+.orn-frame.lite { --orn-c: 84px; opacity: .85; }
+.orn-frame.lite > b { display: none; }
+@media (max-width: 640px) { .orn-frame { --orn-c: 64px; inset: 3px; } .orn-frame.lite { --orn-c: 52px; } .orn-frame > b { opacity: .6; } }
+
+/* Damask + guilloche watermark under the page content */
+html[data-orn="full"] main { position: relative; isolation: isolate; }
+html[data-orn="full"] main::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: url("ornament/damask.svg") center / 96px, url("ornament/guilloche.svg") center / 24px;
+  opacity: .055;
+  -webkit-mask: radial-gradient(ellipse at 50% 30%, #000 30%, transparent 75%); mask: radial-gradient(ellipse at 50% 30%, #000 30%, transparent 75%);
+}
+
+/* Nav: engraved underline with blossom scroll and a beveled gold hairline */
+html[data-orn="full"] .nav { position: relative; box-shadow: inset 0 -1px 0 rgba(110,74,28,.7), 0 1px 0 rgba(255,241,200,.12); }
+html[data-orn="full"] .nav::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: -5px; height: 8px; pointer-events: none;
+  background: url("ornament/border.svg") 0 0 / 32px 8px repeat-x; opacity: .7;
+}
+html[data-orn="full"] .nav .brand { background: var(--orn-bevel); -webkit-background-clip: text; background-clip: text; color: transparent; text-shadow: none; filter: drop-shadow(0 1px 0 rgba(0,0,0,.8)); }
+html[data-orn="full"] .nav a[aria-current="page"] { text-decoration: underline; text-decoration-color: var(--orn-gold); text-underline-offset: 6px; text-decoration-thickness: 1px; }
+
+/* Gilded headings: crest above the page title, divider beneath every section header */
+html[data-orn="full"] main h1:not(.crown-title) { padding-top: 58px; background: url("ornament/crest.svg") center top / 46px 54px no-repeat; text-shadow: 0 1px 0 #000, 0 -1px 0 rgba(255,241,200,.25); }
+html[data-orn="full"] main h1, html[data-orn="full"] main h2 { padding-bottom: 22px; background-image: url("ornament/divider.svg"); background-repeat: no-repeat; background-position: left bottom; background-size: min(300px, 90%) 25px; }
+html[data-orn="full"] main h1:not(.crown-title) { background-image: url("ornament/crest.svg"), url("ornament/divider.svg"); background-position: left top, left bottom; background-size: 46px 54px, min(300px, 90%) 25px; }
+html[data-orn="full"] main[class~="page"] h1, html[data-orn="full"] main.lab h1, html[data-orn="full"] main.help h1 { color: #f6e2b0; }
+html[data-orn="full"] main h2 { color: #f0d28c; letter-spacing: .04em; }
+
+/* Drop-cap initial on the first paragraph after a title */
+html[data-orn="full"] main h1 + p::first-letter, html[data-orn="full"] main .lede::first-letter {
+  float: left; font-family: Georgia, "Times New Roman", serif; font-size: 3.1em; line-height: .86; padding: .06em .12em 0 0; margin-top: .04em;
+  color: #f3d590; text-shadow: 1px 1px 0 #3a2410, -1px -1px 0 rgba(255,241,200,.35), 0 0 12px rgba(233,199,126,.25);
+}
+
+/* Cards and panels: beveled gold edge, engraved inner hairline, corner rosettes */
+html[data-orn="full"] :is(.card, .help-card, .g-tile, .lab li, .spec) {
+  position: relative;
+  border-color: rgba(233,199,126,.42) !important;
+  box-shadow: inset 0 1px 0 rgba(255,241,200,.22), inset 0 -1px 0 rgba(0,0,0,.6), 0 0 0 1px rgba(110,74,28,.55), 0 6px 18px rgba(0,0,0,.35);
+  background-image: radial-gradient(circle at 0 0, rgba(233,199,126,.09), transparent 40%), radial-gradient(circle at 100% 100%, rgba(242,184,198,.06), transparent 45%);
+}
+html[data-orn="full"] :is(.card, .help-card, .lab li, .spec)::after {
+  content: ""; position: absolute; inset: 4px; pointer-events: none; border-radius: inherit;
+  border: 1px solid rgba(233,199,126,.14);
+  background: url("ornament/corner.svg") left top / 30px no-repeat, url("ornament/corner.svg") right bottom / 30px no-repeat;
+  opacity: .85;
+}
+
+/* Buttons: bevel highlight line + shadow, gold-leaf sheen sweeps on hover */
+html[data-orn="full"] main :is(button, .btn, .go):not(.nav-toggle):not(.nav-sound) {
+  box-shadow: inset 0 1px 0 rgba(255,241,200,.35), inset 0 -1px 0 rgba(0,0,0,.45), 0 0 0 1px rgba(110,74,28,.5);
+  background-image: linear-gradient(105deg, transparent 35%, rgba(255,241,200,.28) 48%, transparent 60%);
+  background-size: 260% 100%; background-position: 120% 0; background-repeat: no-repeat;
+  transition: background-position .9s ease, box-shadow .2s ease;
+}
+html[data-orn="full"] main :is(button, .btn, .go):not(.nav-toggle):not(.nav-sound):hover { background-position: -40% 0; box-shadow: inset 0 1px 0 rgba(255,241,200,.5), inset 0 -1px 0 rgba(0,0,0,.45), 0 0 0 1px rgba(233,199,126,.7), 0 0 14px rgba(233,199,126,.18); }
+html[data-orn="full"] :is(.card, .help-card, .lab li) { transition: box-shadow .3s ease; }
+html[data-orn="full"] :is(.card, .help-card, .lab li):hover { box-shadow: inset 0 1px 0 rgba(255,241,200,.32), inset 0 -1px 0 rgba(0,0,0,.6), 0 0 0 1px rgba(233,199,126,.6), 0 0 22px rgba(233,199,126,.14); }
+
+/* Footer: crest, blossom scroll divider, guilloche band */
+.orn-footer { position: relative; z-index: 1; margin: 48px auto 0; padding: 70px 16px 34px; max-width: 760px; text-align: center; color: #cfc4b0; font: 13px/1.6 Georgia, serif; letter-spacing: .08em;
+  background: url("ornament/crest.svg") center 0 / 50px 58px no-repeat; }
+.orn-footer::before { content: ""; display: block; height: 25px; margin: 0 auto 12px; max-width: 420px; background: url("ornament/divider.svg") center / contain no-repeat; }
+.orn-footer::after { content: ""; display: block; height: 10px; margin: 14px auto 0; max-width: 520px; background: url("ornament/guilloche.svg") 0 0 / 10px; opacity: .35; }
+.orn-footer strong { color: #f0d28c; font-weight: normal; letter-spacing: .28em; }
+.orn-footer .holo { color: var(--orn-holo); }
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-orn="full"] main :is(button, .btn, .go), html[data-orn="full"] :is(.card, .help-card, .lab li) { transition: none !important; }
+  html[data-orn="full"] main :is(button, .btn, .go):hover { background-position: 120% 0 !important; }
+}
+@media print { .orn-frame { display: none; } }
+/* keep nav text clear of the frame's top rosettes */
+html[data-orn="full"] .nav { padding-left: 38px !important; padding-right: 38px !important; }
+@media (max-width: 640px) { html[data-orn="full"] .nav { padding-left: 26px !important; padding-right: 26px !important; } }
+@media (min-width: 1281px) and (max-width: 1640px) { html[data-orn="full"] .nav { gap: 8px 7px; } html[data-orn="full"] .nav a { font-size: 12.5px; } }
+@media (min-width: 1281px) and (max-width: 1400px) { html[data-orn="full"] .nav { gap: 8px 6px; padding-left: 32px !important; padding-right: 32px !important; } html[data-orn="full"] .nav a { font-size: 12px; } html[data-orn="full"] .brand { letter-spacing: .12em; } }

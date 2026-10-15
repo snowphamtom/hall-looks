@@ -1,6 +1,6 @@
 /* Throne Room 3D hall. three.js r160 vendored in ./vendor (MIT, see THREE-LICENSE.txt). */
 import * as THREE from "./vendor/three-0.160.0.module.min.js";
-import { upgrade, tierFor } from "./throne-fx.js?v=p0l1sh18";
+import { upgrade, tierFor } from "./throne-fx.js?v=p0l1sh19";
 
 export function start(statues) {
   const canvas = document.getElementById("hall");

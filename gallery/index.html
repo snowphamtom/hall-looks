@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html data-orn="full" lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -26,7 +26,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Outfit:wght@380;500;650;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../styles.css?v=p0l1sh17">
+<link rel="stylesheet" href="../styles.css?v=p0l1sh19">
 <style>
   .gallery { padding: 36px 7vw 48px; max-width: 1400px; margin: 0 auto; }
   .gallery h1 { font-family: "Cormorant Garamond", serif; font-weight: 500; font-size: clamp(40px, 6vw, 72px); line-height: 1; margin: 6px 0 12px; }
@@ -57,8 +57,8 @@
     .g-viewer-bar a, .g-viewer-bar button { font-size: 13px; padding: 0 12px; }
   }
 </style>
-</head>
-<body>
+<link rel="stylesheet" href="../ornament.css?v=p0l1sh19"></head>
+<body><div class="orn-frame" aria-hidden="true"><i></i><i></i><i></i><i></i><b></b><b></b></div>
 <div id="sky" aria-hidden="true"><div class="sky-blossom"></div><div class="sky-scrim"></div><div class="sky-schematic"></div></div>
 <nav class="nav" aria-label="Site" data-collapsible><a class='brand' href='../'>HEAVY IS THE CROWN</a><button type="button" class="nav-toggle" aria-expanded="false" aria-controls="nav-links">Menu</button><span class="nav-links" id="nav-links"><a href='../'>Room</a><a href='../foundation/'>Foundation</a><a href='../black-chrome/'>Black Chrome</a><a href='../white-samurai/'>White Samurai</a><a href='../skull-champion/'>Skull Champion</a><a href='../titan-gladiator/'>Titan Gladiator</a><a href='../forge/'>Forge</a><a href='../workbench/'>Workbench</a><a aria-current='page' href='../gallery/'>Gallery</a><a href='../smith/'>Smith</a><a href='../colosseum/'>Colosseum</a><a href='../create/'>Create</a><a href='../help/'>Help</a><a href='../locker/'>Locker</a><a href='../throne/'>Throne Room</a><a href='../lab/'>Lab</a></span></nav>
 <main class="gallery">
@@ -120,7 +120,7 @@
     <iframe id="g-frame" title="Preview" allow="autoplay; fullscreen" loading="lazy"></iframe>
   </section>
   <p class="g-foot">Every number on these pages is measured, not drawn.</p>
-</main>
+</main><footer class="orn-footer" role="contentinfo"><strong>HEAVY IS THE CROWN</strong><br>Forged in cherry bark, gold and <span class="holo">hologram light</span>.</footer>
 <script>
 (function () {
   var viewer = document.getElementById("g-viewer"), frame = document.getElementById("g-frame");
