@@ -19,7 +19,7 @@
   #panel button.action{border-color:#3a5a96;color:#a8c8e8}
   #panel button.action.on{border-color:#6bb6d6;color:#fff}
 </style>
-</head>
+<meta property="og:type" content="website"><meta property="og:site_name" content="HEAVY IS THE CROWN"><meta property="og:title" content="HEAVY IS THE CROWN — Tessera Bridge"><meta property="og:description" content="A bridge of tessellated stone tiles spanning a dark void under one warm light."><meta property="og:url" content="https://snowphamtom.github.io/hall-looks/tessera-bridge/"><meta property="og:image" content="https://snowphamtom.github.io/hall-looks/images/og/home.jpg"><meta name="twitter:card" content="summary_large_image"><link rel="icon" href="../favicon.svg"></head>
 <body>
 <div id="app"></div>
 <div id="hud"><h1>TESSERA KERNEL BRIDGE</h1><p>click to reveal · every change is your choice</p></div>
@@ -70,7 +70,7 @@ const ctl = new OrbitControls(cam, renderer.domElement);
 const camTarget = new THREE.Vector3(0,14,38);
 ctl.enableDamping = true;
 
-const light = new THREE.DirectionalLight(0xfff2d8, 2.5);
+const light = new THREE.DirectionalLight(0xfff2d8, 3.0);
 const el = Math.atan(1/PHI), az = 137.508*Math.PI/180;
 light.position.set(Math.cos(el)*Math.cos(az)*50, Math.sin(el)*50, Math.cos(el)*Math.sin(az)*50);
 scene.add(light);
@@ -220,5 +220,5 @@ addEventListener('resize', ()=>{
   renderer.setSize(innerWidth, innerHeight);
 });
 </script>
-</body>
+<a class="hic-back" href="../lab/" style="position:fixed;left:10px;bottom:10px;z-index:2147483647;font:12px/1 Georgia,serif;color:#d4a843;background:rgba(3,3,5,.75);border:1px solid #3a2f18;border-radius:8px;padding:7px 10px;text-decoration:none">&larr; HEAVY IS THE CROWN</a></body>
 </html>

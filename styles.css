@@ -1042,6 +1042,12 @@ picture{display:contents}
   .nav a { font-size: 14px; white-space: nowrap; }
   .brand { margin-right: 6px; font-size: 14px; letter-spacing: .22em; }
 }
+/* Lab link: keep the one-row laptop nav inside the viewport. */
+@media (min-width: 1281px) and (max-width: 1640px) {
+  .nav { gap: 8px 9px; padding: 18px 16px; }
+  .nav a { font-size: 13px; }
+  .brand { letter-spacing: .16em; margin-right: 2px; }
+}
 /* Polish 2: Locker collection tools. */
 .vault-tools{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin:12px 0}
 .vault-tools[hidden]{display:none}

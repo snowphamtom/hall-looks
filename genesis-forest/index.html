@@ -19,7 +19,7 @@
   #tip .cls{font-size:10px;letter-spacing:.12em;opacity:.85}
   #foot{position:fixed;bottom:12px;left:16px;z-index:2;font-size:11px;color:#5f7396;pointer-events:none}
 </style>
-</head>
+<meta property="og:type" content="website"><meta property="og:site_name" content="HEAVY IS THE CROWN"><meta property="og:title" content="HEAVY IS THE CROWN — Genesis Forest"><meta property="og:description" content="A forest of light beams grown from a single seed."><meta property="og:url" content="https://snowphamtom.github.io/hall-looks/genesis-forest/"><meta property="og:image" content="https://snowphamtom.github.io/hall-looks/images/og/home.jpg"><meta name="twitter:card" content="summary_large_image"><link rel="icon" href="../favicon.svg"></head>
 <body>
 <div id="app"></div>
 <div id="hud"><h1>GENESIS 7140 — FULL SPECTRUM</h1><p>1128 beams · 944 door / 124 alias / 60 never · drag to orbit · scroll to zoom · hover a beam</p></div>
@@ -80,7 +80,7 @@ mesh.instanceMatrix.needsUpdate = true;
 if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
 scene.add(mesh);
 
-const pl = new THREE.PointLight(0xffd27f, 40, 60); pl.position.set(10, 12, 8); scene.add(pl);
+const sun = new THREE.DirectionalLight(0xfff2d8, 3.0); { const el = 31.7175*Math.PI/180, az = 137.508*Math.PI/180; sun.position.set(Math.cos(el)*Math.cos(az)*50, Math.sin(el)*50, Math.cos(el)*Math.sin(az)*50); } scene.add(sun);
 
 const ray = new THREE.Raycaster(), mouse = new THREE.Vector2();
 const tip = document.getElementById('tip');
@@ -105,5 +105,5 @@ addEventListener('resize', () => {
 
 renderer.setAnimationLoop(() => { controls.update(); renderer.render(scene, cam); });
 </script>
-</body>
+<a class="hic-back" href="../lab/" style="position:fixed;left:10px;bottom:10px;z-index:2147483647;font:12px/1 Georgia,serif;color:#d4a843;background:rgba(3,3,5,.75);border:1px solid #3a2f18;border-radius:8px;padding:7px 10px;text-decoration:none">&larr; HEAVY IS THE CROWN</a></body>
 </html>

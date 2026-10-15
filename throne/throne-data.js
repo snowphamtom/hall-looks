@@ -107,7 +107,7 @@
     enter.hidden = true;
     document.documentElement.classList.add("t3d");
     document.body.classList.add("throne-3d");
-    import("./throne3d.js?v=p0l1sh12").then(function (m) { m.start(statues); }).catch(function (err) { if (window.console) console.error("throne3d", err);
+    import("./throne3d.js?v=p0l1sh13").then(function (m) { m.start(statues); }).catch(function (err) { if (window.console) console.error("throne3d", err);
       document.documentElement.classList.remove("t3d"); document.body.classList.remove("throne-3d");
       note.hidden = false; note.textContent = "The hall could not load, so it is shown as a gallery.";
     });
