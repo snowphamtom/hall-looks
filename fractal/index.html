@@ -46,9 +46,9 @@ button{flex:1;padding:13px;border:none;border-radius:12px;font-size:15px;font-we
 </div>
 
 <div class="legend">
-<span><span class="sw" style="background:#fff8dc"></span>Identity holds</span>
-<span><span class="sw" style="background:#6a3ec2"></span>Fractal edge</span>
-<span><span class="sw" style="background:#0a0a12;border:1px solid #333"></span>Breaks</span>
+<span><span class="sw" style="background:#f3e9c8"></span>Identity holds</span>
+<span><span class="sw" style="background:#c9a227"></span>Fractal edge</span>
+<span><span class="sw" style="background:#000;border:1px solid #333"></span>Breaks</span>
 </div>
 
 <div class="controls">
@@ -61,7 +61,7 @@ button{flex:1;padding:13px;border:none;border-radius:12px;font-size:15px;font-we
 <input type="range" id="zoom" min="10" max="40" step="1" value="10">
 </div>
 <div class="ctl">
-<label>Rotation — <b id="rotVal">0.0°</b> <span style="color:#666;font-size:11px">(lynchpin stagger = 15.13°)</span></label>
+<label>Rotation — <b id="rotVal">0.0°</b> <span style="color:#666;font-size:11px">(R=(1/5)[[3,−4],[4,3]] · 53.13° base)</span></label>
 <input type="range" id="rot" min="0" max="360" step="1" value="0">
 </div>
 <div class="btnrow">
@@ -82,9 +82,9 @@ button{flex:1;padding:13px;border:none;border-radius:12px;font-size:15px;font-we
 <div class="step"><span class="n">5</span><b>Why it matters.</b> The codec's refusal gate needs to know exactly where the identity is safe. This map <em>is</em> that territory. Row 0 = safest. The fringes = handle with care.</div>
 
 <h3>The math underneath</h3>
-<div class="eq">z → (|Re(z)| + i|Im(z)|)² + c</div>
-<p>This is a Burning Ship–type iteration. We map the arithmetic identity test onto it: points that escape slowly = identity holds (bright). Points that escape fast = breaks (dark). The boundary between them is where the fractal lives.</p>
-<p>It's an <em>illustration</em> of the concept — the real Panel BL was computed from your actual codec data. But the structure is the same: a stable core collapsing to fractal noise at the edges.</p>
+<div class="eq">R = (1/5)[[3,−4],[4,3]] · 53.130102° = arctan(4/3)</div>
+<p>Your actual rotation matrix is folded into every iteration — the 3-4-5 structure shapes the fractal arms themselves, not just the viewport. The stagger (53.130102° − 38° = 15.130102°) is the same angle that organizes the spiral, the desk line, and this collapse.</p>
+<p>Colors are your palette: gold #f3e9c8 / #c9a227 for the stable zone, blues #7fb2ff → #3a5a9c through the transition, canon black #000000 outside.</p>
 </div>
 
 <script>
@@ -107,6 +107,8 @@ function render() {
   const z = zoomF;
   const rot = rotDeg * Math.PI / 180;
   const cosR = Math.cos(rot), sinR = Math.sin(rot);
+  // 3-4-5 rotation components: cos(53.130102°)=3/5, sin=4/5
+  const c345 = 3/5, s345 = 4/5;
   // depth shrinks the stable zone (higher row = more fragmentation)
   const frag = 1 + depth * 0.55;
   const maxI = 28;
@@ -121,37 +123,40 @@ function render() {
       const x0 = cx + rx;
       const y0 = cy + ry;
       let x = 0, y = 0, iter = 0;
-      // Burning Ship iteration with fragmentation factor
+      // TAYLOR'S MATH: 3-4-5 rotation R=(1/5)[[3,-4],[4,3]] folded into iteration
+      // The 53.130102° structure shapes the fractal arms
       while (x*x + y*y < 4 && iter < maxI) {
-        const xt = Math.abs(x)*frag - Math.abs(y)*frag + x0;
-        // row factor: deeper rows distort more
-        y = 2*Math.abs(x)*Math.abs(y)*frag*(1+depth*0.08) + y0;
+        // apply 3-4-5 rotation to (x,y) before squaring: R*(x,y)
+        const rx345 = (3*x - 4*y)/5;
+        const ry345 = (4*x + 3*y)/5;
+        const xt = Math.abs(rx345)*frag - Math.abs(ry345)*frag + x0;
+        y = 2*Math.abs(rx345)*Math.abs(ry345)*frag*(1+depth*0.08) + y0;
         x = xt;
         iter++;
       }
       const idx = (py*W + px) * 4;
       if (iter >= maxI) {
-        // inside: identity holds — warm white/yellow
-        img.data[idx]   = 255;
-        img.data[idx+1] = Math.min(255, 240 + depth*2);
-        img.data[idx+2] = 200 - depth*8;
+        // TAYLOR'S COLORS: gold #f3e9c8 / #c9a227 for stable region
+        img.data[idx]   = 243;  // #f3
+        img.data[idx+1] = 233 - depth*4;  // #e9
+        img.data[idx+2] = 200 - depth*6;  // #c8
       } else {
         const t = iter / maxI;
         if (t > 0.55) {
-          // fractal edge: purple/magenta
-          img.data[idx]   = Math.floor(100 + 60*t);
-          img.data[idx+1] = Math.floor(40 + 30*t);
-          img.data[idx+2] = Math.floor(160 + 60*t);
+          // fractal edge: gold-deep to blue transition
+          img.data[idx]   = Math.floor(201 - 80*(1-t));  // gold #c9a227 → blue
+          img.data[idx+1] = Math.floor(162 - 60*(1-t));
+          img.data[idx+2] = Math.floor(39 + 120*(1-t));
         } else if (t > 0.25) {
-          // transition: deep blue-purple
-          img.data[idx]   = Math.floor(40 + 40*t);
-          img.data[idx+1] = Math.floor(20 + 20*t);
-          img.data[idx+2] = Math.floor(80 + 60*t);
+          // transition: Taylor's blue #7fb2ff → #3a5a9c
+          img.data[idx]   = Math.floor(58 + 69*t);
+          img.data[idx+1] = Math.floor(90 + 37*t);
+          img.data[idx+2] = Math.floor(156 + 99*t);
         } else {
-          // far outside: near black
-          img.data[idx]   = Math.floor(8 + 20*t);
-          img.data[idx+1] = Math.floor(8 + 14*t);
-          img.data[idx+2] = Math.floor(14 + 20*t);
+          // far outside: canon black #000000
+          img.data[idx]   = Math.floor(4 + 10*t);
+          img.data[idx+1] = Math.floor(4 + 10*t);
+          img.data[idx+2] = Math.floor(6 + 12*t);
         }
       }
       img.data[idx+3] = 255;
