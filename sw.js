@@ -1,8 +1,8 @@
 // HEAVY IS THE CROWN: offline support. Network first for pages (always fresh when online),
 // cache first for pictures, fonts, scripts and styles that carry a version tag.
 // inferno/ is left to the network untouched.
-var CACHE = "hic-v20";
-var SHELL = ["./ornament.css?v=p0l1sh19", "./ornament/corner.svg", "./ornament/divider.svg", "./ornament/crest.svg", "./ornament/border.svg", "./", "./index.html", "./styles.css?v=p0l1sh19", "./card.css?v=p0l1sh19", "./nav.js", "./js/crown-world.js?v=p0l1sh19", "./body/", "./card.js", "./favicon.svg", "./throne/", "./throne/throne.css?v=p0l1sh19", "./throne/throne-data.js?v=p0l1sh19", "./lab/", "./genesis-marvel/", "./genesis-forest/", "./tessera-bridge/"];
+var CACHE = "hic-v21";
+var SHELL = ["./ornament.css?v=p0l1sh19", "./ornament/corner.svg", "./ornament/divider.svg", "./ornament/crest.svg", "./ornament/border.svg", "./", "./index.html", "./styles.css?v=p0l1sh19", "./card.css?v=p0l1sh19", "./nav.js", "./js/crown-world.js?v=p0l1sh19", "./body/", "./card.js", "./favicon.svg", "./throne/", "./throne/throne.css?v=p0l1sh19", "./throne/throne-data.js?v=p0l1sh20", "./lab/", "./genesis-marvel/", "./genesis-forest/", "./tessera-bridge/"];
 self.addEventListener("install", function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(SHELL); }).catch(function () {}).then(function () { return self.skipWaiting(); }));
 });

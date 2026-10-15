@@ -1,6 +1,6 @@
 /* Throne Room 3D hall. three.js r160 vendored in ./vendor (MIT, see THREE-LICENSE.txt). */
 import * as THREE from "./vendor/three-0.160.0.module.min.js";
-import { upgrade, tierFor } from "./throne-fx.js?v=p0l1sh19";
+import { upgrade, tierFor } from "./throne-fx.js?v=p0l1sh20";
 
 export function start(statues) {
   const canvas = document.getElementById("hall");
@@ -194,22 +194,67 @@ export function start(statues) {
 
   // ---------- gold veins ----------
   const veinGroup = new THREE.Group(); scene.add(veinGroup);
-  function vein(points, brightness, width) {
-    const pos = [], idx = [];
-    for (let i = 0; i < points.length; i++) {
-      const p = points[i], n = points[Math.min(i + 1, points.length - 1)], pr = points[Math.max(i - 1, 0)];
-      const dx = n.x - pr.x, dz = n.z - pr.z, L = Math.hypot(dx, dz) || 1;
-      const nx = -dz / L * width / 2, nz = dx / L * width / 2;
-      pos.push(p.x + nx, 0.012, p.z + nz, p.x - nx, 0.012, p.z - nz);
-      if (i) { const a = (i - 1) * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
-    }
+  // Kintsugi veins: molten gold inlaid in carved channels. Each vein is a thin crack with branching
+  // hairlines; under it a dark carved channel and a bevelled gold lip (lit, reflective); on top the
+  // molten core (emissive, white-hot at the centre falling to deep orange at the edge). Rank brightness
+  // still drives the core. The returned mesh is the core, so the reveal can ignite it outward.
+  const heatTex = (() => {
+    const c = document.createElement("canvas"); c.width = 4; c.height = 64; const g = c.getContext("2d");
+    const gr = g.createLinearGradient(0, 0, 0, 64);
+    gr.addColorStop(0, "rgba(120,40,0,0)"); gr.addColorStop(0.22, "rgba(200,80,10,.65)"); gr.addColorStop(0.4, "rgba(255,170,60,.95)");
+    gr.addColorStop(0.5, "rgba(255,246,214,1)"); gr.addColorStop(0.6, "rgba(255,170,60,.95)"); gr.addColorStop(0.78, "rgba(200,80,10,.65)"); gr.addColorStop(1, "rgba(120,40,0,0)");
+    g.fillStyle = gr; g.fillRect(0, 0, 4, 64);
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+  })();
+  const channelMat = new THREE.MeshStandardMaterial({ color: 0x0a0806, roughness: 0.95, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
+  const lipMat = new THREE.MeshPhysicalMaterial({ color: 0xc8923a, metalness: 1, roughness: 0.28, clearcoat: 0.8, clearcoatRoughness: 0.15, envMapIntensity: 1.4, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+  let veinSeed = 1;
+  function crackGeo(points, width, y, branches) {
+    const pos = [], uv = [], idx = [];
+    let rs = 7919 * veinSeed; const r = () => ((rs = (rs * 48271) % 2147483647) / 2147483647);
+    const strip = (pts, w0, w1) => {
+      let prev = -1;
+      for (let i = 0; i < pts.length; i++) {
+        const p = pts[i], n = pts[Math.min(i + 1, pts.length - 1)], pr = pts[Math.max(i - 1, 0)];
+        const dx = n.x - pr.x, dz = n.z - pr.z, L = Math.hypot(dx, dz) || 1;
+        const t = i / Math.max(1, pts.length - 1), w = (w0 + (w1 - w0) * t) * (0.7 + 0.6 * r());
+        const nx = -dz / L * w / 2, nz = dx / L * w / 2;
+        const cur = pos.length / 3;
+        pos.push(p.x + nx, y, p.z + nz, p.x - nx, y, p.z - nz); uv.push(t, 0, t, 1);
+        if (prev >= 0) idx.push(prev, prev + 1, cur, prev + 1, cur + 1, cur);
+        prev = cur;
+        // hairline branches, emitted in order so the ignition reaches them as it passes
+        if (branches && i > 1 && i < pts.length - 2 && r() < 0.32) {
+          const side = r() < 0.5 ? -1 : 1, bl = [], steps = 3 + (r() * 4 | 0);
+          let bx = p.x, bz = p.z, ang = Math.atan2(dz, dx) + side * (0.6 + r() * 0.7);
+          for (let k = 0; k <= steps; k++) { bl.push({ x: bx, z: bz }); ang += (r() - 0.5) * 0.8; const st = 0.12 + r() * 0.18; bx += Math.cos(ang) * st; bz += Math.sin(ang) * st; }
+          const save = pos.length; strip(bl, w * 0.6, w * 0.08); void save;
+        }
+      }
+    };
+    strip(points, width, width * 0.8);
     const g = new THREE.BufferGeometry();
-    g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx);
-    const c = new THREE.Color(0xffc24a).multiplyScalar(0.45 + 2.4 * brightness);
-    const mat = new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.55 + 0.45 * brightness, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false });
+    g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx);
+    g.computeVertexNormals();
+    return g;
+  }
+  function vein(points, brightness, width) {
+    veinSeed++;
+    const halo = width > 0.45;                 // the old wide glow pass becomes a faint heat bloom on the stone
+    const core = Math.min(0.12, width * 0.55);
+    if (!halo) {
+      const sv = veinSeed;
+      const ch = new THREE.Mesh(crackGeo(points, core * 2.6, 0.004, true), channelMat); veinSeed = sv;
+      const lp = new THREE.Mesh(crackGeo(points, core * 1.7, 0.006, true), lipMat); veinSeed = sv;
+      veinGroup.add(ch, lp);
+    }
+    const g = crackGeo(points, halo ? width * 0.55 : core, halo ? 0.007 : 0.009, !halo);
+    const c = new THREE.Color(0xffd27a).multiplyScalar(0.5 + 2.2 * brightness);
+    const mat = new THREE.MeshBasicMaterial({ map: heatTex, color: c, transparent: true, opacity: halo ? 0.18 * (0.3 + brightness) : 0.6 + 0.4 * brightness,
+      blending: THREE.AdditiveBlending, side: THREE.DoubleSide, depthWrite: false, toneMapped: false, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 });
     const mesh = new THREE.Mesh(g, mat);
-    mesh.userData.base = 0.55 + 0.45 * brightness; mesh.userData.b = brightness;
-    mesh.userData.total = idx.length;
+    mesh.userData.base = mat.opacity; mesh.userData.b = brightness;
+    mesh.userData.total = g.index.count;
     veinGroup.add(mesh);
     return mesh;
   }
@@ -338,7 +383,7 @@ export function start(statues) {
 
   // ---------- rendering + detail pass (throne-fx.js): PBR, environment, shadows, reflections, post, quality tiers ----------
   const fx = upgrade({ renderer, scene, camera, stage, tier: tierFor(renderer, soft, coarse), coarse, H, HALF_W, hallLen, midZ, throneZ, startZ, SEAT, toSun, sun, N, SP, BREACH,
-    mats: { floorMat, wallMat, stoneMat, goldMat }, floor, eastWall, beam, frames: lit.map((L) => L.frame), plinthGeo, sky, skyMat });
+    mats: { floorMat, wallMat, stoneMat, goldMat }, floor, eastWall, beam, frames: lit.map((L) => L.frame), plinthGeo, sky, skyMat, colMesh, rub, H_: H });
 
   // ---------- controls ----------
   const pos = new THREE.Vector3(0, 1.65, startZ);
@@ -729,7 +774,7 @@ export function start(statues) {
     updDust(t);
     // veins breathe, gently (and flare when a crown lands)
     const br = 0.85 + 0.15 * Math.sin(t * 1.3);
-    for (const v of veinGroup.children) v.material.opacity = Math.min(1, v.userData.base * (0.8 + 0.2 * br * (0.5 + v.userData.b)) * (1 + 1.2 * veinBoost));
+    for (const v of veinGroup.children) if (v.userData.base) v.material.opacity = Math.min(1, v.userData.base * (0.8 + 0.2 * br * (0.5 + v.userData.b)) * (1 + 1.2 * veinBoost));
     fx.render(dt, t, !!reveal, camera.position);
     if (loading && !loading.hidden) loading.hidden = true;
     // adaptive quality: watch ~1s windows of frame time

@@ -27,6 +27,26 @@ export function tierFor(renderer, soft, coarse) {
 }
 
 function rng(seed) { let s = seed; return () => ((s = (s * 16807) % 2147483647) / 2147483647); }
+// value noise (3D, so textures wrap seamlessly around lathe surfaces) + fbm
+function hash3(x, y, z) { let h = (Math.imul(x | 0, 374761393) + Math.imul(y | 0, 668265263) + Math.imul(z | 0, 1442695041)) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967295; }
+function vnoise(x, y, z) {
+  const xi = Math.floor(x), yi = Math.floor(y), zi = Math.floor(z), xf = x - xi, yf = y - yi, zf = z - zi;
+  const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf), w = zf * zf * (3 - 2 * zf), L = (a, b, t) => a + (b - a) * t, Q = hash3;
+  return L(L(L(Q(xi, yi, zi), Q(xi + 1, yi, zi), u), L(Q(xi, yi + 1, zi), Q(xi + 1, yi + 1, zi), u), v),
+           L(L(Q(xi, yi, zi + 1), Q(xi + 1, yi, zi + 1), u), L(Q(xi, yi + 1, zi + 1), Q(xi + 1, yi + 1, zi + 1), u), v), w);
+}
+function fbm(x, y, z, o) { let a = 0.5, f = 1, t = 0; for (let i = 0; i < (o || 5); i++) { t += a * vnoise(x * f, y * f, z * f); f *= 2.03; a *= 0.5; } return t; }
+function chunkGeo(rad, seed) {
+  const g = new THREE.IcosahedronGeometry(rad, 4), p = g.attributes.position, v = new THREE.Vector3();
+  const cut = -0.25 + hash3(seed, 3, 7) * 0.3, tilt = new THREE.Vector3(hash3(seed, 1, 1) - 0.5, 1, hash3(seed, 2, 2) - 0.5).normalize();
+  for (let i = 0; i < p.count; i++) {
+    v.fromBufferAttribute(p, i).normalize();
+    v.multiplyScalar(rad * (0.72 + 0.55 * fbm(v.x * 1.7 + seed, v.y * 1.7, v.z * 1.7, 4)));
+    const d = v.dot(tilt) / rad; if (d < cut) v.addScaledVector(tilt, (cut - d) * rad);   // sheared, broken face
+    p.setXYZ(i, v.x, v.y * 0.75, v.z);
+  }
+  g.computeVertexNormals(); return g;
+}
 function canvas(n) { const c = document.createElement("canvas"); c.width = c.height = n; return c; }
 // height canvas (grey) -> tangent-space normal map
 function normalFrom(hc, strength) {
@@ -185,8 +205,7 @@ export function upgrade(o) {
 
   // ---------- worn gilt + carved plinth rings ----------
   plinths.forEach(([x, z]) => {
-    const top = new THREE.Mesh(new THREE.TorusGeometry(1.16, 0.045, 8, 40), wornGold); top.rotation.x = Math.PI / 2; top.position.set(x, 1.02, z); scene.add(top);
-    const base = new THREE.Mesh(new THREE.TorusGeometry(1.22, 0.05, 8, 40), wornGold); base.rotation.x = Math.PI / 2; base.position.set(x, 0.06, z); scene.add(base);
+    const top = new THREE.Mesh(new THREE.TorusGeometry(1.18, 0.026, 10, 72), wornGold); top.rotation.x = Math.PI / 2; top.position.set(x, 0.89, z); scene.add(top);
   });
 
   // ---------- engraved inscription band around the dais ----------
@@ -275,39 +294,65 @@ export function upgrade(o) {
 
   // ---------- neon marble (style reference: carved marble bust, magenta key, teal rim, purple starfield, embers) ----------
   const MAG = 0xff2fb3, TEAL = 0x19d3d3;
-  function marbleMaps(n, seed) {
-    const r = rng(seed), c = canvas(n), g = c.getContext("2d"), hc = canvas(n), hg = hc.getContext("2d"), u = n / 256;
-    g.fillStyle = "#e9e6e2"; g.fillRect(0, 0, n, n); hg.fillStyle = "#909090"; hg.fillRect(0, 0, n, n);
-    for (let i = 0; i < 1600; i++) { const v = 210 + r() * 40; g.fillStyle = `rgba(${v},${v - 4},${v - 8},.25)`; g.beginPath(); g.arc(r() * n, r() * n, (2 + r() * 10) * u, 0, 6.283); g.fill(); }
-    const vein = (w, a, col, hcol, steps) => { let x = r() * n, y = r() * n, d = r() * 6.283; g.strokeStyle = col; hg.strokeStyle = hcol; g.lineWidth = hg.lineWidth = w * u; g.globalAlpha = a;
-      g.beginPath(); hg.beginPath(); g.moveTo(x, y); hg.moveTo(x, y);
-      for (let k = 0; k < steps; k++) { d += (r() - 0.5) * 0.9; x += Math.cos(d) * 6 * u; y += Math.sin(d) * 6 * u; g.lineTo(x, y); hg.lineTo(x, y); }
-      g.stroke(); hg.stroke(); g.globalAlpha = 1; };
-    for (let i = 0; i < 9; i++) vein(1 + r() * 2.5, 0.35, "#7d7a84", "#888", 70);          // grey veining
-    for (let i = 0; i < 14; i++) vein(0.6, 0.5, "#9a96a0", "#8a8a8a", 40);
-    for (let i = 0; i < 5; i++) vein(0.9, 0.85, "#3a3440", "#202020", 28);                 // hairline cracks (sunk)
-    return { map: tex(c, null, true), normal: tex(normalFrom(hc, 2.4)), rough: tex(roughFrom(n, seed + 3, 0.22, 0.55)) };
+  // Procedural marble: white/grey base, strong dark noise veins, finer secondary veins, hairline cracks.
+  // Low saturation, so the magenta/teal comes only from the lights. u wraps around (sampled on a cylinder).
+  function marbleMaps(n, seed, b0) {
+    b0 = b0 || [232, 229, 225];
+    const W = n, Hh = n / 2, mk = () => { const c = canvas(W); c.height = Hh; const g = c.getContext("2d"); return [c, g, g.createImageData(W, Hh)]; };
+    const [c, g, img] = mk(), [hc, hg, him] = mk(), [rc, rg, rim] = mk(), d = img.data, hd = him.data, rd = rim.data;
+    for (let y = 0; y < Hh; y++) for (let x = 0; x < W; x++) {
+      const a = x / W * 6.2832, cx = Math.cos(a) * 1.6, cz = Math.sin(a) * 1.6, cy = y / Hh * 2.2 + seed;
+      const t = fbm(cx + seed, cy, cz, 5) * 7.5;
+      const v1 = Math.pow(Math.abs(Math.sin((cx * 1.3 + cy * 2.1 + t) * 1.7)), 0.22);
+      const v2 = Math.pow(Math.abs(Math.sin((cz * 2.6 - cy * 1.4 + t * 1.6) * 2.9)), 0.12);
+      const cloud = fbm(cx * 3 + 9, cy * 3, cz * 3, 3);
+      const k = Math.min(v1, 0.35 + 0.65 * v2) * (0.86 + 0.18 * cloud), i = (y * W + x) * 4, tone = 0.25 + 0.75 * k;
+      d[i] = b0[0] * tone; d[i + 1] = b0[1] * tone; d[i + 2] = b0[2] * tone + (1 - k) * 6; d[i + 3] = 255;
+      hd[i] = hd[i + 1] = hd[i + 2] = 128 + (k - 1) * 40 + cloud * 14; hd[i + 3] = 255;
+      rd[i] = rd[i + 1] = rd[i + 2] = (0.14 + (1 - k) * 0.35 + cloud * 0.12) * 255; rd[i + 3] = 255;
+    }
+    g.putImageData(img, 0, 0); hg.putImageData(him, 0, 0); rg.putImageData(rim, 0, 0);
+    const r = rng(seed * 977 + 13);
+    for (let k = 0; k < 6; k++) {
+      let x = r() * W, y = r() * Hh, dd = r() * 6.283;
+      g.strokeStyle = "rgba(30,26,30,.85)"; hg.strokeStyle = "#1a1a1a"; rg.strokeStyle = "#e0e0e0"; g.lineWidth = hg.lineWidth = rg.lineWidth = 1 + r();
+      [g, hg, rg].forEach((q) => { q.beginPath(); q.moveTo(x, y); });
+      for (let j = 0; j < 30; j++) { dd += (r() - 0.5) * 1.1; x += Math.cos(dd) * 5; y += Math.sin(dd) * 5; [g, hg, rg].forEach((q) => q.lineTo(x, y)); }
+      [g, hg, rg].forEach((q) => q.stroke());
+    }
+    return { map: tex(c, null, true), normal: tex(normalFrom(hc, 3)), rough: tex(rc) };
   }
-  const MB = marbleMaps(TS, 31);
+  const MB = marbleMaps(lo ? 256 : 512, 3), MG = marbleMaps(lo ? 256 : 512, 7, [178, 174, 172]);
   const marble = new THREE.MeshPhysicalMaterial({ map: MB.map, normalMap: MB.normal, roughnessMap: MB.rough, roughness: 1, metalness: 0,
-    clearcoat: 0.25, clearcoatRoughness: 0.35, sheen: 0.6, sheenColor: new THREE.Color(0xfff4f0), sheenRoughness: 0.6, envMapIntensity: 0.8 });
+    clearcoat: 0.5, clearcoatRoughness: 0.12, sheen: 0.3, sheenColor: new THREE.Color(0xffffff), sheenRoughness: 0.7, envMapIntensity: 0.9 });
   marble.normalScale.set(0.8, 0.8);
+  const marbleGrey = marble.clone(); marbleGrey.map = MG.map; marbleGrey.normalMap = MG.normal; marbleGrey.roughnessMap = MG.rough; marbleGrey.clearcoat = 0.2;
   // chipped plinths: a finer cylinder with broken rims and a few gouges, one per plinth (seeded)
   let pk = 0;
   scene.traverse((m) => {
     if (!m.isMesh || m.geometry !== o.plinthGeo) return;
-    const r = rng(101 + pk++ * 17), geo = new THREE.CylinderGeometry(1.05, 1.2, 0.9, 32, 6), p = geo.attributes.position;
-    const gouges = [0, 1, 2].map(() => [r() * 6.283, r() < 0.5 ? 0.45 : -0.45, 0.25 + r() * 0.35]);
+    const r = rng(101 + pk), seed = pk++;
+    const prof = [], P = (x, y) => prof.push(new THREE.Vector2(x, y)), arc = (r0, y0, rad, a0, a1, n) => { for (let k = 0; k <= n; k++) { const t = a0 + (a1 - a0) * k / n; P(r0 + Math.cos(t) * rad, y0 + Math.sin(t) * rad); } };
+    P(0.001, -0.45); P(1.25, -0.45); P(1.25, -0.37);                          // plinth block
+    arc(1.22, -0.315, 0.055, -Math.PI / 2, Math.PI / 2, 8);                   // lower torus
+    P(1.16, -0.255); arc(1.16, -0.19, 0.06, -Math.PI / 2, -Math.PI * 1.5, 8); // fillet, scotia (concave)
+    P(1.15, -0.135); arc(1.13, -0.095, 0.04, -Math.PI / 2, Math.PI / 2, 6);   // upper torus
+    P(1.06, -0.05); P(1.04, 0.3);                                             // die
+    arc(1.06, 0.33, 0.03, -Math.PI / 2, Math.PI / 2, 6);                      // astragal
+    arc(1.16, 0.36, 0.09, Math.PI, Math.PI * 1.5, 6);                         // cavetto
+    P(1.17, 0.4); P(1.17, 0.45); P(0.001, 0.45);                              // cornice
+    const geo = new THREE.LatheGeometry(prof, 72), p = geo.attributes.position;
+    const gouges = [0, 1, 2, 3].map(() => [r() * 6.283, -0.4 + r() * 0.85, 0.12 + r() * 0.3]);
     for (let i = 0; i < p.count; i++) {
       const x = p.getX(i), y = p.getY(i), z = p.getZ(i), a = Math.atan2(z, x), rad = Math.hypot(x, z);
       if (rad < 0.01) continue;
-      let k = 1 - (Math.abs(y) > 0.3 ? (0.015 + 0.03 * r()) : 0.004 * r());
-      for (const [ga, gy, gw] of gouges) { const da = Math.abs(Math.atan2(Math.sin(a - ga), Math.cos(a - ga))); if (da < gw && Math.abs(y - gy) < 0.22) k -= 0.09 * (1 - da / gw) * (1 - Math.abs(y - gy) / 0.22); }
-      p.setX(i, x * k); p.setZ(i, z * k); if (Math.abs(y) > 0.44) p.setY(i, y - Math.sign(y) * r() * 0.04);
+      let k = 1 - (Math.abs(y) > 0.36 ? 0.025 * vnoise(Math.cos(a) * 4 + seed * 9, y * 9, Math.sin(a) * 4) : 0) - 0.006 * vnoise(Math.cos(a) * 9, y * 14, Math.sin(a) * 9 + seed);
+      for (const [ga, gy, gw] of gouges) { const da = Math.abs(Math.atan2(Math.sin(a - ga), Math.cos(a - ga))); if (da < gw && Math.abs(y - gy) < 0.12) k -= 0.07 * Math.pow((1 - da / gw) * (1 - Math.abs(y - gy) / 0.12), 0.6); }
+      p.setX(i, x * k); p.setZ(i, z * k); if (y > 0.44 && rad > 1.1) p.setY(i, y - vnoise(Math.cos(a) * 6, 1, Math.sin(a) * 6 + seed) * 0.05);
     }
     geo.computeVertexNormals(); m.geometry = geo; m.material = marble;
     for (let c = 0; c < 4; c++) {   // broken chips at the foot
-      const ch = new THREE.Mesh(new THREE.DodecahedronGeometry(0.06 + r() * 0.08, 0), marble);
+      const ch = new THREE.Mesh(chunkGeo(0.05 + r() * 0.07, 40 + pk * 4 + c), marble);
       const a = r() * 6.283; ch.position.set(Math.cos(a) * (1.3 + r() * 0.4), 0.04, Math.sin(a) * (1.3 + r() * 0.4)); ch.rotation.set(r() * 3, r() * 3, r() * 3);
       m.parent.add(ch);
     }
@@ -315,10 +360,10 @@ export function upgrade(o) {
   // marble framing around each statue picture (the picture itself is untouched, uncropped)
   if (o.frames) o.frames.forEach((f) => { f.material = marble; });
   // two-tone neon rim: magenta key from the front-right, teal fill/rim from the left; the canon stays the hero light
-  const key = new THREE.DirectionalLight(MAG, 1.15); key.position.set(6, 5, 8); key.target.position.set(0, 1.5, 0);
-  const rim = new THREE.DirectionalLight(TEAL, 1.0); rim.position.set(-8, 4, -6); rim.target.position.set(0, 1.5, 0);
+  const key = new THREE.DirectionalLight(MAG, 0.95); key.position.set(6, 5, 8); key.target.position.set(0, 1.5, 0);
+  const rim = new THREE.DirectionalLight(TEAL, 0.85); rim.position.set(-8, 4, -6); rim.target.position.set(0, 1.5, 0);
   scene.add(key, key.target, rim, rim.target);
-  const neonFill = new THREE.HemisphereLight(0x5a2a8a, 0x08040e, 0.35); scene.add(neonFill);
+  // no purple fill: the magenta/teal live only in the two neon lights, the stone albedo stays neutral
   // night sky through the broken ceiling: deep purple nebula and stars
   if (o.skyMat) {
     const c = document.createElement("canvas"); c.width = 1024; c.height = 1024; const g = c.getContext("2d"), r = rng(2024);
@@ -327,11 +372,56 @@ export function upgrade(o) {
     g.globalCompositeOperation = "lighter";
     for (let i = 0; i < 26; i++) blob(r() * 1024, r() * 1024, 80 + r() * 260, i % 3 ? `rgba(${90 + r() * 80},${20 + r() * 30},${150 + r() * 80},.18)` : `rgba(255,47,179,${0.08 + r() * 0.08})`);
     for (let i = 0; i < 8; i++) blob(r() * 1024, r() * 1024, 60 + r() * 140, `rgba(25,211,211,${0.05 + r() * 0.06})`);
-    for (let i = 0; i < 1400; i++) { const s = r() < 0.04 ? 2.2 : r() * 1.3; g.fillStyle = `rgba(${220 + r() * 35},${210 + r() * 45},255,${0.4 + r() * 0.6})`; g.beginPath(); g.arc(r() * 1024, r() * 1024, s, 0, 6.283); g.fill(); }
+    for (let i = 0; i < 2600; i++) { const s = r() < 0.06 ? 2.6 + r() * 1.6 : 0.6 + r() * 1.3; g.fillStyle = `rgba(${220 + r() * 35},${210 + r() * 45},255,${0.4 + r() * 0.6})`; g.beginPath(); g.arc(r() * 1024, r() * 1024, s, 0, 6.283); g.fill(); }
     g.globalCompositeOperation = "source-over";
     const st = new THREE.CanvasTexture(c); st.colorSpace = THREE.SRGBColorSpace;
     o.skyMat.map = st; o.skyMat.toneMapped = false; o.skyMat.needsUpdate = true;
     if (o.sky) o.sky.scale.set(2.2, 2.2, 1);
+    // bright stars well above the break, so the night reads clearly through it
+    const SN = lo ? 300 : 900, sp = new Float32Array(SN * 3);
+    for (let i = 0; i < SN; i++) { sp[i * 3] = (Math.random() - 0.5) * 60; sp[i * 3 + 1] = H + 12 + Math.random() * 20; sp[i * 3 + 2] = midZ + (Math.random() - 0.5) * hallLen * 2; }
+    const sg = new THREE.BufferGeometry(); sg.setAttribute("position", new THREE.BufferAttribute(sp, 3));
+    const stars = new THREE.Points(sg, new THREE.PointsMaterial({ size: 0.16, color: 0xf2eaff, transparent: true, opacity: 0.95, depthWrite: false, toneMapped: false, fog: false }));
+    stars.frustumCulled = false; scene.add(stars);
+  }
+  // ---------- stone realism: varied floor slabs, stone walls, fluted marble columns with carved capitals, broken marble rubble ----------
+  {
+    const n = lo ? 512 : 1024, r = rng(55), c = canvas(n), g = c.getContext("2d"), hc = canvas(n), hg = hc.getContext("2d"), rc = canvas(n), rg = rc.getContext("2d"), s4 = n / 4;
+    g.fillStyle = "#151316"; g.fillRect(0, 0, n, n); hg.fillStyle = "#202020"; hg.fillRect(0, 0, n, n); rg.fillStyle = "#e6e6e6"; rg.fillRect(0, 0, n, n);
+    for (let ty = 0; ty < 4; ty++) for (let tx = 0; tx < 4; tx++) {
+      const j = 2 + r() * 5, x0 = tx * s4 + j / 2, y0 = ty * s4 + j / 2, w = s4 - j, l = 44 + r() * 30, warm = r() * 6;
+      g.fillStyle = `rgb(${l + warm},${l + warm * 0.6},${l})`; g.fillRect(x0, y0, w, w);
+      for (let k = 0; k < 160; k++) { const v = l + (r() - 0.5) * 26; g.fillStyle = `rgba(${v},${v - 1},${v - 2},.35)`; g.beginPath(); g.arc(x0 + r() * w, y0 + r() * w, 2 + r() * s4 * 0.12, 0, 6.283); g.fill(); }
+      g.strokeStyle = `rgba(${l + 40},${l + 38},${l + 36},.25)`; g.lineWidth = 1 + r(); g.beginPath(); let vx = x0 + r() * w, vy = y0; g.moveTo(vx, vy);
+      while (vy < y0 + w) { vx += (r() - 0.5) * 18; vy += 8; g.lineTo(Math.max(x0, Math.min(x0 + w, vx)), vy); } g.stroke();
+      const hv = 120 + r() * 30; hg.fillStyle = `rgb(${hv},${hv},${hv})`; hg.fillRect(x0, y0, w, w);
+      const rv = (0.12 + r() * 0.35) * 255; rg.fillStyle = `rgb(${rv},${rv},${rv})`; rg.fillRect(x0, y0, w, w);
+      for (let k = 0; k < 4; k++) { const wx = x0 + r() * w, wy = y0 + r() * w, wr = s4 * (0.08 + r() * 0.2), gr = rg.createRadialGradient(wx, wy, 0, wx, wy, wr); gr.addColorStop(0, "rgba(200,200,200,.55)"); gr.addColorStop(1, "rgba(200,200,200,0)"); rg.fillStyle = gr; rg.fillRect(wx - wr, wy - wr, wr * 2, wr * 2); }
+      if (r() < 0.5) { const cx = r() < 0.5 ? x0 : x0 + w, cy = r() < 0.5 ? y0 : y0 + w, cr = 3 + r() * 9; [g, hg].forEach((q, qi) => { q.fillStyle = qi ? "#303030" : "#141215"; q.beginPath(); q.arc(cx, cy, cr, 0, 6.283); q.fill(); }); }
+    }
+    const rep = M.floorMat.map.repeat;
+    floorMat.map = tex(c, rep, true); floorMat.normalMap = tex(normalFrom(hc, 3), rep); floorMat.roughnessMap = tex(rc, rep); floorMat.needsUpdate = true;
+    const wn = lo ? 256 : 512, wc = canvas(wn), wg = wc.getContext("2d"), u = wn / 256, wr = rng(66);
+    wg.fillStyle = "#121112"; wg.fillRect(0, 0, wn, wn);
+    for (let y = 0; y < 256; y += 64) for (let x = (y / 64) % 2 ? -32 : 0; x < 256; x += 64) {
+      const l = 52 + wr() * 34; wg.fillStyle = `rgb(${l + 4},${l + 2},${l})`; wg.fillRect((x + 2) * u, (y + 2) * u, 60 * u, 60 * u);
+      for (let k = 0; k < 40; k++) { const v = l + (wr() - 0.5) * 30; wg.fillStyle = `rgba(${v},${v},${v - 2},.3)`; wg.beginPath(); wg.arc((x + 2 + wr() * 60) * u, (y + 2 + wr() * 60) * u, (1 + wr() * 8) * u, 0, 6.283); wg.fill(); }
+    }
+    if (M.wallMat.map) { wallMat.map = tex(wc, M.wallMat.map.repeat, true); wallMat.color.set(0xffffff); wallMat.needsUpdate = true; }
+    if (ewMat && ewMat.map) { ewMat.map = tex(wc, ewMat.map.repeat, true); ewMat.color.set(0xffffff); ewMat.needsUpdate = true; }
+    if (o.colMesh) {
+      const CH = H - 1.3, cg = new THREE.CylinderGeometry(0.4, 0.46, CH, 96, 8, true), cp = cg.attributes.position;
+      for (let i = 0; i < cp.count; i++) { const x = cp.getX(i), z = cp.getZ(i), f = 1 - 0.075 * Math.pow(0.5 + 0.5 * Math.cos(Math.atan2(z, x) * 24), 2); cp.setX(i, x * f); cp.setZ(i, z * f); }
+      cg.computeVertexNormals(); cg.translate(0, -H / 2 + 0.55 + CH / 2, 0);
+      o.colMesh.geometry = cg; o.colMesh.material = marbleGrey;
+      const lathe = (pts, y0) => { const gg = new THREE.LatheGeometry(pts.map(([a, b]) => new THREE.Vector2(a, b)), 48); gg.translate(0, y0, 0); return gg; };
+      const baseG = lathe([[0.001, 0], [0.62, 0], [0.62, 0.16], [0.6, 0.2], [0.58, 0.26], [0.53, 0.3], [0.5, 0.33], [0.47, 0.37], [0.5, 0.41], [0.52, 0.45], [0.49, 0.5], [0.46, 0.55], [0.001, 0.55]], -H / 2);
+      const capG = lathe([[0.001, 0], [0.4, 0], [0.43, 0.03], [0.43, 0.07], [0.41, 0.1], [0.45, 0.16], [0.53, 0.26], [0.6, 0.33], [0.62, 0.36], [0.001, 0.36]], H / 2 - 0.75);
+      const abG = new THREE.BoxGeometry(1.3, 0.18, 1.3); abG.translate(0, H / 2 - 0.3, 0);
+      const mm = new THREE.Matrix4();
+      for (const geo of [baseG, capG, abG]) { const im = new THREE.InstancedMesh(geo, marbleGrey, o.colMesh.count); im.castShadow = im.receiveShadow = true; for (let i = 0; i < o.colMesh.count; i++) { o.colMesh.getMatrixAt(i, mm); im.setMatrixAt(i, mm); } scene.add(im); }
+    }
+    if (o.rub) { o.rub.geometry = chunkGeo(0.35, 9); o.rub.material = marbleGrey; }
   }
   scene.background = new THREE.Color(0x0a0614); if (scene.fog) scene.fog.color.set(0x0a0614);
   // embers drifting up alongside the petals
