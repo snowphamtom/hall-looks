@@ -60,6 +60,10 @@ button{flex:1;padding:13px;border:none;border-radius:12px;font-size:15px;font-we
 <label>Zoom — <b id="zoomVal">1.0×</b></label>
 <input type="range" id="zoom" min="10" max="40" step="1" value="10">
 </div>
+<div class="ctl">
+<label>Rotation — <b id="rotVal">0.0°</b> <span style="color:#666;font-size:11px">(lynchpin stagger = 15.13°)</span></label>
+<input type="range" id="rot" min="0" max="360" step="1" value="0">
+</div>
 <div class="btnrow">
 <button id="playBtn">▶ Animate collapse</button>
 <button id="resetBtn">Reset</button>
@@ -73,7 +77,9 @@ button{flex:1;padding:13px;border:none;border-radius:12px;font-size:15px;font-we
 
 <div class="step"><span class="n">3</span><b>Pinch to zoom.</b> Zoom into the purple edge and you'll see it never smooths out — smaller copies of the same pattern appear at every scale. That's what makes it fractal, not just noisy.</div>
 
-<div class="step"><span class="n">4</span><b>Why it matters.</b> The codec's refusal gate needs to know exactly where the identity is safe. This map <em>is</em> that territory. Row 0 = safest. The fringes = handle with care.</div>
+<div class="step"><span class="n">4</span><b>Rotate it.</b> The rotation slider spins the plane — try 15.1° to match the lynchpin stagger angle. Watch how the fractal arms swing. This connects Panel BL (the fractal) to Panel BR (the angle map).</div>
+
+<div class="step"><span class="n">5</span><b>Why it matters.</b> The codec's refusal gate needs to know exactly where the identity is safe. This map <em>is</em> that territory. Row 0 = safest. The fringes = handle with care.</div>
 
 <h3>The math underneath</h3>
 <div class="eq">z → (|Re(z)| + i|Im(z)|)² + c</div>
@@ -86,36 +92,49 @@ const cv = document.getElementById('cv');
 const ctx = cv.getContext('2d');
 const W = 500, H = 500;
 const img = ctx.createImageData(W, H);
-let depthRow = 0, zoomF = 1.0;
+let depthRow = 0, zoomF = 1.0, rotDeg = 0;
 let cx = -0.5, cy = 0.0; // center
 let animating = false, animT = 0;
+// smooth transition state
+let targetDepth = 0, currentDepth = 0;
 
 function render() {
+  // smooth interpolation toward target
+  currentDepth += (targetDepth - currentDepth) * 0.12;
+  if (Math.abs(targetDepth - currentDepth) < 0.01) currentDepth = targetDepth;
+  const depth = currentDepth;
+
   const z = zoomF;
+  const rot = rotDeg * Math.PI / 180;
+  const cosR = Math.cos(rot), sinR = Math.sin(rot);
   // depth shrinks the stable zone (higher row = more fragmentation)
-  const frag = 1 + depthRow * 0.55;
+  const frag = 1 + depth * 0.55;
   const maxI = 28;
   for (let py = 0; py < H; py++) {
     for (let px = 0; px < W; px++) {
-      // map pixel to plane (-1.5..1.5), adjusted for zoom/center
-      const x0 = cx + (px / W - 0.5) * 3.0 / z;
-      const y0 = cy + (py / H - 0.5) * 3.0 / z;
+      // map pixel to plane, apply rotation, then zoom/center
+      let nx = (px / W - 0.5) * 3.0 / z;
+      let ny = (py / H - 0.5) * 3.0 / z;
+      // rotate around center
+      const rx = nx * cosR - ny * sinR;
+      const ry = nx * sinR + ny * cosR;
+      const x0 = cx + rx;
+      const y0 = cy + ry;
       let x = 0, y = 0, iter = 0;
       // Burning Ship iteration with fragmentation factor
       while (x*x + y*y < 4 && iter < maxI) {
         const xt = Math.abs(x)*frag - Math.abs(y)*frag + x0;
         // row factor: deeper rows distort more
-        y = 2*Math.abs(x)*Math.abs(y)*frag*(1+depthRow*0.08) + y0;
+        y = 2*Math.abs(x)*Math.abs(y)*frag*(1+depth*0.08) + y0;
         x = xt;
         iter++;
       }
       const idx = (py*W + px) * 4;
       if (iter >= maxI) {
         // inside: identity holds — warm white/yellow
-        const g = 230 + Math.floor(20*Math.sin(px*0.05)*Math.sin(py*0.05));
         img.data[idx]   = 255;
-        img.data[idx+1] = Math.min(255, 240 + depthRow*2);
-        img.data[idx+2] = 200 - depthRow*8;
+        img.data[idx+1] = Math.min(255, 240 + depth*2);
+        img.data[idx+2] = 200 - depth*8;
       } else {
         const t = iter / maxI;
         if (t > 0.55) {
@@ -150,17 +169,36 @@ function render() {
   document.getElementById('rowlabel').style.top = (ry - 18) + 'px';
 }
 
-// sliders
+// sliders — smooth transitions via animation loop
 document.getElementById('depth').addEventListener('input', e => {
-  depthRow = +e.target.value;
-  document.getElementById('depthVal').textContent = 'row ' + depthRow;
-  render();
+  targetDepth = +e.target.value;
+  document.getElementById('depthVal').textContent = 'row ' + targetDepth;
+  startLoop();
 });
 document.getElementById('zoom').addEventListener('input', e => {
   zoomF = +e.target.value / 10;
   document.getElementById('zoomVal').textContent = zoomF.toFixed(1) + '×';
   render();
 });
+document.getElementById('rot').addEventListener('input', e => {
+  rotDeg = +e.target.value;
+  document.getElementById('rotVal').textContent = rotDeg.toFixed(1) + '°';
+  render();
+});
+
+// continuous render loop for smooth depth transitions
+let loopId = null;
+function startLoop() {
+  if (loopId) return;
+  const tick = () => {
+    render();
+    if (Math.abs(targetDepth - currentDepth) < 0.005 && !animating) {
+      loopId = null; return;
+    }
+    loopId = requestAnimationFrame(tick);
+  };
+  tick();
+}
 
 // pinch zoom + drag pan
 let lastD = 0, lx = 0, ly = 0;
@@ -189,7 +227,7 @@ cv.addEventListener('touchmove', e => {
   }
 }, {passive:false});
 
-// animate
+// animate — smooth collapse through all rows
 let animId = null;
 document.getElementById('playBtn').addEventListener('click', function() {
   if (animating) {
@@ -199,24 +237,29 @@ document.getElementById('playBtn').addEventListener('click', function() {
   let dir = 1;
   const step = () => {
     if (!animating) return;
-    animT += dir * 0.04;
+    animT += dir * 0.03;
     if (animT >= 6) { animT = 6; dir = -1; }
     if (animT <= 0) { animT = 0; dir = 1; }
-    depthRow = Math.round(animT);
-    document.getElementById('depth').value = depthRow;
-    document.getElementById('depthVal').textContent = 'row ' + depthRow;
+    targetDepth = animT;
+    document.getElementById('depth').value = Math.round(animT);
+    document.getElementById('depthVal').textContent = 'row ' + animT.toFixed(1);
     render();
-    animId = requestAnimationFrame(step);
+    // keep rendering for smoothness
+    if (Math.abs(targetDepth - currentDepth) > 0.005 || animating) {
+      animId = requestAnimationFrame(step);
+    }
   };
   step();
 });
 document.getElementById('resetBtn').addEventListener('click', () => {
   if (animating) document.getElementById('playBtn').click();
-  depthRow = 0; zoomF = 1.0; cx = -0.5; cy = 0;
+  targetDepth = 0; currentDepth = 0; zoomF = 1.0; rotDeg = 0; cx = -0.5; cy = 0;
   document.getElementById('depth').value = 0;
   document.getElementById('zoom').value = 10;
+  document.getElementById('rot').value = 0;
   document.getElementById('depthVal').textContent = 'row 0';
   document.getElementById('zoomVal').textContent = '1.0×';
+  document.getElementById('rotVal').textContent = '0.0°';
   render();
 });
 
