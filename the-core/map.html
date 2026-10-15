@@ -153,9 +153,17 @@ function render(){
   document.getElementById('tele').textContent =
     'heading ' + (gyroLive ? heading.toFixed(0) + '°' : '—') + ' · tilt β ' + (gyroLive ? tiltB.toFixed(0) + '°' : '—') +
     ' · γ ' + (gyroLive ? tiltG.toFixed(0) + '°' : '—') + ' · hub ' + hubAng.toFixed(1) + '° · frame ' + frameAng.toFixed(1) + '° (wired 12 : 1)';
-  requestAnimationFrame(render);
+  schedule();
 }
-requestAnimationFrame(render);
+// Paused while scrolled out of view or in a hidden tab (this page is embedded in The Core).
+let __vis = true, __raf = 0;
+function schedule(){ __raf = 0; if (__vis && !document.hidden) __raf = requestAnimationFrame(render); }
+function __wake(){ if (!__raf && __vis && !document.hidden) __raf = requestAnimationFrame(render); }
+const __run = render;
+render = function(t){ __raf = 0; __run(t); };
+if (window.IntersectionObserver) new IntersectionObserver(function(es){ __vis = es[0].isIntersecting; __wake(); }).observe(document.documentElement);
+document.addEventListener('visibilitychange', __wake);
+__wake();
 function setGyroState(s){ document.getElementById('gyroState').textContent = s; }
 function onOrient(e){
   gyroLive = true;

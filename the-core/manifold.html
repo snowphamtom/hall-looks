@@ -474,9 +474,17 @@ function frame(now){
   sc.strokeStyle = SCH.acc; sc.lineWidth = 1.2; sc.stroke();
   document.getElementById('hud').textContent =
     '[ TOPOLOGICAL MANIFOLD : DOOR SYSTEM ]\n[ HARMONIC RESONANCE (Σ): ' + res.toFixed(4) + ' ]\n[ ISOMETRIC ROTATION (θ): ' + ((rotY * 180 / Math.PI) % 360).toFixed(1) + '° ]\n[ FPS: ' + fpsEMA.toFixed(0) + ' · ' + S.layout.toUpperCase() + ' · '  + es.length + ' EDGES SHOWN ]\n[ DEFAULT : MEASURED UNIVERSE · SPEED ' + RNUM + ':' + RDEN + ' · CONSTANT-WIDTH SHAPE ]';
-  requestAnimationFrame(frame);
+  schedule();
 }
-requestAnimationFrame(frame);
+// Paused while scrolled out of view or in a hidden tab (this page is embedded in The Core).
+let __vis = true, __raf = 0;
+function schedule(){ __raf = 0; if (__vis && !document.hidden) __raf = requestAnimationFrame(frame); }
+function __wake(){ if (!__raf && __vis && !document.hidden) __raf = requestAnimationFrame(frame); }
+const __run = frame;
+frame = function(t){ __raf = 0; __run(t); };
+if (window.IntersectionObserver) new IntersectionObserver(function(es){ __vis = es[0].isIntersecting; __wake(); }).observe(document.documentElement);
+document.addEventListener('visibilitychange', __wake);
+__wake();
 setTimeout(() => { const b = document.getElementById('boot'); b.style.opacity = '0'; setTimeout(() => b.remove(), 750); }, 1500);
 
 function showReadout(p){

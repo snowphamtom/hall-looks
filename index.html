@@ -93,7 +93,7 @@ body.page-home .room-hero{z-index:auto}
 
 <script src="holo-grid.js?v=87782d74"></script>
 <script src="holo-spatial-img.js?v=b6be1039"></script>
-<script src="holo-spatial.js?v=fe53af0f"></script>
+<script src="holo-spatial.js?v=k9a"></script>
 <script>
 (function(){var v=document.querySelector('.hero-loop');if(!v)return;
 var c=navigator.connection,rm=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)');
@@ -102,7 +102,8 @@ var w=document.createElement('source');w.src=v.dataset.webm;w.type='video/webm; 
 var m=document.createElement('source');m.src=v.dataset.mp4;m.type='video/mp4';
 v.appendChild(w);v.appendChild(m);v.muted=true;v.preload='auto';v.autoplay=true;
 v.addEventListener('playing',function(){v.classList.add('is-on')},{once:true});
-function go(){if(document.hidden){v.pause()}else{var p=v.play();if(p&&p.catch)p.catch(function(){})}}
+var vis=true;if(window.IntersectionObserver)new IntersectionObserver(function(e){vis=e[0].isIntersecting;go()}).observe(v);
+function go(){if(document.hidden||!vis){v.pause()}else{var p=v.play();if(p&&p.catch)p.catch(function(){})}}
 document.addEventListener('visibilitychange',go);
 if(rm&&rm.addEventListener)rm.addEventListener('change',function(e){if(e.matches){v.pause();v.style.display='none'}});
 function start(){v.load();go()}
