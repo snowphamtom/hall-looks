@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>HEAVY IS THE CROWN — Throne Room</title>
+<meta name="description" content="A walkable stone hall where every character in your Locker stands on a plinth, gold veins lit by rank, blossom falling through a broken ceiling toward an empty throne.">
+<meta name="theme-color" content="#070708">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="apple-touch-icon" href="/hall-looks/images/icon-512.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="HEAVY IS THE CROWN">
+<meta property="og:title" content="HEAVY IS THE CROWN — Throne Room">
+<meta property="og:description" content="A walkable stone hall where every character in your Locker stands on a plinth, gold veins lit by rank, blossom falling through a broken ceiling toward an empty throne.">
+<meta property="og:url" content="https://snowphamtom.github.io/hall-looks/throne/">
+<meta property="og:image" content="https://snowphamtom.github.io/hall-looks/images/og/throne.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The Throne Room: statues of saved fighters on stone plinths, gold veins in the floor, an empty throne at the end.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="HEAVY IS THE CROWN — Throne Room">
+<meta name="twitter:description" content="A walkable stone hall where every character in your Locker stands on a plinth, gold veins lit by rank, blossom falling through a broken ceiling toward an empty throne.">
+<meta name="twitter:image" content="https://snowphamtom.github.io/hall-looks/images/og/throne.jpg">
+<link rel="canonical" href="https://snowphamtom.github.io/hall-looks/throne/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Outfit:wght@380;500;650;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../styles.css?v=p0l1sh12">
+<link rel="stylesheet" href="throne.css?v=p0l1sh12">
+<script>try{if(window.WebGLRenderingContext&&!matchMedia("(prefers-reduced-motion: reduce)").matches)document.documentElement.classList.add("t3d")}catch(e){}</script>
+</head>
+<body class="throne-page">
+<div id="sky" aria-hidden="true"><div class="sky-blossom"></div><div class="sky-scrim"></div><div class="sky-schematic"></div></div>
+<nav class="nav" aria-label="Site" data-collapsible><a class='brand' href='../'>HEAVY IS THE CROWN</a><button type="button" class="nav-toggle" aria-expanded="false" aria-controls="nav-links">Menu</button><span class="nav-links" id="nav-links"><a href='../'>Room</a><a href='../foundation/'>Foundation</a><a href='../black-chrome/'>Black Chrome</a><a href='../white-samurai/'>White Samurai</a><a href='../skull-champion/'>Skull Champion</a><a href='../titan-gladiator/'>Titan Gladiator</a><a href='../forge/'>Forge</a><a href='../workbench/'>Workbench</a><a href='../gallery/'>Gallery</a><a href='../smith/'>Smith</a><a href='../colosseum/'>Colosseum</a><a href='../create/'>Create</a><a href='../help/'>Help</a><a href='../locker/'>Locker</a><a aria-current='page' href='../throne/'>Throne Room</a></span></nav>
+<main class="throne">
+  <div class="throne-stage" id="stage">
+    <canvas id="hall" aria-label="The Throne Room. A stone hall with your characters as statues. Use the statue list below to open any of them."></canvas>
+    <div class="throne-hud" id="hud">
+      <span id="hud-hint">Drag to look · WASD or arrows to walk · tap a statue</span>
+      <span class="throne-hud-btns"><button type="button" id="to-throne">Walk to the throne</button><button type="button" id="leave-3d">Statue list</button></span>
+    </div>
+    <div class="throne-stick" id="stick" aria-hidden="true"><i></i></div>
+    <p class="throne-loading" id="loading">Lighting the hall…</p>
+  </div>
+  <section class="throne-gallery" id="gallery">
+    <div class="kicker">The hall of your locker</div>
+    <h1>Throne Room</h1>
+    <p class="lede" id="lede">Every character you keep stands here on a plinth. Higher rank, brighter gold in the floor. The throne at the end stays empty.</p>
+    <p class="throne-mode" id="mode-note" hidden></p>
+    <p><button type="button" class="go" id="enter-3d" hidden>Enter the hall</button></p>
+    <ol class="throne-list" id="statues"></ol>
+  </section>
+  <div class="throne-card" id="card" role="dialog" aria-modal="true" aria-labelledby="card-name" hidden>
+    <div class="throne-card-inner">
+      <img id="card-img" alt="">
+      <div>
+        <div class="kicker" id="card-rank"></div>
+        <h2 id="card-name"></h2>
+        <p id="card-line"></p>
+        <p class="throne-card-links"><a class="go" id="card-forge" href="../forge/">Open in Forge</a> <a class="go ghost" href="../locker/">Locker</a> <button type="button" class="go ghost" id="card-close">Close</button></p>
+      </div>
+    </div>
+  </div>
+</main>
+<script src="../locker-store.js"></script>
+<script src="../locker-field.js"></script>
+<script src="throne-data.js?v=p0l1sh12"></script>
+<script src="../interaction.js"></script>
+<script src="../nav.js"></script>
+</body>
+</html>

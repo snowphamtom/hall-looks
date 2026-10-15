@@ -997,7 +997,7 @@ body.page-home .looks {
 /* Nav: links sit in a span so phones can fold them behind a Menu button. Desktop is unchanged. */
 .nav-links { display: contents; }
 .nav-toggle { display: none; }
-@media (max-width: 1100px) {
+@media (max-width: 1280px) {
   .nav[data-collapsible] { align-items: center; }
   .nav[data-collapsible] .nav-toggle {
     display: inline-block; margin-left: auto; font: inherit; font-size: 14px; letter-spacing: .08em;
@@ -1037,8 +1037,8 @@ picture{display:contents}
 .nav .nav-links a, .nav .brand{padding:4px 0;display:inline-block}
 .nav .nav-sound{min-height:28px}
 /* Polish 2: one nav row on laptop widths now that the Sound button sits in it. */
-@media (min-width: 1101px) and (max-width: 1560px) {
-  .nav { padding: 18px 24px; gap: 8px 16px; flex-wrap: nowrap; align-items: center; }
+@media (min-width: 1281px) and (max-width: 1640px) {
+  .nav { padding: 18px 20px; gap: 8px 10px; flex-wrap: nowrap; align-items: center; }
   .nav a { font-size: 14px; white-space: nowrap; }
   .brand { margin-right: 6px; font-size: 14px; letter-spacing: .22em; }
 }
