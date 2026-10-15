@@ -108,6 +108,9 @@ renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.9;
 document.getElementById('app').appendChild(renderer.domElement);
 const controls = new OrbitControls(cam, renderer.domElement);
+
+/* Crown World phase 6: lets js/crown-world.js stand your champion in this scene (off unless you turn it on). */
+window.__crownScene = { THREE: THREE, scene: scene, camera: cam, target: controls.target }; document.dispatchEvent(new Event("crownscene"));
 controls.target.set(0, 4, 0);
 controls.enableDamping = true;
 controls.autoRotate = true;
@@ -374,6 +377,6 @@ renderer.setAnimationLoop(()=>{
   composer.render();
 });
 </script>
-<a class="hic-back" href="../lab/" style="position:fixed;left:10px;bottom:10px;z-index:2147483647;font:12px/1 Georgia,serif;color:#d4a843;background:rgba(3,3,5,.75);border:1px solid #3a2f18;border-radius:8px;padding:7px 10px;text-decoration:none">&larr; HEAVY IS THE CROWN</a><script src="../js/crown-world.js?v=p0l1sh17" defer></script>
+<a class="hic-back" href="../lab/" style="position:fixed;left:10px;bottom:10px;z-index:2147483647;font:12px/1 Georgia,serif;color:#d4a843;background:rgba(3,3,5,.75);border:1px solid #3a2f18;border-radius:8px;padding:7px 10px;text-decoration:none">&larr; HEAVY IS THE CROWN</a><script src="../js/crown-world.js?v=p0l1sh18" defer></script>
 </body>
 </html>

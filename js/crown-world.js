@@ -7,7 +7,7 @@
   var LOOKS = ["black-chrome", "white-samurai", "skull-champion", "titan-gladiator"];
   // Every room in the Hall (inferno/ is deliberately not listed). g = group for the Throne doorways.
   var ROOMS = [
-    ["home", "", "Home", "Hall"], ["throne", "throne/", "Throne Room", "Hall"], ["forge", "forge/", "Forge", "Hall"], ["locker", "locker/", "Locker", "Hall"],
+    ["home", "", "Home", "Hall"], ["throne", "throne/", "Throne Room", "Hall"], ["body", "body/", "Inner Body", "Hall"], ["forge", "forge/", "Forge", "Hall"], ["locker", "locker/", "Locker", "Hall"],
     ["create", "create/", "Create", "Hall"], ["smith", "smith/", "Smith", "Hall"], ["colosseum", "colosseum/", "Colosseum", "Hall"],
     ["gallery", "gallery/", "Gallery", "Hall"], ["workbench", "workbench/", "Workbench", "Hall"], ["help", "help/", "Help", "Hall"],
     ["foundation", "foundation/", "Foundation", "Looks"], ["black-chrome", "black-chrome/", "Black Chrome", "Looks"],
@@ -25,7 +25,7 @@
   ].map(function (r) { return { id: r[0], href: r[1], title: r[2], group: r[3] }; });
   var OG = { "home": 1, "black-chrome": 1, "cathedral": 1, "colosseum": 1, "core": 1, "create": 1, "elemental": 1, "fault-constellation": 1, "forge": 1, "foundation": 1, "gallery": 1, "genesis-forest": 1, "genesis-marvel": 1, "help": 1, "locker": 1, "skull-champion": 1, "smith": 1, "supreme-quad": 1, "tessera-bridge": 1, "throne": 1, "titan-gladiator": 1, "white-samurai": 1, "workbench": 1 };
   ROOMS.forEach(function (r) { r.og = OG[r.id] ? "images/og/" + r.id + ".jpg" : ""; });
-  var LABEL = { visit: "Visited", build: "Built", save: "Saved", forge: "Forged", fight: "Fought", smith: "Chose weapon", active: "Crowned", share: "Shared", door: "Walked through" };
+  var LABEL = { visit: "Visited", build: "Built", save: "Saved", forge: "Forged", fight: "Fought", smith: "Chose weapon", active: "Crowned", share: "Shared", door: "Walked through", body: "Opened", figure: "Brought in" };
 
   function read(key, dflt) { try { var v = JSON.parse(localStorage.getItem(key)); return v == null ? dflt : v; } catch (e) { return dflt; } }
   function write(key, v) { try { localStorage.setItem(key, JSON.stringify(v)); return true; } catch (e) { return false; } }
@@ -144,7 +144,7 @@
       chip.setAttribute("aria-label", "Crown ledger, " + s.total + " events");
       if (panel.hidden) return;
       var c = active(), log = list({ limit: 40 }).reverse();
-      panel.innerHTML = "<button class='cw-x' type='button' aria-label='Close'>×</button><h2>The crown remembers</h2><p class='cw-who'></p><p class='cw-sum'></p><ul class='cw-gems' aria-label='Rooms visited'></ul><ul class='cw-log'></ul>";
+      panel.innerHTML = "<button class='cw-x' type='button' aria-label='Close'>×</button><h2>The crown remembers</h2><p class='cw-who'></p><p class='cw-sum'></p><ul class='cw-gems' aria-label='Rooms visited'></ul><ul class='cw-log'></ul><p class='cw-sum'><a href='" + base() + "body/' style='color:#e2c56a'>Elemental makeup and inner body</a></p>";
       panel.querySelector(".cw-who").textContent = c ? "Wearing it: " + c.name : "No character yet. Build one in Create or Forge.";
       panel.querySelector(".cw-sum").textContent = s.rooms.length + " of " + ROOMS.length + " rooms · " + (s.byType.build || 0) + " builds · " + (s.byType.save || 0) + " saves · " + (s.byType.fight || 0) + " fights · " + s.days + " day" + (s.days === 1 ? "" : "s");
       var g = panel.querySelector(".cw-gems");
@@ -173,6 +173,49 @@
     character: { KEY: ACTIVE_KEY, active: active, setActive: setActive, all: function () { return entries().map(fromEntry); }, fromEntry: fromEntry, fromHash: fromHash, nearestLook: nearestLook, picture: picture },
     rooms: ROOMS, room: roomId, visit: visit, base: base, gems: gems, openCrown: function () { openCrown(); }
   };
-  function boot() { visit(); mountCrown(); try { document.dispatchEvent(new CustomEvent("crownworld:ready")); } catch (e) {} }
+  // ---- Phase 6: your champion inside the 3D pieces. Pages that expose window.__crownScene get a toggle;
+  // off by default, remembered in this browser. The figure is a billboard of the character's whole picture.
+  var FIG_KEY = "crown-figure-v1", fig = null;
+  function figureOn(S, on) {
+    if (!on) { if (fig) { S.scene.remove(fig); fig = null; } return; }
+    if (fig) return;
+    var T = S.THREE, c = active(), url = picture(c);
+    fig = new T.Group(); S.scene.add(fig);
+    var cam = S.camera, tgt = S.target, dist = Math.max(2, cam.position.distanceTo(tgt));
+    var right = new T.Vector3().subVectors(tgt, cam.position).cross(cam.up).normalize();
+    var toCam = new T.Vector3().subVectors(cam.position, tgt).normalize();
+    // in front of what you are looking at, a little to the side (left on phones, clear of side panels)
+    fig.position.copy(tgt).addScaledVector(toCam, dist * 0.3).addScaledVector(right, dist * (innerWidth < 700 ? -0.12 : 0.18));
+    var hgt = dist * 0.24;
+    var halo = document.createElement("canvas"); halo.width = halo.height = 128;
+    var hx = halo.getContext("2d"), gr = hx.createRadialGradient(64, 64, 4, 64, 64, 64);
+    gr.addColorStop(0, "rgba(255,242,216,.55)"); gr.addColorStop(1, "rgba(255,242,216,0)"); hx.fillStyle = gr; hx.fillRect(0, 0, 128, 128);
+    var hs = new T.Sprite(new T.SpriteMaterial({ map: new T.CanvasTexture(halo), transparent: true, depthWrite: false, opacity: .7 }));
+    hs.scale.set(hgt * 1.1, hgt * 1.25, 1); fig.add(hs);
+    new T.TextureLoader().load(url, function (tex) {
+      if (!fig) return;
+      if (T.SRGBColorSpace) tex.colorSpace = T.SRGBColorSpace;
+      var im = tex.image, ar = im && im.width ? im.width / im.height : 0.75;
+      var s = new T.Sprite(new T.SpriteMaterial({ map: tex, transparent: true, color: 0xdddddd }));
+      s.scale.set(hgt * ar, hgt, 1); s.renderOrder = 2; fig.add(s);
+    });
+  }
+  function mountFigure() {
+    var S = window.__crownScene;
+    if (!S || document.querySelector(".cw-fig")) return;
+    var b = document.createElement("button"), on = read(FIG_KEY, false) === true;
+    b.type = "button"; b.className = "cw-fig";
+    b.style.cssText = "position:fixed;left:10px;bottom:48px;z-index:2147483646;font:12px/1 Georgia,serif;color:#d4a843;background:rgba(3,3,5,.8);border:1px solid #3a2f18;border-radius:8px;padding:9px 12px;min-height:36px;cursor:pointer";
+    var paintB = function () { b.textContent = on ? "\u265B Hide my champion" : "\u265B Bring my champion in"; b.setAttribute("aria-pressed", on ? "true" : "false"); };
+    b.addEventListener("click", function () {
+      on = !on; write(FIG_KEY, on); figureOn(S, on); paintB();
+      if (on) add("figure", { name: (active() || {}).name || "Your champion" });
+    });
+    paintB(); document.body.appendChild(b);
+    if (on) figureOn(S, true);
+  }
+  document.addEventListener("crownscene", mountFigure);
+
+  function boot() { mountFigure(); visit(); mountCrown(); try { document.dispatchEvent(new CustomEvent("crownworld:ready")); } catch (e) {} }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot); else boot();
 })();

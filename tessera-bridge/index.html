@@ -67,6 +67,9 @@ scene.background = new THREE.Color(0x030305);
 const cam = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.1, 500);
 cam.position.set(0, 14, 38);
 const ctl = new OrbitControls(cam, renderer.domElement);
+
+/* Crown World phase 6: lets js/crown-world.js stand your champion in this scene (off unless you turn it on). */
+window.__crownScene = { THREE: THREE, scene: scene, camera: cam, target: ctl.target }; document.dispatchEvent(new Event("crownscene"));
 const camTarget = new THREE.Vector3(0,14,38);
 ctl.enableDamping = true;
 
@@ -220,6 +223,6 @@ addEventListener('resize', ()=>{
   renderer.setSize(innerWidth, innerHeight);
 });
 </script>
-<a class="hic-back" href="../lab/" style="position:fixed;left:10px;bottom:10px;z-index:2147483647;font:12px/1 Georgia,serif;color:#d4a843;background:rgba(3,3,5,.75);border:1px solid #3a2f18;border-radius:8px;padding:7px 10px;text-decoration:none">&larr; HEAVY IS THE CROWN</a><script src="../js/crown-world.js?v=p0l1sh17" defer></script>
+<a class="hic-back" href="../lab/" style="position:fixed;left:10px;bottom:10px;z-index:2147483647;font:12px/1 Georgia,serif;color:#d4a843;background:rgba(3,3,5,.75);border:1px solid #3a2f18;border-radius:8px;padding:7px 10px;text-decoration:none">&larr; HEAVY IS THE CROWN</a><script src="../js/crown-world.js?v=p0l1sh18" defer></script>
 </body>
 </html>

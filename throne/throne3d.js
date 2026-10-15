@@ -1,5 +1,6 @@
 /* Throne Room 3D hall. three.js r160 vendored in ./vendor (MIT, see THREE-LICENSE.txt). */
 import * as THREE from "./vendor/three-0.160.0.module.min.js";
+import { upgrade, tierFor } from "./throne-fx.js?v=p0l1sh18";
 
 export function start(statues) {
   const canvas = document.getElementById("hall");
@@ -80,6 +81,7 @@ export function start(statues) {
   floor.rotation.x = -Math.PI / 2; floor.position.z = midZ;
   scene.add(floor);
   const H = 9;
+  let eastWall = null;
   const OUT_C = new THREE.Color(0xf6dcc8);
   const outMat = new THREE.MeshBasicMaterial({ color: OUT_C.clone(), fog: false });
   {
@@ -98,7 +100,7 @@ export function start(statues) {
     const ew = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ map: ewTex, roughness: 0.95 }));
     ew.position.set(HALF_W, 0, midZ); ew.rotation.y = -Math.PI / 2;
     ew.material.side = THREE.DoubleSide;
-    scene.add(ew);
+    scene.add(ew); eastWall = ew;
     // pale evening sky outside the breach
     const out = new THREE.Mesh(new THREE.PlaneGeometry(14, 10), outMat);
     out.position.set(HALF_W + 5, vb + 2, BREACH.z); out.rotation.y = -Math.PI / 2;
@@ -185,7 +187,7 @@ export function start(statues) {
     dGeo.attributes.position.needsUpdate = true;
   }
   // sky above the hole
-  const SKY_C = new THREE.Color(0xf2d6e0);
+  const SKY_C = new THREE.Color(0xffffff);   // the night sky is a texture now (throne-fx.js); white keeps it true
   const skyMat = new THREE.MeshBasicMaterial({ color: SKY_C.clone(), fog: false });
   const sky = new THREE.Mesh(new THREE.PlaneGeometry(14, hallLen * 0.5), skyMat);
   sky.rotation.x = Math.PI / 2; sky.position.set(0, H + 2.5, midZ); scene.add(sky);
@@ -333,6 +335,10 @@ export function start(statues) {
   const petals = new THREE.Points(pGeo, new THREE.PointsMaterial({ map: petalTex, size: 0.16, transparent: true, depthWrite: false, opacity: 0.85, color: 0xffb3c8 }));
   petals.frustumCulled = false;
   scene.add(petals);
+
+  // ---------- rendering + detail pass (throne-fx.js): PBR, environment, shadows, reflections, post, quality tiers ----------
+  const fx = upgrade({ renderer, scene, camera, stage, tier: tierFor(renderer, soft, coarse), coarse, H, HALF_W, hallLen, midZ, throneZ, startZ, SEAT, toSun, sun, N, SP, BREACH,
+    mats: { floorMat, wallMat, stoneMat, goldMat }, floor, eastWall, beam, frames: lit.map((L) => L.frame), plinthGeo, sky, skyMat });
 
   // ---------- controls ----------
   const pos = new THREE.Vector3(0, 1.65, startZ);
@@ -661,6 +667,7 @@ export function start(statues) {
     const w = stage.clientWidth, h = stage.clientHeight;
     renderer.setSize(w, h, false);
     camera.aspect = w / h; camera.fov = w < 600 ? 72 : 62; camera.updateProjectionMatrix();
+    if (typeof fx !== "undefined") fx.setSize();
     dirty = true;
   }
   new ResizeObserver(resize).observe(stage);
@@ -711,7 +718,7 @@ export function start(statues) {
       pPos[j] += (pVel[j] + Math.sin(t * 0.9 + i) * 0.18) * dt;
       pPos[j + 1] += pVel[j + 1] * dt;
       pPos[j + 2] += (pVel[j + 2] + Math.cos(t * 0.7 + i * 1.3) * 0.12) * dt;
-      if (pPos[j + 1] < 0.02) spawn(i, false);
+      if (pPos[j + 1] < 0.02) { if (i % 3 === 0) fx.settle(pPos[j], pPos[j + 2]); spawn(i, false); }
     }
     pGeo.setDrawRange(0, pCount);
     pGeo.attributes.position.needsUpdate = true;
@@ -723,7 +730,7 @@ export function start(statues) {
     // veins breathe, gently (and flare when a crown lands)
     const br = 0.85 + 0.15 * Math.sin(t * 1.3);
     for (const v of veinGroup.children) v.material.opacity = Math.min(1, v.userData.base * (0.8 + 0.2 * br * (0.5 + v.userData.b)) * (1 + 1.2 * veinBoost));
-    renderer.render(scene, camera);
+    fx.render(dt, t, !!reveal, camera.position);
     if (loading && !loading.hidden) loading.hidden = true;
     // adaptive quality: watch ~1s windows of frame time
     acc += dt; frames++;
@@ -733,6 +740,7 @@ export function start(statues) {
       if (lowStreak >= 2) {
         lowStreak = 0;
         if (dpr > 0.75) { dpr = Math.max(0.75, dpr - 0.25); renderer.setPixelRatio(dpr); resize(); }
+        else if (fx.degrade()) {}
         else if (pCount > 40) pCount = Math.floor(pCount / 2);
       } else if (highStreak >= 4 && dpr < DPR_MAX) {
         highStreak = 0; dpr = Math.min(DPR_MAX, dpr + 0.25); renderer.setPixelRatio(dpr); resize();

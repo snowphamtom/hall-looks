@@ -1,0 +1,62 @@
+/* Inner Body (Crown World phase 5). Light canon: #fff2d8 from compass azimuth 137.508 deg,
+   elevation 31.7175 deg; on the page north is up, so the light falls from the lower right. */
+.bd { padding: 28px 6vw 56px; max-width: 1400px; margin: 0 auto; --canon: #fff2d8; }
+.bd-head h1 { font-family: "Cormorant Garamond", serif; font-weight: 500; font-size: clamp(40px, 6vw, 72px); line-height: 1; margin: 6px 0 12px; }
+.bd-head .lede { max-width: 64ch; opacity: .88; line-height: 1.55; }
+.bd-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 24px; }
+.bd-tabs button { font: 500 15px/1 Outfit, system-ui, sans-serif; color: #f4e7c4; background: rgba(20,16,10,.7); border: 1px solid rgba(226,197,106,.5); border-radius: 999px; padding: 12px 18px; min-height: 44px; cursor: pointer; }
+.bd-tabs button[aria-selected="true"] { background: linear-gradient(135deg, #6b4a12, #d6a740 60%, var(--canon)); color: #120c04; border-color: var(--canon); }
+.bd-view { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 32px; align-items: start; }
+.bd-view[hidden] { display: none; }
+@media (max-width: 900px) { .bd-view { grid-template-columns: minmax(0, 1fr); } }
+.bd-ring-wrap { position: sticky; top: 72px; }
+@media (max-width: 900px) { .bd-ring-wrap { position: static; } }
+.bd-ring { width: 100%; height: auto; display: block; filter: drop-shadow(10px 14px 26px rgba(0,0,0,.7)); }
+.pt-sym { font: 600 10px/1 Outfit, system-ui, sans-serif; letter-spacing: .02em; }
+.pt-major { font: 650 13px/1 Outfit, system-ui, sans-serif; fill: #0b0a0f; }
+.pt-name { font: 600 26px/1 "Cormorant Garamond", serif; fill: #e2c56a; }
+.pt.is-body path { filter: drop-shadow(0 0 4px rgba(255,242,216,.55)); }
+.bd-side h2 { font-family: "Cormorant Garamond", serif; font-weight: 600; font-size: clamp(28px, 3.4vw, 40px); margin: 0 0 8px; color: #e2c56a; }
+.bd-side h3 { font: 650 .8rem/1 Outfit, system-ui, sans-serif; letter-spacing: .14em; text-transform: uppercase; opacity: .75; margin: 22px 0 8px; }
+.bd-note { line-height: 1.55; opacity: .88; margin: 0 0 12px; }
+.bd-fine { font-size: 13px; opacity: .65; }
+.bd-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.bd-table th, .bd-table td { text-align: left; padding: 7px 6px; border-bottom: 1px solid rgba(214,167,64,.18); }
+.bd-table thead th { font: 650 11px/1.2 Outfit, system-ui, sans-serif; letter-spacing: .1em; text-transform: uppercase; opacity: .7; }
+.bd-table tbody th { font-weight: 600; color: #f1e3bf; }
+.bd-table td:last-child { opacity: .7; font-size: 12px; }
+@media (max-width: 480px) { .bd-table td:last-child, .bd-table thead th:last-child { display: none; } }
+/* the stack: twelve engraved plates, one 3D volume, the character standing through them */
+.bd-stack-wrap { position: sticky; top: 72px; }
+@media (max-width: 900px) { .bd-stack-wrap { position: static; } }
+.bd-stack { position: relative; height: min(110vw, 640px); perspective: 1400px; overflow: hidden; border-radius: 18px; background:
+  radial-gradient(120% 90% at 78% 82%, rgba(255,242,216,.14), rgba(255,242,216,0) 55%), linear-gradient(#0b0a10, #050407); border: 1px solid rgba(214,167,64,.35); }
+.bd-figure { position: absolute; left: 50%; top: 6%; height: 88%; width: auto; max-width: 70%; object-fit: contain; transform: translateX(-50%); opacity: .9; filter: drop-shadow(8px 12px 18px rgba(0,0,0,.8)); z-index: 1; }
+.bd-plate { --gap: 7.1%; position: absolute; left: 50%; top: calc(8% + var(--i) * var(--gap)); width: min(62vw, 330px); aspect-ratio: 1; margin-left: calc(min(62vw, 330px) / -2);
+  transform: rotateX(64deg) rotateZ(45deg); transform-origin: 50% 50%; border-radius: 6px; z-index: 2;
+  background:
+    repeating-linear-gradient(45deg, hsla(var(--h), 60%, 70%, .10) 0 1px, transparent 1px 9px),
+    repeating-linear-gradient(-45deg, hsla(var(--h), 60%, 70%, .08) 0 1px, transparent 1px 9px),
+    linear-gradient(315deg, rgba(255,242,216, calc(.10 + var(--v) * .22)), hsla(var(--h), 55%, 40%, calc(.10 + var(--v) * .25)) 55%, rgba(0,0,0,.25));
+  border: 1px solid hsla(var(--h), 70%, 72%, .75); box-shadow: inset 0 0 0 4px rgba(5,4,7,.55), inset 0 0 0 5px hsla(var(--h), 70%, 72%, .35), 0 0 18px hsla(var(--h), 70%, 60%, calc(var(--v) * .35));
+  transition: top .9s cubic-bezier(.2,.7,.2,1), opacity .4s ease, box-shadow .4s ease; }
+.bd-plate-n { position: absolute; right: 8px; bottom: 6px; font: 600 15px/1 "Cormorant Garamond", serif; color: var(--canon); opacity: .85; }
+.bd-plate.is-dim { opacity: .12; }
+.bd-plate.is-on { box-shadow: inset 0 0 0 4px rgba(5,4,7,.55), inset 0 0 0 5px var(--canon), 0 0 30px rgba(255,242,216,.55); }
+.bd-stack.is-breathing .bd-plate { animation: bd-breathe 6s ease-in-out infinite; }
+.bd-stack.is-still .bd-plate { transition: none; animation: none; }
+@keyframes bd-breathe { 0%, 100% { top: calc(8% + var(--i) * var(--gap)); } 50% { top: calc(2% + var(--i) * var(--gap) * 1.12); } }
+.bd-stack-tools { margin: 12px 0 0; display: flex; gap: 8px; flex-wrap: wrap; }
+.bd-plates { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.bd-layer { border: 1px solid hsla(var(--h), 60%, 65%, .35); border-radius: 12px; padding: 10px 12px; background: linear-gradient(315deg, rgba(255,242,216,.06), rgba(10,10,14,.75) 50%); }
+.bd-layer.is-on { border-color: var(--canon); }
+.bd-layer-h { all: unset; cursor: pointer; display: grid; grid-template-columns: 40px 1fr; gap: 10px; align-items: center; width: 100%; min-height: 44px; }
+.bd-layer-h:focus-visible { outline: 2px solid #e2c56a; outline-offset: 3px; border-radius: 6px; }
+.bd-num { font: 600 22px/1 "Cormorant Garamond", serif; color: hsl(var(--h), 70%, 75%); text-align: center; }
+.bd-layer small { display: block; font: 650 10px/1.3 Outfit, system-ui, sans-serif; letter-spacing: .14em; opacity: .65; }
+.bd-layer strong { display: block; font: 600 21px/1.15 "Cormorant Garamond", serif; color: #f1e3bf; }
+.bd-layer em { display: block; font-style: normal; font-size: 13px; opacity: .7; }
+.bd-layer p { margin: 8px 0 0; font-size: 14px; line-height: 1.5; opacity: .88; }
+.bd-bar { height: 6px; margin-top: 10px; border-radius: 6px; background: rgba(255,255,255,.08); overflow: hidden; }
+.bd-bar i { display: block; height: 100%; background: linear-gradient(90deg, hsl(var(--h), 60%, 45%), var(--canon)); }
+.bd-foot { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 36px; }
