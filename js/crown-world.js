@@ -5,19 +5,27 @@
   if (window.CrownWorld) return;
   var LEDGER_KEY = "crown-ledger-v1", ACTIVE_KEY = "crown-world-active-v1", MAX = 500;
   var LOOKS = ["black-chrome", "white-samurai", "skull-champion", "titan-gladiator"];
+  // Every room in the Hall (inferno/ is deliberately not listed). g = group for the Throne doorways.
   var ROOMS = [
-    ["home", "", "Home"], ["foundation", "foundation/", "Foundation"], ["black-chrome", "black-chrome/", "Black Chrome"],
-    ["white-samurai", "white-samurai/", "White Samurai"], ["skull-champion", "skull-champion/", "Skull Champion"],
-    ["titan-gladiator", "titan-gladiator/", "Titan Gladiator"], ["forge", "forge/", "Forge"], ["locker", "locker/", "Locker"],
-    ["throne", "throne/", "Throne Room"], ["colosseum", "colosseum/", "Colosseum"], ["gallery", "gallery/", "Gallery"],
-    ["smith", "smith/", "Smith"], ["create", "create/", "Create"], ["help", "help/", "Help"], ["workbench", "workbench/", "Workbench"],
-    ["cathedral", "cathedral/", "Cathedral"], ["core", "core/", "Core"], ["the-core", "the-core/", "The Core"],
-    ["lab", "lab/", "Lab"], ["elemental", "elemental/", "Elemental"], ["tessera-bridge", "tessera-bridge/", "Tessera Bridge"],
-    ["supreme-quad", "supreme-quad/", "Supreme Quad"], ["fault-constellation", "fault-constellation/", "Fault Constellation"],
-    ["genesis-forest", "genesis-forest/", "Genesis Forest"], ["genesis-marvel", "genesis-marvel/", "Genesis Marvel"],
-    ["seraphim", "seraphim/", "Seraphim"]
-  ].map(function (r) { return { id: r[0], href: r[1], title: r[2] }; });
-  var LABEL = { visit: "Visited", build: "Built", save: "Saved", forge: "Forged", fight: "Fought", smith: "Chose weapon", active: "Crowned", share: "Shared" };
+    ["home", "", "Home", "Hall"], ["throne", "throne/", "Throne Room", "Hall"], ["forge", "forge/", "Forge", "Hall"], ["locker", "locker/", "Locker", "Hall"],
+    ["create", "create/", "Create", "Hall"], ["smith", "smith/", "Smith", "Hall"], ["colosseum", "colosseum/", "Colosseum", "Hall"],
+    ["gallery", "gallery/", "Gallery", "Hall"], ["workbench", "workbench/", "Workbench", "Hall"], ["help", "help/", "Help", "Hall"],
+    ["foundation", "foundation/", "Foundation", "Looks"], ["black-chrome", "black-chrome/", "Black Chrome", "Looks"],
+    ["white-samurai", "white-samurai/", "White Samurai", "Looks"], ["skull-champion", "skull-champion/", "Skull Champion", "Looks"],
+    ["titan-gladiator", "titan-gladiator/", "Titan Gladiator", "Looks"],
+    ["cathedral", "cathedral/", "Cathedral", "Exhibits"], ["core", "core/", "Core", "Exhibits"], ["the-core", "the-core/", "The Core", "Exhibits"],
+    ["lab", "lab/", "Lab", "Lab"], ["elemental", "elemental/", "Elemental", "Lab"], ["tessera-bridge", "tessera-bridge/", "Tessera Bridge", "Lab"],
+    ["supreme-quad", "supreme-quad/", "Supreme Quad", "Lab"], ["fault-constellation", "fault-constellation/", "Fault Constellation", "Lab"],
+    ["genesis-forest", "genesis-forest/", "Genesis Forest", "Lab"], ["genesis-marvel", "genesis-marvel/", "Genesis Marvel", "Lab"],
+    ["seraphim", "seraphim/", "Seraphim", "Lab"],
+    ["ar_lasers", "ar_lasers.html", "AR Lasers", "Demos"], ["ar_lasers_kid", "ar_lasers_kid.html", "AR Lasers Kid", "Demos"],
+    ["ball_room", "ball_room.html", "Ball Room", "Demos"], ["bird_swarms", "bird_swarms.html", "Five Lasers", "Demos"],
+    ["finger_haptics", "finger_haptics.html", "Finger Nodes", "Demos"], ["finger_holo", "finger_holo.html", "Full Plate", "Demos"],
+    ["retina", "retina.html", "Retina", "Demos"]
+  ].map(function (r) { return { id: r[0], href: r[1], title: r[2], group: r[3] }; });
+  var OG = { "home": 1, "black-chrome": 1, "cathedral": 1, "colosseum": 1, "core": 1, "create": 1, "elemental": 1, "fault-constellation": 1, "forge": 1, "foundation": 1, "gallery": 1, "genesis-forest": 1, "genesis-marvel": 1, "help": 1, "locker": 1, "skull-champion": 1, "smith": 1, "supreme-quad": 1, "tessera-bridge": 1, "throne": 1, "titan-gladiator": 1, "white-samurai": 1, "workbench": 1 };
+  ROOMS.forEach(function (r) { r.og = OG[r.id] ? "images/og/" + r.id + ".jpg" : ""; });
+  var LABEL = { visit: "Visited", build: "Built", save: "Saved", forge: "Forged", fight: "Fought", smith: "Chose weapon", active: "Crowned", share: "Shared", door: "Walked through" };
 
   function read(key, dflt) { try { var v = JSON.parse(localStorage.getItem(key)); return v == null ? dflt : v; } catch (e) { return dflt; } }
   function write(key, v) { try { localStorage.setItem(key, JSON.stringify(v)); return true; } catch (e) { return false; } }
@@ -31,7 +39,7 @@
     var rest = p.slice(b.length).replace(/index\.html$/, "");
     return rest === "" ? "home" : rest.split("/")[0].replace(/\.html$/, "");
   }
-  var subs = [];
+  var subs = [], openCrown = function () {};
   function emit() { var l = list(); subs.forEach(function (f) { try { f(l); } catch (e) {} }); }
   function list(o) {
     o = o || {};
@@ -84,6 +92,15 @@
     if (s.helmet === "titan" || s.chest === "gladiator") return "titan-gladiator";
     return "black-chrome";
   }
+  // The character's picture: its saved card thumbnail, else the nearest look's full picture (never cropped by us).
+  function picture(c) {
+    if (c && c.thumb && String(c.thumb).indexOf("data:image/") === 0) return c.thumb;
+    return base() + "images/look-" + (nearestLook(c) || "black-chrome") + "-realistic.webp";
+  }
+  function gems() {
+    var s = stats();
+    return ROOMS.map(function (r) { return { id: r.id, title: r.title, on: s.rooms.indexOf(r.id) >= 0, color: gemColor(r.id) }; });
+  }
   function fromHash(h) {
     h = h || "";
     var m = /^#c=([^~]*)(?:~(.*))?$/.exec(h);
@@ -95,7 +112,7 @@
   }
 
   // ---- The crown: gems for rooms visited, plus a readable log. A small fixed crown button on pages with the site nav.
-  function gemColor(id) { var h = 0; for (var i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % 360; return "hsl(" + h + " 70% 62%)"; }
+  function gemColor(id) { var h = 0; for (var i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % 360; return "hsl(" + h + ", 70%, 62%)"; }
   function when(t) { var d = new Date(t); return d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) + " " + d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }); }
   function describe(e) {
     var d = e.data || {}, r = ROOMS.filter(function (x) { return x.id === e.page; })[0], room = r ? r.title : e.page;
@@ -137,6 +154,7 @@
       log.forEach(function (e) { var li = document.createElement("li"), sp = document.createElement("span"), tm = document.createElement("time"); sp.textContent = describe(e); tm.textContent = when(e.t); li.appendChild(sp); li.appendChild(tm); ul.appendChild(li); });
       panel.querySelector(".cw-x").addEventListener("click", function () { toggle(false); chip.focus(); });
     }
+    openCrown = function () { toggle(true); };
     function toggle(open) { panel.hidden = !open; chip.setAttribute("aria-expanded", open ? "true" : "false"); paint(); }
     chip.addEventListener("click", function () { toggle(panel.hidden); });
     document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !panel.hidden) { toggle(false); chip.focus(); } });
@@ -152,8 +170,8 @@
 
   window.CrownWorld = {
     ledger: { KEY: LEDGER_KEY, add: add, list: list, stats: stats, clear: function () { write(LEDGER_KEY, []); emit(); }, on: function (f) { subs.push(f); } },
-    character: { KEY: ACTIVE_KEY, active: active, setActive: setActive, all: function () { return entries().map(fromEntry); }, fromEntry: fromEntry, fromHash: fromHash, nearestLook: nearestLook },
-    rooms: ROOMS, room: roomId, visit: visit
+    character: { KEY: ACTIVE_KEY, active: active, setActive: setActive, all: function () { return entries().map(fromEntry); }, fromEntry: fromEntry, fromHash: fromHash, nearestLook: nearestLook, picture: picture },
+    rooms: ROOMS, room: roomId, visit: visit, base: base, gems: gems, openCrown: function () { openCrown(); }
   };
   function boot() { visit(); mountCrown(); try { document.dispatchEvent(new CustomEvent("crownworld:ready")); } catch (e) {} }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot); else boot();

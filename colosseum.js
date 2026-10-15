@@ -32,23 +32,60 @@ function fightSrc(a, b) {
   return "../images/fight-" + pair[0] + "-" + pair[1] + ".webp";
 }
 
-aBtns.forEach((btn) => {
+function bindA(btn) {
   btn.addEventListener("click", () => {
     if (window.heavyPulse) window.heavyPulse(10);
     fighterA = btn.dataset.look;
     setPressed(aBtns, btn);
     status.textContent = "";
   });
-});
+}
+aBtns.forEach(bindA);
 
-bBtns.forEach((btn) => {
+function bindB(btn) {
   btn.addEventListener("click", () => {
     if (window.heavyPulse) window.heavyPulse(10);
     fighterB = btn.dataset.look;
     setPressed(bBtns, btn);
     status.textContent = "";
   });
-});
+}
+bBtns.forEach(bindB);
+
+// Crown World: the active character joins as "Your champion" (its own uncropped card picture).
+// No fight picture exists for a saved build, so a champion bout is shown as a face-off.
+let champion = null;
+function addChampion() {
+  if (champion || !window.CrownWorld) return;
+  const c = window.CrownWorld.character.active();
+  if (!c) return;
+  champion = { name: c.name, img: window.CrownWorld.character.picture(c) };
+  titles.champion = "Your champion";
+  [["fighter-a", aBtns, bindA], ["fighter-b", bBtns, bindB]].forEach(([id, list, bind]) => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "hc-card hc-card--sm hc-card--contain"; b.dataset.look = "champion";
+    b.setAttribute("aria-pressed", "false"); b.style.setProperty("--tier", "#e2c56a");
+    b.innerHTML = "<span class='hc-card__art'><img alt='' decoding='async'></span><span class='hc-card__foil' aria-hidden='true'></span><span class='hc-card__sheen' aria-hidden='true'></span><span class='hc-card__plate'><strong>Your champion</strong><em></em></span>";
+    b.querySelector("img").src = champion.img;
+    b.querySelector("em").textContent = c.name;
+    document.getElementById(id).appendChild(b);
+    list.push(b); bind(b);
+  });
+}
+if (window.CrownWorld) addChampion(); else document.addEventListener("crownworld:ready", addChampion);
+function faceOff(a, b) {
+  const old = stage.querySelector(".champ-faceoff"); if (old) old.remove();
+  const f = document.createElement("div");
+  f.className = "champ-faceoff";
+  f.innerHTML = "<figure><img alt=''><figcaption></figcaption></figure><i>VS</i><figure><img alt=''><figcaption></figcaption></figure>";
+  const imgs = f.querySelectorAll("img"), caps = f.querySelectorAll("figcaption");
+  [a, b].forEach((x, i) => {
+    imgs[i].src = portrait(x);
+    imgs[i].alt = x === "champion" ? champion.name : titles[x];
+    caps[i].textContent = x === "champion" ? champion.name : titles[x];
+  });
+  stage.appendChild(f);
+}
 
 document.getElementById("start").addEventListener("click", () => {
   if (!fighterA || !fighterB) {
@@ -66,6 +103,18 @@ document.getElementById("start").addEventListener("click", () => {
   }
 
   if (window.heavyPulse) window.heavyPulse(16);
+  const oldF = stage.querySelector(".champ-faceoff"); if (oldF) oldF.remove();
+  if (fighterA === "champion" || fighterB === "champion") {
+    const other = fighterA === "champion" ? fighterB : fighterA;
+    hero.hidden = true; hero.style.display = "none"; empty.hidden = true;
+    faceOff(fighterA, fighterB);
+    caption.hidden = false;
+    caption.textContent = champion.name + " vs " + titles[other] + ". Your champion is a saved build, so there is no fight picture; they stand face to face.";
+    if (window.CrownWorld) window.CrownWorld.ledger.add("fight", { a: fighterA === "champion" ? champion.name : titles[fighterA], b: fighterB === "champion" ? champion.name : titles[fighterB] });
+    front(); reveal(fighterA, fighterB);
+    return;
+  }
+  hero.style.display = "";
   const src = fightSrc(fighterA, fighterB);
   const line = titles[fighterA] + " vs " + titles[fighterB];
   status.textContent = "";

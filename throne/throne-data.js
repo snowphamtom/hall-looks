@@ -18,6 +18,8 @@
   function tier(n) { var R = window.LOCKER_RANKS || []; return R[Math.max(0, Math.min(23, (n || 1) - 1))] || { n: n, name: "Rank " + n, tint: "#e2c56a", line: "" }; }
   function rankOf(x) { return window.rankForCharacter ? window.rankForCharacter(x) : 1; }
 
+  var CW = window.CrownWorld, act = null;
+  try { act = CW && CW.character.active(); } catch (e) { act = null; }
   var entries = [];
   try { entries = (window.HallLocker && window.HallLocker.entries && window.HallLocker.entries()) || []; } catch (e) { entries = []; }
   var fromLocker = entries.length > 0;
@@ -28,6 +30,7 @@
       var thumb = e.thumb && String(e.thumb).indexOf("data:image/") === 0 ? e.thumb : "";
       var n = rankOf(e), t = tier(n);
       statues.push({
+        id: e.id, active: !!(act && act.id === e.id),
         name: e.label || (c ? c.name : "Saved character"),
         line: t.name + " · " + (t.line || "") + (c ? " · " + c.name : ""),
         img: thumb || (c ? c.img : "../images/foundation.webp"),
@@ -51,6 +54,45 @@
   $("lede").textContent = fromLocker
     ? statues.length + (statues.length === 1 ? " character from your Locker stands" : " characters from your Locker stand") + " here, highest rank nearest the throne. Brighter gold in the floor means higher rank. The throne stays empty."
     : "Your Locker is empty, so the hall's own fighters keep the plinths. Save a character in the Forge or Locker and it takes a plinth here. Brighter gold means higher rank. The throne stays empty.";
+  var seated = null; statues.forEach(function (s) { if (s.active) seated = s; });
+  if (seated) $("lede").textContent = $("lede").textContent.replace(/ ?The throne stays empty\.$/, " " + seated.name + ", your active character, holds the throne. Pick another in the Locker with Make active.");
+
+  // Crown ledger on the page: gems (one per room) and a readable log (js/crown-world.js)
+  if (CW) {
+    var gemsEl = $("crown-gems"), logEl = $("crown-log");
+    var paintLedger = function () {
+      gemsEl.textContent = ""; logEl.textContent = "";
+      CW.gems().forEach(function (g) { var li = document.createElement("li"); li.title = g.title + (g.on ? "" : " (not yet)"); if (g.on) { li.style.background = g.color; li.style.color = g.color; } else li.className = "off"; gemsEl.appendChild(li); });
+      var s = CW.ledger.stats();
+      $("crown-who").textContent = (seated ? "On the throne: " + seated.name + ". " : "") + s.rooms.length + " of " + CW.rooms.length + " rooms visited, " + s.total + " moments kept.";
+      CW.ledger.list({ limit: 12 }).reverse().forEach(function (e) {
+        var li = document.createElement("li"), d = e.data || {};
+        li.textContent = ({ visit: "Visited ", build: "Built ", save: "Saved ", forge: "Forged ", fight: "Fought ", smith: "Chose ", active: "Crowned ", share: "Shared ", door: "Walked through " }[e.type] || e.type + " ") +
+          (e.type === "visit" ? (CW.rooms.filter(function (r) { return r.id === e.page; })[0] || { title: e.page }).title : (d.name || (d.a ? d.a + " vs " + d.b : "") || d.weapon || ""));
+        logEl.appendChild(li);
+      });
+    };
+    paintLedger(); CW.ledger.on(paintLedger); $("crown-ledger").hidden = false;
+    // Doorways: the list view (always present, also the no-WebGL view)
+    var groups = {}, order = [];
+    CW.rooms.forEach(function (r) { if (r.id === "throne") return; if (!groups[r.group]) { groups[r.group] = []; order.push(r.group); } groups[r.group].push(r); });
+    var visited = CW.ledger.stats().rooms, host = $("door-groups");
+    order.forEach(function (g) {
+      var h = document.createElement("h3"); h.textContent = g; host.appendChild(h);
+      var ul = document.createElement("ul"); ul.className = "throne-door-list";
+      groups[g].forEach(function (r) {
+        var li = document.createElement("li"), a = document.createElement("a");
+        a.href = CW.base() + r.href; a.className = "throne-door" + (visited.indexOf(r.id) >= 0 ? " is-seen" : "");
+        if (r.og) { var im = document.createElement("img"); im.src = CW.base() + r.og; im.alt = ""; im.loading = "lazy"; im.decoding = "async"; im.width = 1200; im.height = 630; a.appendChild(im); }
+        var t = document.createElement("span"); t.textContent = r.title; a.appendChild(t);
+        a.addEventListener("click", function () { CW.ledger.add("door", { name: r.title, to: r.id }); });
+        li.appendChild(a); ul.appendChild(li);
+      });
+      host.appendChild(ul);
+    });
+    $("doors").hidden = false;
+  }
+
 
   // Static gallery (always present; it is the list view and the no-WebGL / reduced-motion view)
   var list = $("statues");
@@ -108,7 +150,7 @@
     enter.hidden = true;
     document.documentElement.classList.add("t3d");
     document.body.classList.add("throne-3d");
-    import("./throne3d.js?v=p0l1sh15").then(function (m) { m.start(statues); }).catch(function (err) { if (window.console) console.error("throne3d", err);
+    import("./throne3d.js?v=p0l1sh17").then(function (m) { m.start(statues); }).catch(function (err) { if (window.console) console.error("throne3d", err);
       document.documentElement.classList.remove("t3d"); document.body.classList.remove("throne-3d");
       note.hidden = false; note.textContent = "The hall could not load, so it is shown as a gallery.";
     });

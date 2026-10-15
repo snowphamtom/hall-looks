@@ -1142,3 +1142,10 @@ label.clear:focus-within { outline: 2px solid #e4a15a; outline-offset: 2px; }
 /* Crown World: "Make active" in the Locker */
 .slot-crown { background: none; border: 0; color: inherit; font-family: inherit; cursor: pointer; }
 .slot-crown[aria-pressed="true"] { color: #e2c56a; opacity: 1; text-decoration: none; cursor: default; }
+
+/* Crown World: Colosseum face-off for "Your champion" (both pictures whole, never cropped) */
+.champ-faceoff { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 2vw; padding: 3%; min-height: 320px; }
+.champ-faceoff figure { margin: 0; display: grid; gap: 8px; justify-items: center; }
+.champ-faceoff img { width: 100%; max-height: 60vh; height: auto; object-fit: contain; background: #050506; border-radius: 12px; border: 1px solid rgba(228,161,90,.55); }
+.champ-faceoff figcaption { font-family: "Cormorant Garamond", serif; font-size: clamp(18px, 2.4vw, 28px); font-weight: 600; text-align: center; }
+.champ-faceoff i { font-style: normal; font-family: "Cormorant Garamond", serif; font-weight: 600; font-size: clamp(36px, 6vw, 80px); color: #e4a15a; text-shadow: 0 0 30px rgba(228,161,90,.6); }

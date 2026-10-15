@@ -342,6 +342,67 @@ export function start(statues) {
   const stick = { x: 0, y: 0 };
   const LIMIT_X = HALF_W - 1.3, MIN_Z = throneZ + 4.6, MAX_Z = startZ + 1.5;
 
+  // ---------- doorways (Crown World rooms): portals on both walls; walk into one, or tap it then press Enter ----------
+  const doors = [], doorPicks = [];
+  const goBtn = document.getElementById("door-go");
+  {
+    const CW = window.CrownWorld, base = CW ? CW.base() : "../";
+    const rooms = CW ? CW.rooms.filter((r) => r.id !== "throne") : [];
+    const visited = CW ? CW.ledger.stats().rooms : [];
+    const perSide = Math.ceil(rooms.length / 2);
+    const z0 = MAX_Z + 0.5, z1 = MIN_Z - 2.5, gap = (z0 - z1) / Math.max(1, perSide - 1);
+    const dw = Math.max(0.7, Math.min(1.5, gap * 0.82)), dh = 2.3;
+    const doorGeo = new THREE.PlaneGeometry(1, 1);
+    const frameMat = new THREE.MeshStandardMaterial({ color: 0xd6a740, metalness: 0.8, roughness: 0.35, emissive: 0x2a1a00 });
+    rooms.forEach((r, i) => {
+      const side = i % 2 ? 1 : -1, z = z0 - Math.floor(i / 2) * gap;
+      const cv = document.createElement("canvas"); cv.width = 256; cv.height = 384;
+      const c = cv.getContext("2d");
+      const gr = c.createLinearGradient(0, 0, 0, 384); gr.addColorStop(0, "#2b1d3a"); gr.addColorStop(1, "#0b0910");
+      c.fillStyle = gr; c.fillRect(0, 0, 256, 384);
+      c.fillStyle = "rgba(226,197,106,.9)"; c.textAlign = "center";
+      c.font = "600 30px 'Cormorant Garamond', serif";
+      const words = r.title.split(" "); words.forEach((w, k) => c.fillText(w, 128, 300 + (k - (words.length - 1) / 2) * 32));
+      c.font = "500 18px Outfit, sans-serif"; c.fillStyle = "rgba(240,230,210,.6)"; c.fillText(r.group.toUpperCase(), 128, 360);
+      if (visited.indexOf(r.id) >= 0) { c.fillStyle = "#e2c56a"; c.font = "26px serif"; c.fillText("◆", 128, 40); }
+      const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+      const mat = new THREE.MeshBasicMaterial({ map: tex, toneMapped: false, transparent: true, opacity: 0.92 });
+      const g = new THREE.Group(); g.position.set(side * (HALF_W - 0.03), 0, z); g.rotation.y = -side * Math.PI / 2;
+      const face = new THREE.Mesh(doorGeo, mat); face.scale.set(dw, dh, 1); face.position.set(0, dh / 2 + 0.03, 0.05);
+      const fr = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 0.06), frameMat); fr.scale.set(dw + 0.14, dh + 0.1, 1); fr.position.set(0, dh / 2 + 0.03, -0.02);
+      g.add(fr, face); scene.add(g);
+      face.userData.door = i; doorPicks.push(face);
+      if (r.og) loader.load(base + r.og, (t2) => {   // the room's picture above the name, contained, never cropped
+        const im = t2.image; const bw = 232, bh = 230, k = Math.min(bw / im.width, bh / im.height);
+        c.drawImage(im, 128 - im.width * k / 2, 14 + (bh - im.height * k) / 2 + 12, im.width * k, im.height * k);
+        tex.needsUpdate = true; dirty = true;
+      });
+      doors.push({ room: r, side, z, mat, href: base + r.href, half: Math.max(0.5, gap / 2) });
+    });
+  }
+  let nearDoor = null;
+  function enterDoor(d) {
+    if (!d) return;
+    if (window.CrownWorld) window.CrownWorld.ledger.add("door", { name: d.room.title, to: d.room.id });
+    location.href = d.href;
+  }
+  if (goBtn) goBtn.addEventListener("click", (e) => { e.stopPropagation(); enterDoor(nearDoor); });
+  addEventListener("keydown", (e) => { if (e.key === "Enter" && nearDoor && inView && e.target === document.body) enterDoor(nearDoor); });
+  function stepDoors(dt) {
+    let nd = null;
+    for (const d of doors) if (Math.abs(pos.z - d.z) < d.half && Math.abs(pos.x - d.side * LIMIT_X) < 1.1) { nd = d; break; }
+    if (nd !== nearDoor) {
+      if (nearDoor) nearDoor.mat.opacity = 0.92;
+      nearDoor = nd;
+      if (goBtn) { goBtn.hidden = !nd; if (nd) goBtn.textContent = "Enter " + nd.room.title; }
+    }
+    if (nd) {
+      nd.mat.opacity = 0.75 + 0.25 * Math.sin(t * 4);
+      // walking on into the wall goes through the doorway
+      if (Math.abs(pos.x) >= LIMIT_X - 0.01 && mv.x * nd.side > 0.5 && !target) enterDoor(nd);
+    }
+  }
+
   addEventListener("keydown", (e) => {
     if (e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
     if (!document.getElementById("card").hidden) return;
@@ -381,6 +442,10 @@ export function start(statues) {
     ndc.set(((cx - r.left) / r.width) * 2 - 1, -((cy - r.top) / r.height) * 2 + 1);
     ray.setFromCamera(ndc, camera);
     const hit = ray.intersectObjects(pickables, false)[0];
+    const ch = ray.intersectObject(crown, true)[0];
+    if (ch && (!hit || ch.distance < hit.distance)) { if (window.CrownWorld) window.CrownWorld.openCrown(); return; }
+    const dh = ray.intersectObjects(doorPicks, false)[0];
+    if (dh && (!hit || dh.distance < hit.distance)) { const d = doors[dh.object.userData.door]; target = new THREE.Vector3(d.side * LIMIT_X, 0, d.z); return; }
     if (hit) { window.ThroneCard.open(hit.object.userData.index, canvas); return; }
     const fh = ray.intersectObject(floor, false)[0];
     if (fh) target = new THREE.Vector3(fh.point.x, 0, fh.point.z);
@@ -391,7 +456,7 @@ export function start(statues) {
     const r = canvas.getBoundingClientRect();
     ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
     ray.setFromCamera(ndc, camera);
-    canvas.style.cursor = ray.intersectObjects(pickables, false).length ? "pointer" : "grab";
+    canvas.style.cursor = (ray.intersectObjects(pickables, false).length || ray.intersectObjects(doorPicks, false).length || ray.intersectObject(crown, true).length) ? "pointer" : "grab";
   });
 
   // touch joystick
@@ -424,11 +489,18 @@ export function start(statues) {
       const a = (k / 7) * Math.PI * 2;
       const sp = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.24, 4), ring.material);
       sp.position.set(Math.cos(a) * 0.32, 0.18, Math.sin(a) * 0.32); crown.add(sp);
-      const gem = new THREE.Mesh(new THREE.OctahedronGeometry(0.035), new THREE.MeshBasicMaterial({ color: k % 2 ? 0xe23b4a : 0x8fd4f2, toneMapped: false }));
-      gem.position.set(Math.cos(a) * 0.335, 0.02, Math.sin(a) * 0.335); crown.add(gem);
     }
+    // Crown ledger gems (js/crown-world.js): one per room, lit in its own color once visited, dark until then.
+    const G = (window.CrownWorld && window.CrownWorld.gems()) || [];
+    const gemGeo = new THREE.OctahedronGeometry(G.length > 20 ? 0.024 : 0.035);
+    G.forEach((g, k) => {
+      const a = (k / G.length) * Math.PI * 2;
+      const gem = new THREE.Mesh(gemGeo, new THREE.MeshBasicMaterial({ color: g.on ? new THREE.Color(g.color) : new THREE.Color(0x2a2630), toneMapped: false }));
+      gem.position.set(Math.cos(a) * 0.335, 0.02 + (k % 2) * 0.05, Math.sin(a) * 0.335); gem.userData.crown = true; crown.add(gem);
+    });
   }
-  crown.visible = false; scene.add(crown);
+  crown.visible = true; scene.add(crown);
+  crown.traverse((o) => { o.userData.crown = true; });
   const glintTex = (() => {
     const c = document.createElement("canvas"); c.width = c.height = 128;
     const g = c.getContext("2d"); g.translate(64, 64);
@@ -515,12 +587,13 @@ export function start(statues) {
   // ---------- claim the throne ----------
   const claimBtn = document.getElementById("claim");
   const fromLocker = !!window.THRONE_FROM_LOCKER;
+  const seatIdx = Math.max(0, statues.findIndex((x) => x.active));
   const claim = { state: "none", t0: 0, from: null, fromQ: null, parent: null, to: new THREE.Vector3(), toQ: new THREE.Quaternion(), h: 2 };
   if (!fromLocker) { claimBtn.textContent = "Save a character to claim the throne"; }
   claimBtn.addEventListener("click", () => {
     if (!fromLocker) { location.href = "../locker/"; return; }
     if (reveal) endReveal();
-    const L = lit[0]; if (!L || claim.state === "moving" || claim.state === "returning") return;
+    const L = lit[seatIdx]; if (!L || claim.state === "moving" || claim.state === "returning") return;
     if (claim.state === "none") {
       claim.parent = L.holder.parent;
       claim.home = L.holder.matrixWorld.clone();
@@ -537,13 +610,13 @@ export function start(statues) {
       const p = new THREE.Vector3(), q2 = new THREE.Quaternion(), sc = new THREE.Vector3();
       claim.home.decompose(p, q2, sc); claim.to.copy(p); claim.toQ.copy(q2);
       claim.state = "returning"; claim.t0 = performance.now();
-      crown.visible = false; glint.material.opacity = 0;
+      glint.material.opacity = 0;
       claimBtn.textContent = "Claim the throne"; claimBtn.setAttribute("aria-pressed", "false");
       hint.textContent = hintText();
     }
   });
   function stepClaim(now) {
-    const L = lit[0]; if (!L || claim.state === "none") return;
+    const L = lit[seatIdx]; if (!L || claim.state === "none") return;
     const T = (now - claim.t0) / 1000;
     if (claim.state === "moving" || claim.state === "returning") {
       const k = ease(T / 2.6);
@@ -573,6 +646,12 @@ export function start(statues) {
     veinBoost = T < 2.2 ? Math.sin(Math.min(1, T / 2.2) * Math.PI) : 0;
   }
   let veinBoost = 0;
+  // The active character (Crown World) takes the throne on arrival; "Return to plinth" still works.
+  function restCrown() { if (claim.state === "none") { crown.position.set(0, 1.86, throneZ + 0.05); crown.rotation.y = t * 0.3; } }
+  if (fromLocker && statues[seatIdx] && statues[seatIdx].active) {
+    claimBtn.click(); claim.t0 = performance.now() - 1e5; claim.lookUp = false; target = null;
+    claimBtn.title = statues[seatIdx].name + " is your active character";
+  }
   if (!fromLocker) claimBtn.classList.add("is-empty");
 
   // ---------- loop ----------
@@ -638,6 +717,8 @@ export function start(statues) {
     pGeo.attributes.position.needsUpdate = true;
     if (reveal) stepReveal(now);
     stepClaim(now);
+    restCrown();
+    stepDoors(dt);
     updDust(t);
     // veins breathe, gently (and flare when a crown lands)
     const br = 0.85 + 0.15 * Math.sin(t * 1.3);

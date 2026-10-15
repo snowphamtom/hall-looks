@@ -26,7 +26,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Outfit:wght@380;500;650;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../styles.css?v=p0l1sh16">
+<link rel="stylesheet" href="../styles.css?v=p0l1sh17">
 <style>
   .gallery { padding: 36px 7vw 48px; max-width: 1400px; margin: 0 auto; }
   .gallery h1 { font-family: "Cormorant Garamond", serif; font-weight: 500; font-size: clamp(40px, 6vw, 72px); line-height: 1; margin: 6px 0 12px; }
@@ -147,6 +147,22 @@
 </script>
 <script src="../locker-field.js"></script>
 <script src="../interaction.js"></script>
+<script>
+/* Crown World: your active character opens the Gallery as its own card (picture whole, never cropped). */
+(function () {
+  function add() {
+    var CW = window.CrownWorld, c = CW && CW.character.active(), grid = document.querySelector(".g-grid");
+    if (!c || !grid || document.getElementById("g-champion")) return;
+    var li = document.createElement("li"); li.className = "g-tile"; li.id = "g-champion";
+    li.innerHTML = "<a class='g-open' href='../throne/'><img width='640' height='360' alt='' decoding='async'><strong>Your champion</strong></a><p></p><a class='g-preview' style='display:inline-grid;place-items:center;text-decoration:none' href='../locker/'>Choose another in the Locker</a>";
+    li.querySelector("img").src = CW.character.picture(c);
+    li.querySelector("img").alt = c.name;
+    li.querySelector("p").textContent = c.name + ". Your active character, carried into every room and seated on the throne.";
+    grid.insertBefore(li, grid.firstChild);
+  }
+  if (window.CrownWorld) add(); else document.addEventListener("crownworld:ready", add);
+})();
+</script>
 <script src="../nav.js"></script>
 </body>
 </html>

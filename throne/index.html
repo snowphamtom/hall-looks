@@ -26,8 +26,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Outfit:wght@380;500;650;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../styles.css?v=p0l1sh15">
-<link rel="stylesheet" href="throne.css?v=p0l1sh15">
+<link rel="stylesheet" href="../styles.css?v=p0l1sh17">
+<link rel="stylesheet" href="throne.css?v=p0l1sh17">
 <script>try{if(window.WebGLRenderingContext&&!matchMedia("(prefers-reduced-motion: reduce)").matches)document.documentElement.classList.add("t3d")}catch(e){}</script>
 </head>
 <body class="throne-page">
@@ -38,7 +38,7 @@
     <canvas id="hall" aria-label="The Throne Room. A stone hall with your characters as statues. Use the statue list below to open any of them."></canvas>
     <div class="throne-hud" id="hud">
       <span id="hud-hint">Drag to look · WASD or arrows to walk · tap a statue</span>
-      <span class="throne-hud-btns"><button type="button" id="claim" class="claim" aria-pressed="false">Claim the throne</button><button type="button" id="to-throne">Walk to the throne</button><button type="button" id="replay">Replay entrance</button><button type="button" id="leave-3d">Statue list</button></span>
+      <span class="throne-hud-btns"><button type="button" id="door-go" class="door-go" hidden>Enter</button><button type="button" id="claim" class="claim" aria-pressed="false">Claim the throne</button><button type="button" id="to-throne">Walk to the throne</button><button type="button" id="replay">Replay entrance</button><button type="button" id="leave-3d">Statue list</button></span>
     </div>
     <div class="throne-stick" id="stick" aria-hidden="true"><i></i></div>
     <p class="throne-loading" id="loading">Lighting the hall…</p>
@@ -50,6 +50,17 @@
     <p class="throne-mode" id="mode-note" hidden></p>
     <p><button type="button" class="go" id="enter-3d" hidden>Enter the hall</button></p>
     <ol class="throne-list" id="statues"></ol>
+    <section class="throne-crown" id="crown-ledger" aria-labelledby="crown-h" hidden>
+      <h2 id="crown-h">The crown remembers</h2>
+      <p class="throne-crown-who" id="crown-who"></p>
+      <ul class="throne-gems" id="crown-gems" aria-label="Rooms visited"></ul>
+      <ol class="throne-log" id="crown-log"></ol>
+    </section>
+    <section class="throne-doors" id="doors" aria-labelledby="doors-h" hidden>
+      <h2 id="doors-h">Doorways</h2>
+      <p class="lede">Every room in the Hall opens from here. In the 3D hall, walk into a doorway on either wall.</p>
+      <div id="door-groups"></div>
+    </section>
   </section>
   <div class="throne-card" id="card" role="dialog" aria-modal="true" aria-labelledby="card-name" hidden>
     <div class="throne-card-inner">
@@ -65,7 +76,8 @@
 </main>
 <script src="../locker-store.js"></script>
 <script src="../locker-field.js"></script>
-<script src="throne-data.js?v=p0l1sh15"></script>
+<script src="../js/crown-world.js?v=p0l1sh17"></script>
+<script src="throne-data.js?v=p0l1sh17"></script>
 <script src="../interaction.js"></script>
 <script src="../nav.js"></script>
 </body>
