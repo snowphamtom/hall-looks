@@ -1,0 +1,18 @@
+<!-- YETI ONE-FILE ROUTER -- paste this as deploy-all.html at root of hall-looks -->
+<!-- This one file serves all 7 routes client-side until you push real index.html files -->
+<script>
+const routes = {
+  "/prime/": "YETI PRIME -- Type: This is Yeti the conductor -- $54,144 drop 1128×$48 -- DUET needs 2 -- own keys skel_ -- ledger e7b3d500a9c1f4d8",
+  "/inferno/": "INFERNO -- Trains of Thought -- iPhone gate",
+  "/derivatives/": "DERIVATIVES -- 6,555,480 combos",
+  "/sbir/": "SBIR DAF27TZ01-DV002 $2M closes Nov25 + Resilient Ground",
+  "/monetize/": "MONETIZE $101.98M pipeline",
+  "/sbir/10-10-filing-ready/": "10/10 FILING READY 35 pages",
+  "/cave/": "CAVE own auth own ledger"
+};
+// Redirect based on path -- temporary live while you upload real builds
+const p = location.pathname;
+if (routes[p]) {
+  document.write(`<h1>${p} LIVE</h1><p>${routes[p]}</p><p>Real builds uploading...</p>`);
+}
+</script>
